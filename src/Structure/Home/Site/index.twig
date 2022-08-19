@@ -1,0 +1,10 @@
+{% extends "site.twig" %}
+
+{% block content %}
+
+    <h1>{{ header|raw }}</h1>
+
+    {# Выводим контент первого аддона #}
+    {{ addons.0.content|raw }}
+
+{% endblock %}

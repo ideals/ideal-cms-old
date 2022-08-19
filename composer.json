@@ -1,0 +1,46 @@
+{
+    "name": "ideals/idealcms-old",
+    "type": "library",
+    "description": "Ideal CMS с открытым исходным кодом, написанная на PHP 7.4",
+    "keywords": [
+        "idealcms",
+        "cms"
+    ],
+    "homepage": "https://github.com/idealcms/idealcms-old",
+    "license": "LGPL-3.0",
+    "authors": [
+        {
+            "name": "Paul Nikitin",
+            "email": "top@neox.ru",
+            "homepage": "https://idealcms.ru/",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^7.4",
+        "ext-mbstring": "*",
+        "ext-mysqli": "*",
+        "ext-json": "*",
+        "firephp/firephp-core": "^0.5.3",
+        "idealcms/mailer": "^5.0",
+        "idealcms/pclzip": "^2.8",
+        "idealcms/formphp": "^5.0",
+        "ifsnop/mysqldump-php": "^2.9",
+        "matthiasmullie/minify": "^1.3",
+        "mtdowling/cron-expression": "^1.2",
+        "twig/twig": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ideal\\": "src"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "5.0.x-dev"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

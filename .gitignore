@@ -1,0 +1,4 @@
+/vendor/*
+/.htaccess
+/public_html/css/all.min.css
+/public_html/js/all.min.js
