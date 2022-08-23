@@ -15,7 +15,7 @@ namespace Ideal\Core;
  * @property string cmsFolder Название папки с CMS
  * @property array yandex Массив с настройками подключения к сервисам Яндекса
  * @property string domain Доменная часть адреса сайта на котором установлена CMS
- * @property string cms Массив настроек cms
+ * @property array cms Массив настроек cms
  * @property string urlSuffix Стандартный суффикс url для страниц сайта (обычно .html)
  * @property array smtp Массив с настройками SMTP
  */
@@ -187,21 +187,18 @@ class Config
     }
 
     /**
-     * Загружает все конфигурационные переменные из файлов config.php и site_data.php
+     * Загружает все конфигурационные переменные из конфигурационных файлов
      * В дальнейшем доступ к ним осуществляется через __get этого класса
+     *
+     * @param string $rootDir
+     *
+     * @return void
      */
-    public function loadSettings()
+    public function loadSettings(string $rootDir): void
     {
         // Подключаем описание данных для БД
-        /** @noinspection PhpIncludeInspection */
-        $this->import(include($this->cmsFolder . '/config.php'));
-
-        // Подключаем файл с переменными изменяемыми в админке
-        /** @noinspection PhpIncludeInspection */
-        $this->import(include($this->cmsFolder . '/site_data.php'));
-
-        // Загрузка данных из конфигурационных файлов подключённых структур
-        $this->loadStructures();
+        /** @noinspection UsingInclusionReturnValueInspection */
+        $this->import(include($rootDir . '/config/cms.php'));
     }
 
     /**
