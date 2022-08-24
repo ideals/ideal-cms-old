@@ -7,10 +7,14 @@
  * @license   http://idealcms.ru/license.html LGPL v3
  */
 
+namespace Ideal\Structure\Service;
+
 // Настройки сервисов
-return array(
-    'params' => array(
-        'structures' => array('Service'), // типы, которые можно создавать в этом разделе
-    ),
-    'fields' => array(),
-);
+class Config
+{
+    public static array $params = [
+        'structures' => ['Service'], // типы, которые можно создавать в этом разделе
+    ];
+
+    public static array $fields = [];
+}

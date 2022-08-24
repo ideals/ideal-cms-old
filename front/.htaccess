@@ -1,0 +1,34 @@
+Options -Includes +FollowSymLinks -Indexes
+AddDefaultCharset utf-8
+
+RewriteEngine on
+
+# Редирект с [[DOMAIN_FROM]] на [[DOMAIN_TO]]
+RewriteCond %{HTTP_HOST} ^[[DOMAIN_FROM_ESC]]
+RewriteRule ^(.*)$ https://[[DOMAIN_TO]]/$1 [R=permanent,L]
+
+#redirect#
+#redirect#
+
+# Если файл есть на диске, с ним ничего не происходит
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -l
+RewriteRule ^(.*)$ - [NC,L]
+
+# Если файла на диске нет, вызывается скрипт
+RewriteRule ^.*$ _.php [NC,L]
+
+# browser cache
+# end browser cache
+
+<ifModule mod_deflate.c>
+	AddOutputFilterByType DEFLATE text/html
+	AddOutputFilterByType DEFLATE text/plain
+	AddOutputFilterByType DEFLATE text/xml
+	AddOutputFilterByType DEFLATE application/xml
+	AddOutputFilterByType DEFLATE application/xhtml+xml
+	AddOutputFilterByType DEFLATE text/css
+	AddOutputFilterByType DEFLATE text/javascript
+	AddOutputFilterByType DEFLATE application/javascript
+	AddOutputFilterByType DEFLATE application/x-javascript
+</ifModule>

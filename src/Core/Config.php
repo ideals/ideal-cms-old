@@ -8,6 +8,8 @@
 
 namespace Ideal\Core;
 
+use InvalidArgumentException;
+
 /**
  * Класс конфигурации, в котором хранятся все конфигурационные данные CMS
  * @property array db Массив с настройками подключения к БД
@@ -18,18 +20,19 @@ namespace Ideal\Core;
  * @property array cms Массив настроек cms
  * @property string urlSuffix Стандартный суффикс url для страниц сайта (обычно .html)
  * @property array smtp Массив с настройками SMTP
+ * @property array addons Список подключённых аддонов
  */
 class Config
 {
 
     /** @var object Необходима для реализации паттерна Singleton */
-    private static $instance;
+    private static object $instance;
 
     /** @var array Список всех подключённых к проекту структур */
-    public $structures = array();
+    public array $structures = [];
 
     /** @var array Содержит все конфигурационные переменные проекта */
-    private $array = array();
+    private array $array = [];
 
     /**
      * Статический метод, возвращающий находящийся в нём динамический объект
@@ -41,7 +44,7 @@ class Config
     public static function getInstance()
     {
         if (empty(self::$instance)) {
-            self::$instance = new Config();
+            self::$instance = new self();
         }
         return self::$instance;
     }
@@ -50,9 +53,10 @@ class Config
      * Магический метод, возвращающий по запросу $config->varName переменную varName из массива $this->array
      *
      * @param string $name Название запрашиваемой переменной
+     *
      * @return string Значение запрашиваемой переменной
      */
-    public function __get($name)
+    public function __get(string $name)
     {
         if (isset($this->array[$name])) {
             return $this->array[$name];
@@ -66,7 +70,7 @@ class Config
      * @param string $name  Название переменной
      * @param mixed  $value Значение переменной
      */
-    public function __set($name, $value)
+    public function __set(string $name, $value)
     {
         $this->array[$name] = $value;
     }
@@ -79,17 +83,18 @@ class Config
     /**
      * Из списка подключённых структур находит стартовую по наличию заполненного параметра startName
      *
-     * @return array|bool Массив стартовой структуры, или FALSE, если структуру не удалось обнаружить
+     * @return ?array Массив стартовой структуры, или NULL, если структуру не удалось обнаружить
      */
-    public function getStartStructure()
+    public function getStartStructure(): ?array
     {
         // TODO сделать уведомление об ошибке, если нет структуры с startName
         foreach ($this->structures as $structure) {
-            if (isset($structure['startName']) && ('' != $structure['startName'])) {
+            if (isset($structure['startName']) && ($structure['startName'] !== '')) {
                 return $structure;
             }
         }
-        return false;
+
+        return null;
     }
 
     /**
@@ -97,17 +102,18 @@ class Config
      *
      * @param string $className
      *
-     * @return array|bool Массив структуры с указанным ID, или FALSE, если структуру не удалось обнаружить
+     * @return ?array Массив структуры с указанным ID, или NULL, если структуру не удалось обнаружить
      */
-    public function getStructureByClass($className)
+    public function getStructureByClass(string $className): ?array
     {
         $className = trim($className, '\\');
-        $className = explode('\\', $className);
-        $className = $className[0] . '_' . $className[2];
+        $class = (array)explode('\\', $className);
+        if (!isset($class[2])) {
+            throw new InvalidArgumentException('Не могу получить структуру из класса ' . $className);
+        }
+        $className = $class[0] . '_' . $class[2];
 
-        $structure = $this->getStructureByName($className);
-
-        return $structure;
+        return $this->getStructureByName($className);
     }
 
     /**
@@ -115,18 +121,19 @@ class Config
      *
      * @param string $name Краткое наименование структуры, например, Ideal_Part или Ideal_News
      *
-     * @return array|bool Массив структуры с указанным названием, или FALSE, если структуру не удалось обнаружить
+     * @return null|array Массив структуры с указанным названием, или FALSE, если структуру не удалось обнаружить
      */
-    public function getStructureByName($name)
+    public function getStructureByName(string $name): ?array
     {
         // TODO что делать, если с таким именем определено несколько структур
         // TODO сделать уведомление об ошибке, если такой структуры нет
         foreach ($this->structures as $structure) {
-            if ($structure['structure'] == $name) {
+            if ($structure['structure'] === $name) {
                 return $structure;
             }
         }
-        return false;
+
+        return null;
     }
 
     /**
@@ -136,17 +143,12 @@ class Config
      *
      * @return array|bool Массив структуры с указанным ID, или FALSE, если структуру не удалось обнаружить
      */
-    public function getStructureByPrev($prevStructure)
+    public function getStructureByPrev(string $prevStructure)
     {
-        $prev = explode('-', $prevStructure);
-        if ($prev[0] == 0) {
-            $structureId = $prev[1];
-        } else {
-            $structureId = $prev[0];
-        }
-        $structure = $this->getStructureById($structureId);
+        $prev = (array)explode('-', $prevStructure);
+        $structureId = $prev[0] === '0' ? $prev[1] : $prev[0];
 
-        return $structure;
+        return $this->getStructureById($structureId);
     }
 
     /**
@@ -156,14 +158,15 @@ class Config
      *
      * @return array|bool Массив структуры с указанным ID, или FALSE, если структуру не удалось обнаружить
      */
-    public function getStructureById($structureId)
+    public function getStructureById(int $structureId)
     {
         // TODO сделать уведомление об ошибке, если такой структуры нет
         foreach ($this->structures as $structure) {
-            if ($structure['ID'] == $structureId) {
+            if ($structure['ID'] === $structureId) {
                 return $structure;
             }
         }
+
         return false;
     }
 
@@ -172,18 +175,18 @@ class Config
      *
      * @param string $name Название структуры или аддона
      * @param string $type Тип класса (Structure или Addon)
+     *
      * @return string Название таблицы
-     * @throws \Exception
      */
-    public function getTableByName($name, $type = 'Structure')
+    public function getTableByName(string $name, string $type = 'Structure'): string
     {
         $name = strtolower($name);
-        $name = explode('_', $name);
-        if (count($name) != 2) {
-            throw new \Exception('Передано неправильное значение названия структуры: ' . $name);
+        $nameParts = (array)explode('_', $name);
+        if (!isset($nameParts[1])) {
+            throw new \RuntimeException('Передано неправильное значение названия структуры: ' . $name);
         }
-        $table = $this->db['prefix'] . $name[0] . '_' . strtolower($type) . '_' . $name[1];
-        return $table;
+
+        return $this->db['prefix'] . $nameParts[0] . '_' . strtolower($type) . '_' . $nameParts[1];
     }
 
     /**
@@ -193,12 +196,20 @@ class Config
      * @param string $rootDir
      *
      * @return void
+     * @noinspection UsingInclusionReturnValueInspection
      */
     public function loadSettings(string $rootDir): void
     {
-        // Подключаем описание данных для БД
-        /** @noinspection UsingInclusionReturnValueInspection */
+        // Подключаем конфигурационные файлы
         $this->import(include($rootDir . '/config/cms.php'));
+        $this->import(include($rootDir . '/config/db.php'));
+        $this->import(include($rootDir . '/config/structure.php'));
+
+        // Подключаем файл с переменными изменяемыми в админке
+        //$this->import(include(DOCUMENT_ROOT . '/../config/site.php'));
+
+        // Загрузка данных из конфигурационных файлов подключённых структур
+        //$this->loadStructures();
     }
 
     /**
@@ -206,7 +217,7 @@ class Config
      *
      * @param array $arr Массив значений для импорта
      */
-    protected function import($arr)
+    protected function import(array $arr): void
     {
         // Проверяем, не объявлены ли переменные из импортируемого массива в этом классе
         foreach ($arr as $k => $v) {
@@ -216,7 +227,7 @@ class Config
             }
         }
         // Объединяем импортируемый массив с основным массивом переменных конфига
-        $this->array = array_merge($this->array, $arr);
+        $this->array = array_merge_recursive($this->array, $arr);
     }
 
     /**
@@ -227,8 +238,8 @@ class Config
         // Проходимся по всем конфигам подключённых структур и добавляем их в общий конфиг
         $structures = $this->structures;
         foreach ($structures as $k => $structureName) {
-            list($module, $structure) = explode('_', $structureName['structure'], 2);
-            $module = ($module == 'Ideal') ? '' : $module . '/';
+            [$module, $structure] = explode('_', $structureName['structure'], 2);
+            $module = ($module === 'Ideal') ? '' : $module . '/';
             $fileName = $module . 'Structure/' . $structure . '/config.php';
             /** @noinspection PhpIncludeInspection */
             $arr = require_once($fileName);
@@ -298,5 +309,11 @@ class Config
 
         $this->protocol = 'http://';
         return $this->protocol;
+    }
+
+    public function getStructureClass(string $structure, string $class, string $structureType = 'Structure'): string
+    {
+        [$module, $type] = explode('_', $structure);
+        return $module . '\\' . $structureType . '\\' . $type . '\\' . $class;
     }
 }

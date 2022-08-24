@@ -1,49 +1,53 @@
 <?php
+namespace Ideal\Addon\YandexSearch;
+
 // ЯндексПоиск
-return array(
-    'params' => array(
+class Config
+{
+    public static array $params = [
         'name' => 'ЯндексПоиск',
-    ),
-    'fields' => array(
-        'ID' => array(
+    ];
+
+    public static array $fields = [
+        'ID' => [
             'label' => 'Идентификатор',
             'sql' => 'int(8) unsigned not null auto_increment primary key',
-            'type' => 'Ideal_Hidden'
-        ),
-        'prev_structure' => array(
+            'type' => 'Ideal_Hidden',
+        ],
+        'prev_structure' => [
             'label' => 'ID родительских структур',
             'sql' => 'char(15)',
-            'type' => 'Ideal_Hidden'
-        ),
-        'tab_ID' => array(
+            'type' => 'Ideal_Hidden',
+        ],
+        'tab_ID' => [
             'label' => 'ID таба аддона',
             'sql' => 'int not null default 0',
-            'type' => 'Ideal_Hidden'
-        ),
-        'yandexLogin' => array(
+            'type' => 'Ideal_Hidden',
+        ],
+        'yandexLogin' => [
             'label' => 'Яндекс логин',
             'sql' => 'varchar(255)',
-            'type' => 'Ideal_Text'
-        ),
-        'yandexKey' => array(
+            'type' => 'Ideal_Text',
+        ],
+        'yandexKey' => [
             'label' => 'Яндекс ключ',
             'sql' => 'varchar(255)',
-            'type' => 'Ideal_Text'
-        ),
-        'proxyUrl' => array(
+            'type' => 'Ideal_Text',
+        ],
+        'proxyUrl' => [
             'label' => 'Адрес прокси скрипта',
             'sql' => 'varchar(255)',
-            'type' => 'Ideal_Text'
-        ),
-        'elements_site' => array(
+            'type' => 'Ideal_Text',
+        ],
+        'elements_site' => [
             'label' => 'Количество элементов в выдаче',
             'sql' => 'int(8)',
-            'type' => 'Ideal_Integer'
-        ),
-        'content' => array(
+            'type' => 'Ideal_Integer',
+        ],
+        'content' => [
             'label' => 'Текст',
             'sql' => 'mediumtext',
-            'type' => 'Ideal_RichEdit'
-        ),
-    )
-);
+            'type' => 'Ideal_RichEdit',
+        ],
+    ];
+}

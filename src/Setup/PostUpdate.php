@@ -92,22 +92,4 @@ class PostUpdate
         }
         closedir($dir);
     }
-
-    /**
-     * Копирует файл из $from в $to (пути абсолютные)
-     *
-     * @param string $from Источник копирования
-     * @param string $to Цель копирования
-     *
-     * @return void
-     */
-    protected function copyFile(string $from, string $to): void
-    {
-        $toDir = basename($to);
-
-        if (!file_exists($toDir) && !mkdir($toDir, 0777, true) && !is_dir($toDir)) {
-            throw new RuntimeException(sprintf('Directory "%s" was not created', $toDir));
-        }
-        copy($from, $to);
-    }
 }

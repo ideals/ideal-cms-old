@@ -9,8 +9,11 @@
 namespace Ideal\Setup;
 
 use Composer\Script\Event;
+use Ideal\Core\Config;
 use Ideal\Core\ConfigEdit;
+use Ideal\Core\Db;
 use JsonException;
+use mysqli_result;
 use RuntimeException;
 
 class PostCreateProject
@@ -41,7 +44,7 @@ class PostCreateProject
         $file = $this->vendorDir . '/ideals/idealcms-old/config/cms.php';
 
         if (!$this->cmsConfig->loadFile($file)) {
-            throw new \http\Exception\RuntimeException('Отсутствует файл ' . $file);
+            throw new RuntimeException('Отсутствует файл ' . $file);
         }
     }
 
@@ -65,20 +68,135 @@ class PostCreateProject
 
         $adminFolder = trim($io->ask('Admin folder [adminka]: ', 'adminka'));
 
+        $dbHost = trim($io->ask('Database host [localhost]: ', 'localhost'));
+        $dbUser = trim($io->ask('Database user: '));
+        $dbPass = trim($io->ask('Database user password: '));
+        $dbName = trim($io->ask('Database name: '));
+        $dbPrefix = trim($io->ask('Prefix for CMS tables [i_]: ', 'i_'));
+
+        $adminLogin = trim($io->ask('Administrator email: '));
+        $adminPass = trim($io->ask('Administrator password: '));
+
+        $domainFrom = mb_strpos($domain, 'www.') === false ? 'www.' . $domain : mb_eregi_replace('^www\.', '', $domain);
+        $siteName = mb_strpos($domain, 'www.') === false ? $domain : $domainFrom;
+
+        $placeholder = [
+            'DOMAIN_FROM' => $domainFrom,
+            'DOMAIN_TO' => $domain,
+            'DOMAIN_FROM_ESC' => str_replace('.', '\.', $domain),
+            'DB_HOST' => $dbHost,
+            'DB_LOGIN' => $dbUser,
+            'DB_PASS' => $dbPass,
+            'DB_NAME' => $dbName,
+            'DB_PREFIX' => $dbPrefix,
+            'SITE_NAME' => $siteName,
+            'CMS_LOGIN' => $adminLogin,
+        ];
+
+        $configFolder = $this->rootDir . '/config';
+
+        $this->copyFile(
+            $this->vendorDir . '/ideals/idealcms-old/config/structure.php',
+            $configFolder . '/structure.php'
+        );
+
+        $this->modifyFile('config/db.php', 'config/db.php', $placeholder);
+        $this->modifyFile('front/.htaccess', $folder . '/.htaccess', $placeholder);
+
         $params = $this->cmsConfig->getParams();
         $params['cms']['array']['publicFolder']['value'] = $folder;
         $params['domain']['value'] = $domain;
         $params['cmsFolder']['value'] = $adminFolder;
         $this->cmsConfig->setParams($params);
 
-        $configFolder = $this->rootDir . '/config';
-        if (!file_exists($configFolder) && !mkdir($configFolder) && !is_dir($configFolder)) {
-            throw new RuntimeException(sprintf('Directory "%s" was not created', $configFolder));
-        }
-
         $this->cmsConfig->saveFile($configFolder . '/cms.php');
+
+        $this->createTables($adminLogin, $adminPass);
 
         $update = new PostUpdate($this->vendorDir, $this->event);
         $update->run();
+    }
+
+    private function modifyFile(string $fileFrom, string $fileTo, array $placeholder): void
+    {
+        $fileFrom = $this->vendorDir . '/ideals/idealcms-old/' . $fileFrom;
+        $fileTo = $this->rootDir . '/' . $fileTo;
+        $content = file_get_contents($fileFrom);
+
+        $content = str_replace(
+            array_map(
+                static function ($a) {
+                    return '[[' . $a . ']]';
+                },
+                array_keys($placeholder)
+            ),
+            $placeholder,
+            $content
+        );
+
+        file_put_contents($fileTo, $content);
+    }
+
+    /**
+     * Копирует файл из $from в $to (пути абсолютные)
+     *
+     * @param string $from Источник копирования
+     * @param string $to Цель копирования
+     *
+     * @return void
+     */
+    protected function copyFile(string $from, string $to): void
+    {
+        $toDir = dirname($to);
+
+        if (!file_exists($toDir) && !mkdir($toDir, 0777, true) && !is_dir($toDir)) {
+            throw new RuntimeException(sprintf('Directory "%s" was not created', $toDir));
+        }
+        copy($from, $to);
+    }
+
+    private function createTables(string $cmsLogin, string $cmsPass): void
+    {
+        $config = Config::getInstance();
+        $config->loadSettings($this->rootDir);
+
+        $db = Db::getInstance();
+
+        // Проверяем наличие таблиц с заданным префиксом
+        /** @var MySQLi_Result $result */
+        $result = $db->query("SHOW TABLES LIKE '" . $db->escape_string($config->db['prefix']) . "%'");
+        if ($result->num_rows > 0) {
+            throw new RuntimeException('<strong>Ошибка</strong>. В базе данных уже есть таблицы CMS '
+                . 'с префиксом ' . htmlspecialchars($config->db['prefix']));
+        }
+
+        // Создаём таблицы аддонов
+        foreach ($config->addons as $v) {
+            $table = $config->getTableByName($v['structure'], 'addon');
+            $className = $config->getStructureClass($v['structure'], 'Config', 'Addon');
+            $cfg = new $className();
+            $db->create($table, $cfg::$fields);
+        }
+
+        // Устанавливаем всё что нужно для работы структур
+        foreach ($config->structures as $v) {
+            $installClassName = $config->getStructureClass($v['structure'], 'Install');
+            if (class_exists($installClassName)) {
+                $install = new $installClassName();
+                $install->run();
+            }
+        }
+
+        // Создаём пользователя админки
+        $db->insert(
+            $config->db['prefix'] . 'ideal_structure_user',
+            [
+                'email' => $cmsLogin,
+                'reg_date' => time(),
+                'password' => password_hash($cmsPass, PASSWORD_DEFAULT),
+                'is_active' => 1,
+                'prev_structure' => '0-2'
+            ]
+        );
     }
 }

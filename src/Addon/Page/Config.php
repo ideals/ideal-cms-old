@@ -1,29 +1,34 @@
 <?php
-// Фотогалерея
-return array(
-    'params' => array(
-        'name' => 'Фотогалерея',
-    ),
-    'fields' => array(
-        'ID' => array(
+
+namespace Ideal\Addon\Page;
+
+// Страница
+class Config
+{
+    public static array $params = [
+        'name' => 'Текст',
+    ];
+
+    public static array $fields = [
+        'ID' => [
             'label' => 'Идентификатор',
             'sql' => 'int(8) unsigned not null auto_increment primary key',
             'type' => 'Ideal_Hidden'
-        ),
-        'prev_structure' => array(
+        ],
+        'prev_structure' => [
             'label' => 'ID родительских структур',
             'sql' => 'char(15)',
             'type' => 'Ideal_Hidden'
-        ),
-        'tab_ID' => array(
+        ],
+        'tab_ID' => [
             'label' => 'ID таба аддона',
             'sql' => 'int not null default 0',
             'type' => 'Ideal_Hidden'
-        ),
-        'images' => array(
-            'label' => 'Фотогалерея',
+        ],
+        'content' => [
+            'label' => 'Текст',
             'sql' => 'mediumtext',
-            'type' => 'Ideal_ImageGallery'
-        ),
-    )
-);
+            'type' => 'Ideal_RichEdit'
+        ]
+    ];
+}
