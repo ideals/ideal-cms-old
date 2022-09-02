@@ -2,7 +2,6 @@
 
 return [
     'structures' => [
-        // Подключаем структуру для страниц на сайте
         [
             'ID' => 1,
             'structure' => 'Ideal_Part',
@@ -12,7 +11,6 @@ return [
             'startName' => 'Главная',
             'url' => '',
         ],
-        // Подключаем структуру для пользователей в админке
         [
             'ID' => 2,
             'structure' => 'Ideal_User',
@@ -20,7 +18,6 @@ return [
             'isShow' => 1,
             'hasTable' => true,
         ],
-        // Подключаем справочники
         [
             'ID' => 3,
             'structure' => 'Ideal_DataList',
@@ -28,7 +25,6 @@ return [
             'isShow' => 1,
             'hasTable' => true,
         ],
-        // Подключаем сервисный модуль
         [
             'ID' => 4,
             'structure' => 'Ideal_Service',
@@ -36,7 +32,6 @@ return [
             'isShow' => 1,
             'hasTable' => false,
         ],
-        // Подключаем структуру тегов
         [
             'ID' => 5,
             'structure' => 'Ideal_Tag',
@@ -44,7 +39,6 @@ return [
             'isShow' => 0,
             'hasTable' => true,
         ],
-        // Подключаем структуру новостей
         [
             'ID' => 6,
             'structure' => 'Ideal_News',
@@ -52,7 +46,6 @@ return [
             'isShow' => 0,
             'hasTable' => true,
         ],
-        // Подключаем структуру регистрации заказов
         [
             'ID' => 7,
             'structure' => 'Ideal_Order',
@@ -60,7 +53,6 @@ return [
             'isShow' => 0,
             'hasTable' => true,
         ],
-        // Подключаем справочник 404-ых ошибок
         [
             'ID' => 8,
             'structure' => 'Ideal_Error404',
@@ -68,7 +60,6 @@ return [
             'isShow' => 0,
             'hasTable' => true,
         ],
-        // Подключаем структуру управления пользователями
         [
             'ID' => 9,
             'structure' => 'Ideal_Acl',
@@ -76,7 +67,6 @@ return [
             'isShow' => 0,
             'hasTable' => true,
         ],
-        // Подключаем справочник групп пользователей
         [
             'ID' => 10,
             'structure' => 'Ideal_UserGroup',
@@ -84,7 +74,6 @@ return [
             'isShow' => 0,
             'hasTable' => true,
         ],
-        // Подключаем структуру ведения логов администраторов
         [
             'ID' => 11,
             'structure' => 'Ideal_Log',
@@ -94,7 +83,6 @@ return [
         ],
     ],
     'addons' => [
-        // Подключаем аддон страниц
         [
             'ID' => 1,
             'structure' => 'Ideal_Page',
@@ -102,7 +90,6 @@ return [
             'isShow' => 1,
             'hasTable' => true,
         ],
-        // Подключаем аддон фотогалереи
         [
             'ID' => 2,
             'structure' => 'Ideal_Photo',
@@ -110,23 +97,20 @@ return [
             'isShow' => 1,
             'hasTable' => true,
         ],
-        // Подключаем аддон PHP-файла
         [
             'ID' => 3,
-            'structure' => 'Ideal_Photo',
-            'name' => 'Фотогалерея',
+            'structure' => 'Ideal_PhpFile',
+            'name' => 'PHP-файл',
             'isShow' => 1,
             'hasTable' => true,
         ],
-        // Подключаем аддон карты сайта
         [
             'ID' => 4,
             'structure' => 'Ideal_SiteMap',
-            'name' => 'Фотогалерея',
+            'name' => 'Карта сайта',
             'isShow' => 1,
             'hasTable' => true,
         ],
-        // Подключаем аддон Яндекс.Поиска
         [
             'ID' => 5,
             'structure' => 'Ideal_YandexSearch',

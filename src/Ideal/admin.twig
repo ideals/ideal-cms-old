@@ -6,26 +6,28 @@
     <title>{{ title }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <base href="{{ cmsFolder }}/">
+    <base href="{{ subFolder }}/">
 
-    <link href="Ideal/Library/jquery/jquery-ui.min.css" rel="stylesheet">
-    <link href="Ideal/Library/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link href="Ideal/style.css" rel="stylesheet">
+    <link href="/js/{{ cmsFolder }}/jqueryui/jquery-ui.min.css" rel="stylesheet">
+    <link href="/js/{{ cmsFolder }}/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/{{ cmsFolder }}/style.css" rel="stylesheet">
 </head>
 
 <body>
 
 <script type="text/javascript"
-        src="Ideal/Library/jquery/jquery.min.js"></script>
+        src="/js/{{ cmsFolder }}/jquery/jquery.min.js"></script>
 <script type="text/javascript"
-        src="Ideal/Library/bootstrap/js/bootstrap.min.js"></script>
+        src="/js/{{ cmsFolder }}/bootstrap/js/bootstrap.min.js"></script>
 <script type="text/javascript"
-        src="Ideal/Library/jquery/jquery-ui.min.js"></script>
+        src="/js/{{ cmsFolder }}/jqueryui/jquery-ui.min.js"></script>
 
 <script type="text/javascript"
-        src="Ideal/Library/ckeditor/ckeditor.js"></script>
+        src="/js/{{ cmsFolder }}/ckeditor/ckeditor.js"></script>
 <script type="text/javascript"
-        src="Ideal/Library/ckfinder/ckfinder.js"></script>
+        src="/js/{{ cmsFolder }}/ckfinder/ckfinder.js"></script>
+<script type="text/javascript"
+        src="/js/{{ cmsFolder }}/actions.js"></script>
 
 {% block jsAdmin %}
 {% endblock %}
@@ -48,9 +50,9 @@
         <div class="navbar-collapse collapse" id="bs-main-navbar-collapse-1">
             {% if user.ID %}
                 <ul class="nav navbar-nav">
-                    {% for item in structures if item.isShow %}
+                    {% for item in structures | filter(item => item.isShow) %}
                         <li {% if activeStructureId == item.ID %} class="active" {% endif %}>
-                            <a href="index.php?par={{ item.ID }}">{{ item.name }}</a>
+                            <a href="{{ cmsFolder }}/index.php?par={{ item.ID }}">{{ item.name }}</a>
                         </li>
                     {% endfor %}
                 </ul>
@@ -67,7 +69,7 @@
                                 <a onClick="showModal('{{ user.par }}', {{ user.ID }}, 'showEdit'); return false;"
                                    href="#">Профиль</a></li>
                             <li><a onClick="showClearCacheConfirm(); return false;" href="#">Очистить кэш</a></li>
-                            <li><a href="index.php?action=logout">Выход</a></li>
+                            <li><a href="{{ cmsFolder }}/index.php?action=logout">Выход</a></li>
                         </ul>
                     </li>
                 </ul>

@@ -14,8 +14,12 @@ use Ideal\Core\Config;
 use Ideal\Core\Request;
 use Ideal\Core\Util;
 use Ideal\Core\View;
+use Ideal\Setup\ModuleConfig;
 use Ideal\Structure;
 use Ideal\Core\FileCache;
+use Twig\Error\LoaderError;
+use Twig\Error\RuntimeError;
+use Twig\Error\SyntaxError;
 
 class Controller
 {
@@ -120,43 +124,39 @@ class Controller
      * Инициализация админского twig-шаблона
      *
      * @param string $tplName Название файла шаблона (с путём к нему), если не задан - будет index.twig
+     *
+     * @throws LoaderError
+     * @throws RuntimeError
+     * @throws SyntaxError
      */
-    public function templateInit($tplName = '')
+    public function templateInit(string $tplName = 'index.twig'): void
     {
+        $config = Config::getInstance();
+
         // Инициализация общего шаблона страницы
-        $gblName = 'admin.twig';
-        if (!stream_resolve_include_path($gblName)) {
-            echo 'Нет файла основного шаблона ' . $gblName;
+        $roots = [];
+        $gblRoot = $config->rootDir . '/src/Ideal';
+        if (file_exists($gblRoot)) {
+            $roots[] = $gblRoot;
         }
-        $gblRoot = dirname(stream_resolve_include_path($gblName));
 
-        // Определение названия модуля из названия класса контроллера
-        $parts = explode('\\', get_class($this));
-        $moduleName = $parts[0];
-        $moduleName = ($moduleName == 'Ideal') ? '' : $moduleName . '/';
-        $structureName = $parts[2];
+        $idealModuleConfig = new ModuleConfig();
+        $roots[] = $config->getModulePath($idealModuleConfig) . '/Ideal';
 
-        // Инициализация шаблона страницы
-        if ($tplName == '') {
-            $tplName = $moduleName . 'Structure/' . $structureName . '/Admin/index.twig';
+        $classPath = dirname(str_replace('\\', '/', get_class($this)));
+        $tplRoot = $config->rootDir . '/src/' . $classPath;
+        if (file_exists($tplRoot)) {
+            $roots[] = $tplRoot;
         }
-        $tplRoot = dirname(stream_resolve_include_path($tplName));
-        $tplName = basename($tplName);
 
-        if ($tplRoot == '') {
-            // Если в структуре нет файла шаблона, пытаемся его найти в модуле
-            $tplName = $moduleName . 'Structure/' . $structureName . '/Admin/index.twig';
-            if (!stream_resolve_include_path($tplName)) {
-                echo 'Нет файла шаблона ' . $tplName;
-                exit;
-            }
-            $tplRoot = dirname(stream_resolve_include_path($tplName));
-            $tplName = basename($tplName);
-        }
+        $roots[] = $config->getModulePath($this) . '/' . $classPath;
 
         // Инициализируем Twig-шаблонизатор
         $config = Config::getInstance();
-        $this->view = new View(array($gblRoot, $tplRoot), $config->cache['templateAdmin']);
+        $this->view = new View(
+            array_unique($roots),
+            $config->cache['templateAdmin']
+        );
         $this->view->loadTemplate($tplName);
     }
 
@@ -186,6 +186,8 @@ class Controller
 
     public function parseList($headers, $list)
     {
+        $config = Config::getInstance();
+
         // Инициализируем объект запроса
         $request = new Request();
 
@@ -211,7 +213,7 @@ class Controller
                     && (!isset($v['acl']) || $v['acl']['enter']) ) {
                     // На активный элемент ставим ссылку
                     $par = $request->par . '-' . $v['ID'];
-                    $value = '<a href="index.php?par=' . $par . '">' . $value . '</a>';
+                    $value = '<a href="' . $config->cmsFolder .'/index.php?par=' . $par . '">' . $value . '</a>';
                 }
                 $fields .= '<td>' . $value . '</td>';
             }
@@ -250,7 +252,8 @@ class Controller
         $config = Config::getInstance();
 
         $this->view->domain = strtoupper($config->domain);
-        $this->view->cmsFolder = '/' . $config->cmsFolder;
+        $this->view->cmsFolder = $config->cmsFolder;
+        $this->view->subFolder = $config->cms['startUrl'];
         $this->view->title = $this->model->getTitle();
         $this->view->header = $this->model->getHeader();
 

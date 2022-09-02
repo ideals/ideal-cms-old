@@ -37,8 +37,13 @@ class PostUpdate
         $wwwDir = $this->rootDir . '/' . $config->cms['publicFolder'];
 
         $this->copyFolder(
+            $this->vendorDir . '/ideals/idealcms-old/front/css',
+            $wwwDir . '/css/' . $config->cmsFolder
+        );
+
+        $this->copyFolder(
             $this->vendorDir . '/idealcms/bootstrap-multiselect/dist',
-            $wwwDir . '/js/' . $config->cmsFolder .'/bootstrap-multiselect'
+            $wwwDir . '/js/' . $config->cmsFolder . '/bootstrap-multiselect'
         );
 
         $this->copyFolder(

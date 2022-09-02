@@ -50,12 +50,11 @@ abstract class Model
 
         $parts = preg_split('/[_\\\\]+/', get_class($this));
         $this->module = $parts[0];
-        $module = ($this->module == 'Ideal') ? '' : $this->module . '/';
         $type = $parts[1]; // Structure или Addon
         $structureName = $parts[2];
         $structureFullName = $this->module . '_' . $structureName;
 
-        if ($structureName == 'Home') {
+        if ($structureName === 'Home') {
             $type = 'Home';
         }
 
@@ -67,24 +66,26 @@ abstract class Model
                 $type = $parts[1];
                 $structureName = $structure['structure'];
                 $structureName = substr($structureName, strpos($structureName, '_') + 1);
+                $structure = $config->getStructureByName($structureFullName);
+                $className = $config->getStructureClass($structure['structure'], 'Config');
+                $cfg = new $className();
                 break;
             case 'Structure':
                 $structure = $config->getStructureByName($structureFullName);
+                $className = $config->getStructureClass($structure['structure'], 'Config');
+                $cfg = new $className();
                 break;
             case 'Addon':
-                $includeFile = $module . 'Addon/' . $structureName . '/config.php';
-                $structure = include($includeFile);
-                if (!is_array($structure)) {
-                    throw new \Exception('Не удалось подключить файл: ' . $includeFile);
-                }
+                $className = $this->module . '\\Addon\\' . $structureName . '\\Config';
+                $cfg = new $className();
                 break;
             default:
                 throw new \Exception('Неизвестный тип: ' . $type);
                 break;
         }
 
-        $this->params = $structure['params'];
-        $this->fields = $structure['fields'];
+        $this->params = $cfg::$params;
+        $this->fields = $cfg::$fields;
 
         $this->_table = strtolower($config->db['prefix'] . $this->module . '_' . $type . '_' . $structureName);
     }

@@ -9,6 +9,14 @@
 
 namespace Ideal\Core;
 
+use Exception;
+use Twig\Environment;
+use Twig\Error\LoaderError;
+use Twig\Error\RuntimeError;
+use Twig\Error\SyntaxError;
+use Twig\Loader\FilesystemLoader;
+use Twig\TemplateWrapper;
+
 /**
  * Класс вида View, обеспечивающий отображение переданных в него данных
  * в соответствии с указанным twig-шаблоном
@@ -16,31 +24,31 @@ namespace Ideal\Core;
 class View
 {
 
-    /** @var \Twig_TemplateInterface */
-    protected $template;
+    /** @var TemplateWrapper */
+    protected TemplateWrapper $template;
 
-    /** @var \Twig_Environment * */
-    protected $templater;
+    /** @var Environment */
+    protected Environment $templater;
 
     /** @var array Массив для хранения переменных, передаваемых во View */
-    protected $vars = array();
+    protected array $vars = [];
 
     /**
      * Инициализация шаблонизатора
      *
      * @param string|array $pathToTemplates Путь или массив путей к папкам, где лежат используемые шаблоны
      * @param bool $isCache
+     *
+     * @throws Exception
      */
-    public function __construct($pathToTemplates, $isCache = false)
+    public function __construct($pathToTemplates, bool $isCache = false)
     {
-
-
-        // Определяем корневую папку системы для подключение шаблонов из любой вложенной папки через их путь
+        // Определяем корневую папку системы для подключения шаблонов из любой вложенной папки через их путь
         $config = Config::getInstance();
-        $cmsFolder = DOCUMENT_ROOT . '/' . $config->cmsFolder;
+        $cmsFolder = $config->rootDir . '/' . $config->cmsFolder;
 
         // Папки от которых строится путь до шаблона
-        $idealFolders = array('Ideal.c', 'Ideal', 'Mods.c', 'Mods');
+        $idealFolders = ['Ideal.c', 'Ideal', 'Mods.c', 'Mods'];
         foreach ($idealFolders as $k => $v) {
             if (file_exists($cmsFolder . '/' . $v)) {
                 $idealFolders[$k] = $cmsFolder . '/' . $v;
@@ -49,19 +57,19 @@ class View
             }
         }
 
-        $pathToTemplates = is_string($pathToTemplates) ? array($pathToTemplates) : $pathToTemplates;
+        $pathToTemplates = is_string($pathToTemplates) ? [$pathToTemplates] : $pathToTemplates;
 
-        $pathToTemplates = array_merge(array($cmsFolder), $pathToTemplates, $idealFolders);
+        //$pathToTemplates = array_merge(array($cmsFolder), $pathToTemplates, $idealFolders);
 
-        $loader = new \Twig_Loader_Filesystem($pathToTemplates);
+        $loader = new FilesystemLoader($pathToTemplates);
 
         $config = Config::getInstance();
-        $params = array();
+        $params = [];
         if ($isCache) {
             $cachePath = DOCUMENT_ROOT . $config->cms['tmpFolder'] . '/templates';
             $params['cache'] = stream_resolve_include_path($cachePath);
-            if ($params['cache'] == false) {
-                if (mkdir($cachePath, 0777, true)) {
+            if ($params['cache'] === false) {
+                if (mkdir($cachePath, 0777, true) || is_dir($cachePath)) {
                     $params['cache'] = stream_resolve_include_path($cachePath);
                 } else {
                     Util::addError('Не удалось определить путь для кэша шаблонов: ' . $cachePath);
@@ -69,7 +77,7 @@ class View
                 }
             }
         }
-        $this->templater = new \Twig_Environment($loader, $params);
+        $this->templater = new Environment($loader, $params);
     }
 
     /**
@@ -83,7 +91,7 @@ class View
      * @param string $name Название переменной
      * @return mixed Переменная
      */
-    public function &__get($name)
+    public function &__get(string $name)
     {
         if (is_scalar($this->vars[$name])) {
             $property = $this->vars[$name];
@@ -99,7 +107,7 @@ class View
      * @param string $name Название переменной
      * @return bool Инициализирована эта переменная или нет
      */
-    public function __isset($name)
+    public function __isset(string $name)
     {
         return isset($this->vars[$name]);
     }
@@ -110,7 +118,7 @@ class View
      * @param string $name Название переменной
      * @param mixed $value Значение переменной
      */
-    public function __set($name, $value)
+    public function __set(string $name, $value)
     {
         $this->vars[$name] = $value;
     }
@@ -119,13 +127,17 @@ class View
      * Загрузка в шаблонизатор файла с twig-шаблоном
      *
      * @param string $fileName Название twig-файла
+     *
+     * @throws LoaderError
+     * @throws RuntimeError
+     * @throws SyntaxError
      */
-    public function loadTemplate($fileName)
+    public function loadTemplate(string $fileName): void
     {
-        $this->template = $this->templater->loadTemplate($fileName);
+        $this->template = $this->templater->load($fileName);
     }
 
-    public function render()
+    public function render(): string
     {
         return $this->template->render($this->vars);
     }
@@ -133,14 +145,11 @@ class View
     /**
      * Чистит все файлы twig кэширования
      */
-    public static function clearTwigCache($path = '')
+    public static function clearTwigCache($path = null): void
     {
         $config = Config::getInstance();
-        if (empty($path)) {
-            $cachePath = DOCUMENT_ROOT . $config->cms['tmpFolder'] . '/templates';
-        } else {
-            $cachePath = $path;
-        }
+        $cachePath = $path ?? (DOCUMENT_ROOT . $config->cms['tmpFolder'] . '/templates');
+
         if ($objs = glob($cachePath . '/*')) {
             foreach ($objs as $obj) {
                 is_dir($obj) ? self::clearTwigCache($obj) : unlink($obj);

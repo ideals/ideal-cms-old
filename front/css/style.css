@@ -1,0 +1,143 @@
+body {
+    padding-top: 15px;
+    padding-bottom: 40px;
+}
+h1 {
+    line-height: 30px;
+    margin-bottom: 18px;
+    text-align: center;
+}
+table.table tr.inactive td, table.table tr.not-menu td {
+    color: slategray;
+    background-color: #E9F1F0!important;
+}
+table.table tr.inactive td a {
+    color: slategray;
+}
+table.table-hover tbody tr.inactive:hover td, table.table-hover tbody tr.not-menu:hover td {
+    background-color: #BED1DB!important;
+}
+table.table tr.not-menu td a {
+    /*test*/
+    color: slategray;
+    font-weight: bold;
+}
+tr.element td div.button-edit {
+    display: none;
+    margin-left: -60px;
+}
+table.table-hover tbody tr:hover td {
+    background-color: #D9EDF7;
+}
+table.table-hover tbody tr:hover td div.button-edit {
+    display: inline;
+}
+.form-horizontal .help-block {
+    margin-top: 3px;
+}
+.nav-tabs li a.error {
+    color: red!important;
+}
+/* -------------- */
+#tabs-content {padding-top: 15px;}
+
+div.checkbox {
+    margin-bottom: 20px;
+}
+
+.form-horizontal div.checkbox {
+    margin-left: 25%;
+    margin-bottom: 10px;
+}
+
+#modalTabsEdit {float: right; margin-right: 20px; font-size: 12px; margin-top: 1px;}
+
+#tabsModal {
+    background-color: #fff;
+    padding: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    position: absolute;
+    right: 45px;
+    margin-top: 16px;
+    display: none;
+}
+#addon-confirm-modal {
+    display: none;
+    z-index: 10000;
+}
+#addonsList{
+    width: 300px;
+}
+#addonsList .list-group-item {
+    padding: 0;
+}
+#addonsList span.form-control {
+    border: 0;
+    outline: 0;
+    box-shadow: none;
+}
+#addonsList span.input-group-btn.remove-addon > button {
+    padding-top: 8px;
+    border: 0;
+    border-left: 1px solid #CCC;
+    z-index: 99999;
+}
+#add-addon {
+    width: 300px;
+}
+.sortable {
+    list-style-type: none;
+    margin: 5px 0 0 0;
+    padding: 0;
+}
+.sortable li {
+    margin: 0 5px 5px 5px;
+    padding: 5px;
+    font-size: 1.2em;
+    height: 47px;
+}
+.ui-state-highlight {
+    height: 34px;
+    line-height: 1.2em;
+}
+.general_template-controls .ui-autocomplete {
+    z-index: 1050;
+}
+.general_template-controls .ui-autocomplete li {
+    background: #fff;
+    padding: 1px 1em 0 .8em;
+    font-size: .9em;
+    color: #555;
+}
+.general_template-controls .ui-autocomplete li:hover, .general_template-controls .ui-autocomplete li.ui-state-focus {
+    background: #1e90ff;
+    color: #fff;
+}
+.general_template-controls .custom-combobox-toggle {
+    position: absolute;
+    right: 20px;
+    padding: 0;
+    width: 34px;
+    height: 34px
+}
+.general_template-controls .custom-combobox-toggle .arrow-down {
+    width: 0px;
+    height: 0px;
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+    border-top: 6px solid #000;
+    top: 15px;
+    left: 26px;
+    display: block;
+    position: relative;
+}
+.ui-widget {
+    font-family: inherit;
+}
+.sortable-field {
+    cursor: pointer;
+    float: left;
+}
