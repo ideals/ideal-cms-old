@@ -101,7 +101,9 @@ class PostCreateProject
         );
 
         $this->modifyFile('config/db.php', 'config/db.php', $placeholder);
+        $this->modifyFile('config/site.php', 'config/site.php', $placeholder);
         $this->modifyFile('front/.htaccess', $folder . '/.htaccess', $placeholder);
+        $this->modifyFile('front/_.php', $folder . '/_.php', $placeholder);
 
         $params = $this->cmsConfig->getParams();
         $params['cms']['array']['publicFolder']['value'] = $folder;

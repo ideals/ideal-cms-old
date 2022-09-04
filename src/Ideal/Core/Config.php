@@ -20,6 +20,7 @@ use InvalidArgumentException;
  * @property array cms Массив настроек cms
  * @property string urlSuffix Стандартный суффикс url для страниц сайта (обычно .html)
  * @property array smtp Массив с настройками SMTP
+ * @property array structures Список всех подключённых к проекту структур
  * @property array addons Список подключённых аддонов
  */
 class Config
@@ -27,9 +28,6 @@ class Config
 
     /** @var object Необходима для реализации паттерна Singleton */
     private static object $instance;
-
-    /** @var array Список всех подключённых к проекту структур */
-    public array $structures = [];
 
     /** @var array Содержит все конфигурационные переменные проекта */
     private array $array = [];
@@ -221,15 +219,8 @@ class Config
      */
     protected function import(array $arr): void
     {
-        // Проверяем, не объявлены ли переменные из импортируемого массива в этом классе
-        foreach ($arr as $k => $v) {
-            if (isset($this->$k)) {
-                $this->$k = $v;
-                unset($arr[$k]);
-            }
-        }
         // Объединяем импортируемый массив с основным массивом переменных конфига
-        $this->array = array_merge_recursive($this->array, $arr);
+        $this->array = array_replace_recursive($this->array, $arr);
     }
 
     /**
