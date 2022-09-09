@@ -7,68 +7,73 @@
  * @license   http://idealcms.ru/license.html LGPL v3
  */
 
+namespace Ideal\Structure\Service\Backup;
+
+use Exception;
 use Ideal\Core\Config;
 
-$config = Config::getInstance();
+class Action
+{
+    public function render(): string
+    {
+        $config = Config::getInstance();
 
-try {
-    // Пытаемся определить полный путь к папке бэкапов, если это возможно
-    // Проверяем временную папку и папку для бэкапов на существование, возможность создания и записи
+        try {
+            // Пытаемся определить полный путь к папке бэкапов, если это возможно
+            // Проверяем временную папку и папку для бэкапов на существование, возможность создания и записи
 
-    // Временная папка
-    $tmpFolder = $config->cms['tmpFolder'];
+            // Временная папка
+            $tmpFolder = $config->cms['tmpFolder'];
 
-    // Название папки бэкапа относительно временной папки
-    $backupFolder = '/backup/';
+            // Название папки бэкапа относительно временной папки
+            $backupFolder = '/backup/';
 
-    if ($tmpFolder == '') {
-        throw new Exception('Не задана временная папка tmpDir в файле site_data.php');
-    }
+            if ($tmpFolder === '') {
+                throw new Exception('Не задана временная папка tmpDir в файле site_data.php');
+            }
 
-    // Определяем доступность временной папки
-    $tmpFolder = DOCUMENT_ROOT . $tmpFolder;
-    $tmpFull = stream_resolve_include_path($tmpFolder);
-
-    // Проверяем существует ли временная папка и если нет, то пытаемся её создать
-    if ($tmpFull === false) {
-        if (mkdir($tmpFolder, 0755)) {
+            // Определяем доступность временной папки
+            $tmpFolder = DOCUMENT_ROOT . $tmpFolder;
             $tmpFull = stream_resolve_include_path($tmpFolder);
-        }
-    }
 
-    if ($tmpFull === false) {
-        throw new Exception("Не удалось создать папку $tmpFolder для сохранения дампа базы");
-    }
+            // Проверяем существует ли временная папка и если нет, то пытаемся её создать
+            if ($tmpFull === false) {
+                if (mkdir($tmpFolder, 0755)) {
+                    $tmpFull = stream_resolve_include_path($tmpFolder);
+                }
+            }
 
-    if (!is_writable($tmpFull)) {
-        throw new Exception("Папка $tmpFull недоступна для записи");
-    }
+            if ($tmpFull === false) {
+                throw new Exception("Не удалось создать папку $tmpFolder для сохранения дампа базы");
+            }
 
-    // Проверяем существует ли папка для создания бэкапов и если нет, то пытаемся её создать
-    $backupFolder = $tmpFull . $backupFolder;
-    $backupPart = stream_resolve_include_path($backupFolder);
-    if ($backupPart === false) {
-        if (mkdir($backupFolder, 0755)) {
+            if (!is_writable($tmpFull)) {
+                throw new Exception("Папка $tmpFull недоступна для записи");
+            }
+
+            // Проверяем существует ли папка для создания бэкапов и если нет, то пытаемся её создать
+            $backupFolder = $tmpFull . $backupFolder;
             $backupPart = stream_resolve_include_path($backupFolder);
+            if ($backupPart === false) {
+                if (mkdir($backupFolder, 0755)) {
+                    $backupPart = stream_resolve_include_path($backupFolder);
+                }
+            }
+
+            if ($backupPart === false) {
+                throw new Exception("Не удалось создать папку $backupFolder для сохранения дампа базы");
+            }
+
+            if (!is_writable($backupPart)) {
+                throw new Exception("Папка $backupPart недоступна для записи");
+            }
+
+            // В результате $backupPart содержит полный путь к папке бэкапа
+
+        } catch (Exception $e) {
+            return '<div class="alert">' . $e->getMessage() . '</div>';
         }
-    }
-
-    if ($backupPart === false) {
-        throw new Exception("Не удалось создать папку $backupFolder для сохранения дампа базы");
-    }
-
-    if (!is_writable($backupPart)) {
-        throw new Exception("Папка $backupPart недоступна для записи");
-    }
-
-    // В результате $backupPart содержит полный путь к папке бэкапа
-
-} catch (Exception $e) {
-    echo '<div class="alert">' . $e->getMessage() . '</div>';
-    return;
-}
-?>
-
+        $result = <<<HTML
 <form class="form-inline">
     <button type="button" class="btn btn-success fileinput-button pull-right" style="margin-left:5px;"
             onclick="document.querySelector('input#uploadfile').click()">
@@ -108,84 +113,83 @@ try {
 </div><!-- /.modal -->
 
 <div class="clearfix"></div>
+HTML;
 
-<?php
-echo '<p>Папка с архивами: &nbsp;' . $backupPart . '</p>';
-// Получение списка файлов
-$dumpFiles = array();
+        $result .= '<p>Папка с архивами: &nbsp;' . $backupPart . '</p>';
+        // Получение списка файлов
+        $dumpFiles = [];
 
-if (is_dir($backupPart)) {
-    echo '<table id="dumpTable" class="table table-hover">';
-    $files = glob($backupPart . '/dump*.gz');
-    rsort($files);
-    foreach ($files as $file) {
-        $file = basename($file);
-        $year = substr($file, 5, 4);
-        $month = substr($file, 10, 2);
-        $day = substr($file, 13, 2);
-        $hour = substr($file, 16, 2);
-        $minute = substr($file, 19, 2);
-        $second = substr($file, 22, 2);
+        if (is_dir($backupPart)) {
+            $result .= '<table id="dumpTable" class="table table-hover">';
+            $files = glob($backupPart . '/dump*.gz');
+            rsort($files);
+            foreach ($files as $file) {
+                $file = basename($file);
+                $year = substr($file, 5, 4);
+                $month = substr($file, 10, 2);
+                $day = substr($file, 13, 2);
+                $hour = substr($file, 16, 2);
+                $minute = substr($file, 19, 2);
+                $second = substr($file, 22, 2);
 
-        // Версия админки
-        preg_match("/(v.*)(\.sql|_)/U", $file, $ver);
+                // Версия админки
+                preg_match("/(v.*)(\.sql|_)/U", $file, $ver);
 
-        $file = $backupPart . DIRECTORY_SEPARATOR . $file;
+                $file = $backupPart . DIRECTORY_SEPARATOR . $file;
 
-        // Текст и кнопка комментария
-        $cmtText = 'Добавить комментарий'; // текст по умолчанию
-        $cmtBtnStyle = 'btn-default'; // стиль кнопки по умолчанию
-        // Считываем данные из файла
-        $cmtFileContents = '';
-        $cmtFileName = str_replace('.gz', '.txt', $file); // имя файла комментария
-        if (file_exists($cmtFileName)) {
-            $cmtFileContents = file_get_contents($cmtFileName);
+                // Текст и кнопка комментария
+                $cmtText = 'Добавить комментарий'; // текст по умолчанию
+                $cmtBtnStyle = 'btn-default'; // стиль кнопки по умолчанию
+                // Считываем данные из файла
+                $cmtFileContents = '';
+                $cmtFileName = str_replace('.gz', '.txt', $file); // имя файла комментария
+                if (file_exists($cmtFileName)) {
+                    $cmtFileContents = file_get_contents($cmtFileName);
+                }
+                if ($cmtFileContents) {
+                    $cmtText = $cmtFileContents;
+                    $cmtBtnStyle = 'btn-info';
+                }
+
+                $result .= '<tr id="' . $file . '"><td>'
+                    . '<a href="" onClick="return downloadDump(\'' . addslashes($file) . '\')"> '
+                    . "$day.$month.$year - $hour:$minute:$second";
+                if (!empty($ver[1])) {
+                    $result .= ' - ' . $ver[1];
+                }
+                // если загруженный сторонний файл, дописываем в названии "(upload)"
+                if (preg_match("/_upload/", $file)) {
+                    $result .= ' (upload)';
+                }
+                $result .= '</a></td>';
+                $result .= '<td>';
+
+                // Кнопка импорта
+                $result .= '<button class="btn btn-info btn-xs" title="Импортировать" onclick="importDump(\''
+                    . addslashes($file) . '\'); false;">';
+                $result .= ' <span class="glyphicon glyphicon-upload"></span> ';
+                $result .= '</button>&nbsp;';
+
+                // Кнопка удаления
+                $result .= '<button class="btn btn-danger btn-xs" title="Удалить" onclick="delDump(\''
+                    . addslashes($file) . '\'); false;">';
+                $result .= ' <span class="glyphicon glyphicon-remove"></span> ';
+                $result .= '</button>&nbsp;';
+
+                // Кнопка комментария
+                $result .= '<button id="' . $file . '_btn_cmt"
+                    class="tlp btn ' . $cmtBtnStyle . ' btn-xs btn-cmt"
+                    title="' . $cmtText . '"
+                    onclick="showModal(\'' . addslashes($file) . '\'); false;">';
+                $result .= ' <span class="glyphicon glyphicon-pencil"></span> ';
+                $result .= '</button>&nbsp;';
+
+                $result .= '</td>';
+                $result .= '</tr>';
+            }
         }
-        if ($cmtFileContents) {
-            $cmtText = $cmtFileContents;
-            $cmtBtnStyle = 'btn-info';
-        }
 
-        echo '<tr id="' . $file . '"><td>';
-        echo '<a href="" onClick="return downloadDump(\'' . addslashes($file) . '\')"> ';
-        echo "$day.$month.$year - $hour:$minute:$second";
-        if (!empty($ver[1])) {
-            echo ' - ' . $ver[1];
-        }
-        // если загруженный сторонний файл, дописываем в названии "(upload)"
-        if (preg_match("/_upload/", $file)) {
-            echo ' (upload)';
-        }
-        echo '</a></td>';
-        echo '<td>';
-
-        // Кнопка импорта
-        echo '<button class="btn btn-info btn-xs" title="Импортировать" onclick="importDump(\''
-            . addslashes($file) . '\'); false;">';
-        echo ' <span class="glyphicon glyphicon-upload"></span> ';
-        echo '</button>&nbsp;';
-
-        // Кнопка удаления
-        echo '<button class="btn btn-danger btn-xs" title="Удалить" onclick="delDump(\''
-            . addslashes($file) . '\'); false;">';
-        echo ' <span class="glyphicon glyphicon-remove"></span> ';
-        echo '</button>&nbsp;';
-
-        // Кнопка комментария
-        echo '<button id="' . $file . '_btn_cmt"
-            class="tlp btn ' . $cmtBtnStyle . ' btn-xs btn-cmt"
-            title="' . $cmtText .'"
-            onclick="showModal(\'' . addslashes($file) . '\'); false;">';
-        echo ' <span class="glyphicon glyphicon-pencil"></span> ';
-        echo '</button>&nbsp;';
-
-        echo '</td>';
-        echo '</tr>';
-    }
-}
-
-?>
-
+        $result .= <<<HTML
 <script type="text/javascript">
 
     $(document).ready(function() {
@@ -276,9 +280,9 @@ if (is_dir($backupPart)) {
                 $('#dumpTable').prepend(data.html);
                 $('.tlp').tooltip('destroy').tooltip();
             } else {
-                $textField = $('#textDumpStatus').removeClass().addClass('pull-left alert alert-danger').html('');
+                textField = $('#textDumpStatus').removeClass().addClass('pull-left alert alert-danger').html('');
                 data.error.message.forEach(function(item, i, arr) {
-                    $textField.append(item[0] + '<br />');
+                    textField.append(item[0] + '<br />');
                 });
             }
         }).fail(function () {
@@ -397,3 +401,7 @@ if (is_dir($backupPart)) {
         return false;
     }
 </script>
+HTML;
+        return $result;
+    }
+}

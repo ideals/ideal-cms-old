@@ -50,12 +50,12 @@ class RewriteRule
     public function __construct()
     {
         $config = Config::getInstance();
-        $this->htFile = DOCUMENT_ROOT . '/.htaccess';
-        $this->reFile = DOCUMENT_ROOT . '/' . $config->cmsFolder . '/redirect.txt';
+        $this->htFile = $config->rootDir . $config->cms['publicFolder'] . '/.htaccess';
+        $this->reFile = $config->rootDir . '/config//redirect.txt';
 
         // Создаём файл redirects.txt, если он ещё не создан
         if (!file_exists($this->reFile)) {
-            $fp = fopen($this->reFile, "w"); // создаем файл
+            $fp = fopen($this->reFile, 'w'); // создаем файл
             fwrite($fp, "#redirect#\n#redirect#"); // записываем в него теги редиректа
             fclose($fp);
             $this->msg .= "<div class='alert alert-info'>Создан файл redirect.txt</div>";

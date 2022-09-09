@@ -174,12 +174,13 @@ DONE;
             }
         );
 
-        $skip = array(
+        $skip = [
             '<?php',
+            '/** @noinspection ALL */',
             '// @codingStandardsIgnoreFile',
-            'return array(',
-            ');'
-        );
+            'return [',
+            '];'
+        ];
 
         $params['default'] = array(
             'arr' => array(),
@@ -202,13 +203,13 @@ DONE;
             $label = isset($cols[1]) ? $cols[1] : null;
             if (is_null($label)) {
                 // Комментария в нужном формате нет, значит это массив
-                preg_match('/\'(.*)\'\s*=>\s*array\s*\(\s*\/\/\s*(.*)/i', $other, $match);
+                preg_match('/\'(.*)\'\s*=>\s*\[\s*\/\/\s*(.*)/i', $other, $match);
                 if (!isset($match[1]) || !isset($match[2])) {
                     echo "Ошибка парсинга файла {$fileName} в строке $i<br />";
                     exit;
                 }
                 $array = array();
-                while ($cfg[++$i] != '),') {
+                while ($cfg[++$i] != '],') {
                     $v = $cfg[$i];
                     $param = $this->parseStr($v);
                     $array = array_merge($array, $param);

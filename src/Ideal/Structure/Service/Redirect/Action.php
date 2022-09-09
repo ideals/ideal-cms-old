@@ -7,37 +7,44 @@
  * @license   http://idealcms.ru/license.html LGPL v3
  */
 
+namespace Ideal\Structure\Service\Redirect;
+
 /**
  * Экшэн отображения списка редиректов из файлов redirect.txt и .htaccess
  */
+class Action
+{
+    public function render(): string
+    {
+        $file = new RewriteRule();
+        $file->loadRedirects();
 
-$file = new \Ideal\Structure\Service\Redirect\RewriteRule();
-$file->loadRedirects();
+        // todo Переделать в ajax-вызовы
 
-// todo Переделать в ajax-вызовы
+        if (isset($_POST['add'])) {
+            $file->addLine($_POST['from'], $_POST['to']);
+            exit;
+        }
+        if (isset($_POST['edit'])) {
+            $file->editLine($_POST['from'], $_POST['to'], $_POST['oldFrom'], $_POST['oldTo']);
+            exit;
+        }
+        if (isset($_POST['delete'])) {
+            $file->deleteLine($_POST['from'], $_POST['to']);
+            exit;
+        }
 
-if (isset($_POST['add'])) {
-    $file->addLine($_POST['from'], $_POST['to']);
-    exit;
-}
-if (isset($_POST['edit'])) {
-    $file->editLine($_POST['from'], $_POST['to'], $_POST['oldFrom'], $_POST['oldTo']);
-    exit;
-}
-if (isset($_POST['delete'])) {
-    $file->deleteLine($_POST['from'], $_POST['to']);
-    exit;
-}
+        $table = $file->getTable();
 
-$table = $file->getTable();
+        $result = $file->getMsg();
 
-echo $file->getMsg();
+        // Если уровень ошибки больше 1, то список редиректов не отображается
+        if ($file->getError() > 1) {
+            return $result;
+        }
 
-// Если уровень ошибки больше 1, то список редиректов не отображается
-if ($file->getError() > 1) {
-    return;
-}
-?>
+        $button = $file->getCountParam();
+        $result .= <<<HTML
 <table id="redirect" class="table table-hover table-striped">
     <tr>
         <th class="">№</th>
@@ -45,14 +52,12 @@ if ($file->getError() > 1) {
         <th class="col-xs-6">Куда</th>
         <th>&nbsp;&nbsp;</th>
     </tr>
-    <?php
-    echo $table;
-    ?>
+    {$table}
 </table>
 
 <br/>
 
-<button type="button" class="btn btn-primary pull-left" value="<?php echo $file->getCountParam(); ?>"
+<button type="button" class="btn btn-primary pull-left" value="{$button}"
         onclick="addLine(this)">
     Добавить редирект
 </button>
@@ -244,3 +249,7 @@ if ($file->getError() > 1) {
         });
     }
 </script>
+HTML;
+        return $result;
+    }
+}

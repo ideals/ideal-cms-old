@@ -56,18 +56,15 @@ class ModelAbstract extends \Ideal\Core\Admin\Model
             return $this->menu;
         }
 
+        $config = Config::getInstance();
+
         // Считываем конфиги из папки Ideal/Service и Custom/Service
-        $actions = array_merge(
-            $this->getActions('Ideal/Structure/Service'),
-            $this->getActions('Ideal.c/Structure/Service'),
-            $this->getModulesActions('Mods'),
-            $this->getModulesActions('Mods.c')
-        );
+        $actions = $config->services;
 
         // Сортируем экшены по полю pos
         usort(
             $actions,
-            function ($a, $b) {
+            static function ($a, $b) {
                 return ($a['pos'] - $b['pos']);
             }
         );

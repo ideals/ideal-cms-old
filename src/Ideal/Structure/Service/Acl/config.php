@@ -7,10 +7,10 @@
  * @license   http://idealcms.ru/license.html LGPL v3
  */
 
-return array(
+return [
+    'ID' => 'Ideal_Acl',
+    'structure' => 'Ideal_Service',
     'name' => 'Права доступа',
     'pos' => 90,
     'info' => '',
-    'structure' => 'Ideal_Service',
-    'ID' => 'Ideal_Acl'
-);
+];

@@ -7,7 +7,16 @@
  * @license   http://idealcms.ru/license.html LGPL v3
  */
 
-?>
+namespace Ideal\Structure\Service\SiteMap;
+
+use Ideal\Core\Config;
+use Ideal\Structure\Service\SiteData\ConfigPhp;
+
+class Action
+{
+    public function render(): string
+    {
+        $result = <<<HTML
 <style>
     #iframe {
         margin-top: 15px;
@@ -49,25 +58,28 @@
         }
     }
 </style>
+HTML;
 
-<?php
-$config = \Ideal\Core\Config::getInstance();
-$file = new \Ideal\Structure\Service\SiteData\ConfigPhp();
+        $config = Config::getInstance();
+        $file = new ConfigPhp();
 
-if (!$file->loadFile(DOCUMENT_ROOT . '/' . $config->cmsFolder . '/site_map.php')) {
-    // Если не удалось прочитать данные из кастомного файла, значит его нет
-    // Поэтому читаем данные из демо-файла
-    $file->loadFile(DOCUMENT_ROOT . '/' . $config->cmsFolder . '/Ideal/Library/sitemap/site_map_demo.php');
-    $params = $file->getParams();
-    $params['default']['arr']['website']['value'] = 'http://' . $config->domain;
-    $file->setParams($params);
-}
+        $filePath = $config->rootDir . '/config/site_map.php';
+        if (!$file->loadFile($filePath)) {
+            // Если не удалось прочитать данные из кастомного файла, значит его нет
+            // Поэтому читаем данные из демо-файла
+            $file->loadFile($config->rootDir . '/vendor/idealcms/spider/examples/config.php');
+            $params = $file->getParams();
+            $params['default']['arr']['website']['value'] = 'http://' . $config->domain;
+            $file->setParams($params);
+        }
 
-if (isset($_POST['edit'])) {
-    $file->changeAndSave(DOCUMENT_ROOT . '/' . $config->cmsFolder . '/site_map.php');
-}
-?>
+        if (isset($_POST['edit'])) {
+            $file->changeAndSave(DOCUMENT_ROOT . '/' . $config->cmsFolder . '/site_map.php');
+        }
 
+        $showEdit = $file->showEdit();
+
+        $result .= <<<HTML
 <!-- Nav tabs -->
 <ul class="nav nav-tabs">
     <li class="active"><a href="#settings" data-toggle="tab">Настройки</a></li>
@@ -79,7 +91,7 @@ if (isset($_POST['edit'])) {
     <div class="tab-pane active" id="settings">
         <form action="" method=post enctype="multipart/form-data">
 
-            <?php echo $file->showEdit(); ?>
+            {$showEdit}
 
             <br/>
 
@@ -112,7 +124,7 @@ if (isset($_POST['edit'])) {
             <p>Чтобы прописать в cron'е команду на запуск составления карты сайта нужно зайти в пункт "Cron" раздела
                 "Сервис":</p>
             <p>В поле для редактирования добавить следующую строчку:</p>
-            <pre><code>*/3 2-4 * * * <?php echo $config->cmsFolder; ?>/Ideal/Library/sitemap/index.php</code></pre>
+            <pre><code>*/3 2-4 * * * {$config->cmsFolder}/Ideal/Library/sitemap/index.php</code></pre>
             <p>Эта инструкция означает запуск скрипта сбора карты сайта каждые три минуты с двух до четырёх ночи.
                 Если этого времени не хватает для составления карты сайта, то можно увеличить диапазон часов.</p>
         </div>
@@ -173,3 +185,7 @@ if (isset($_POST['edit'])) {
         $('#loading').html('');
     }
 </script>
+HTML;
+        return $result;
+    }
+}

@@ -1,3 +1,15 @@
+<?php
+
+namespace Ideal\Structure\Service\YandexTurboPage;
+
+use Ideal\Core\Config;
+use Ideal\Structure\Service\SiteData\ConfigPhp;
+
+class Action
+{
+    public function render(): string
+    {
+        $result = <<< HTML
 <style>
     #iframe {
         margin-top: 15px;
@@ -40,52 +52,45 @@
         }
     }
 </style>
+HTML;
 
-<?php
-$config = \Ideal\Core\Config::getInstance();
-$file = new \Ideal\Structure\Service\SiteData\ConfigPhp();
+        $config = Config::getInstance();
+        $file = new ConfigPhp();
 
-if (!$file->loadFile(DOCUMENT_ROOT . '/' . $config->cmsFolder . '/site_turbo.php')) {
-    // Если не удалось прочитать данные из кастомного файла, значит его нет
-    // Поэтому читаем данные из демо-файла
-    $file->loadFile(DOCUMENT_ROOT . '/' . $config->cmsFolder . '/Ideal/Library/YandexTurboPage/site_turbo_demo.php');
-    $params = $file->getParams();
+        if (!$file->loadFile($config->rootDir . '/config/site_turbo.php')) {
+            // Если не удалось прочитать данные из кастомного файла, значит его нет
+            // Поэтому читаем данные из демо-файла
+            $file->loadFile($config->rootDir . '/vendor/ideas/idealcms-old/Library/YandexTurboPage/site_turbo_demo.php');
+            $params = $file->getParams();
 
-    $sitemap = array();
-    if (file_exists(DOCUMENT_ROOT . '/' . $config->cmsFolder . '/site_map.php')) {
-        $sitemap = require_once DOCUMENT_ROOT . '/' . $config->cmsFolder . '/site_map.php';
-        // Записываем путь до файла карты сайта по умолчанию в настройки
-        $params['default']['arr']['sitemapFile']['value'] = $sitemap['sitemap_file'];
-    }
+            $sitemap = [];
+            if (file_exists($config->rootDir . '/config/site_map.php')) {
+                $sitemap = include $config->rootDir . '/config/site_map.php';
+                // Записываем путь до файла карты сайта по умолчанию в настройки
+                $params['default']['arr']['sitemapFile']['value'] = $sitemap['sitemap_file'];
+            }
 
-    // Записываем сайт для сканирования по умолчанию в настройки
-    $params['default']['arr']['website']['value'] = $sitemap ? $sitemap['website'] : 'http://' . $config->domain;
+            // Записываем сайт для сканирования по умолчанию в настройки
+            $params['default']['arr']['website']['value'] = $sitemap ? $sitemap['website'] : 'http://' . $config->domain;
 
-    // Записываем корневоую папку на диске
-    if (empty($_SERVER['DOCUMENT_ROOT'])) {
-        // Обнаружение корня сайта, если скрипт запускается из стандартного места в Ideal CMS
-        $self = $_SERVER['PHP_SELF'];
-        $path = substr($self, 0, strpos($self, 'Ideal') - 1);
-        $params['default']['arr']['pageroot']['value'] = dirname($path);
-    } else {
-        $params['default']['arr']['pageroot']['value'] = $_SERVER['DOCUMENT_ROOT'];
-    }
+            // Записываем корневую папку на диске
+            $params['default']['arr']['pageroot']['value'] = $config->rootDir . '/' . $config->cms['publicFolder'];
 
-    // Записываем электронную почту для уведомлений об ошибках по умолчанию в настройки
-    $params['default']['arr']['error_email_notify']['value'] = $config->cms['adminEmail'];
+            // Записываем электронную почту для уведомлений об ошибках по умолчанию в настройки
+            $params['default']['arr']['error_email_notify']['value'] = $config->cms['adminEmail'];
 
-    // Записываем электронную почту для уведомлений менеджера по умолчанию в настройки
-    $params['default']['arr']['manager_email_notify']['value'] = $config->mailForm;
+            // Записываем электронную почту для уведомлений менеджера по умолчанию в настройки
+            $params['default']['arr']['manager_email_notify']['value'] = $config->mailForm;
 
-    // Записываем путь до файла карты сайта
-    $file->setParams($params);
-}
+            // Записываем путь до файла карты сайта
+            $file->setParams($params);
+        }
 
-if (isset($_POST['edit'])) {
-    $file->changeAndSave(DOCUMENT_ROOT . '/' . $config->cmsFolder . '/site_turbo.php');
-}
-?>
+        if (isset($_POST['edit'])) {
+            $file->changeAndSave($config->rootDir . '/config/site_turbo.php');
+        }
 
+        $result .= <<<HTML
 <!-- Nav tabs -->
 <ul class="nav nav-tabs">
     <li class="active"><a href="#settings" data-toggle="tab">Настройки</a></li>
@@ -189,3 +194,7 @@ if (isset($_POST['edit'])) {
         $('#loading').html('');
     }
 </script>
+HTML;
+        return $result;
+    }
+}

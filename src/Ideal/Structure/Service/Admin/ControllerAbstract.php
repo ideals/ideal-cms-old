@@ -57,15 +57,10 @@ class ControllerAbstract extends \Ideal\Core\Admin\Controller
         $item = $this->model->getPageData();
         $this->view->ID = $item['ID'];
 
-        list($module, $structure) = explode('_', $item['ID']);
-        $module = ($module == 'Ideal') ? '' : $module . '/';
-        $file = $module . 'Structure/Service/' . $structure . '/Action.php';
-        ob_start();
-        // TODO сделать уведомление об ошибке, в случае если такого файла нет
-        include($file);
-        $text = ob_get_contents();
-        ob_end_clean();
+        [$module, $structure] = explode('_', $item['ID']);
+        $className = $module . '\\Structure\\Service\\' . $structure . '\\Action';
+        $action = new $className();
 
-        $this->view->text = $text;
+        $this->view->text = $action->render();
     }
 }

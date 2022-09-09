@@ -9,21 +9,25 @@
 
 namespace Ideal\Structure\Service\Acl;
 
-// Получаем все группы пользователей системы для которых есть возможность менять права
-$userGroups = \Ideal\Structure\Acl\Admin\Model::getAllUserGroups();
-?>
+class Action
+{
+    public function render(): string
+    {
+        // Получаем все группы пользователей системы для которых есть возможность менять права
+        $userGroups = \Ideal\Structure\Acl\Admin\Model::getAllUserGroups();
+        $result = <<<HTML
 <form class="form-horizontal">
     <div class="form-group">
         <label for="selectUser" class="col-sm-2 control-label">Группа пользователя</label>
         <div class="col-sm-10">
             <select id="selectUserGroup" class="form-control">
                 <option value="0" disabled selected>Выберите группу пользователя</option>
-                <?php
-                // Формируем список пользователей для выбора
-                foreach ($userGroups as $userGroup) {
-                    echo '<option value="' . $userGroup['ID'] . '">' . $userGroup['name'] . '</option>';
-                }
-                ?>
+HTML;
+        // Формируем список пользователей для выбора
+        foreach ($userGroups as $userGroup) {
+            $result .= '<option value="' . $userGroup['ID'] . '">' . $userGroup['name'] . '</option>';
+        }
+        $result .= <<<HTML
             </select>
         </div>
     </div>
@@ -149,3 +153,8 @@ $userGroups = \Ideal\Structure\Acl\Admin\Model::getAllUserGroups();
         }
     });
 </script>
+HTML;
+
+        return $result;
+    }
+}

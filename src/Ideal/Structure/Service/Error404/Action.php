@@ -9,20 +9,29 @@
 
 namespace Ideal\Structure\Service\Error404;
 
-?>
-<form action="" method=post enctype="multipart/form-data">
-    <?php
-    $config = \Ideal\Core\Config::getInstance();
-    $file = new \Ideal\Structure\Service\SiteData\ConfigPhp();
+use Ideal\Core\Config;
+use Ideal\Structure\Service\SiteData\ConfigPhp;
 
-    $file->loadFile(DOCUMENT_ROOT . '/' . $config->cmsFolder . '/known404.php');
+class Action
+{
+    public function render(): string
+    {
+        $result = '<form action="" method=post enctype="multipart/form-data">';
 
-    if (isset($_POST['edit'])) {
-        $file->changeAndSave(DOCUMENT_ROOT . '/' . $config->cmsFolder . '/known404.php');
+        $config = Config::getInstance();
+        $file = new ConfigPhp();
+
+        $file->loadFile($config->rootDir . '/config/known404.php');
+
+        if (isset($_POST['edit'])) {
+            $file->changeAndSave($config->rootDir . '/config/known404.php');
+        }
+
+        $result .= $file->showEdit()
+            . '<br/>'
+            . '<input type="submit" class="btn btn-info" name="edit" value="Сохранить настройки"/>'
+            . '</form>';
+
+        return $result;
     }
-
-    echo $file->showEdit();
-    ?>
-    <br/>
-    <input type="submit" class="btn btn-info" name="edit" value="Сохранить настройки"/>
-</form>
+}

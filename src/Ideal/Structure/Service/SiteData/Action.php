@@ -7,30 +7,37 @@
  * @license   http://idealcms.ru/license.html LGPL v3
  */
 
-?>
-<form action="" method=post enctype="multipart/form-data">
+namespace Ideal\Structure\Service\SiteData;
 
-    <?php
-    $config = \Ideal\Core\Config::getInstance();
-    $file = new \Ideal\Structure\Service\SiteData\ConfigPhp();
+use Ideal\Core\Config;
+use Ideal\Structure\Service\Cache\Model as CacheModel;
 
-    $file->loadFile(DOCUMENT_ROOT . '/' . $config->cmsFolder . '/site_data.php');
+class Action
+{
+    public function render(): string
+    {
+        $result = '<form action="" method=post enctype="multipart/form-data">';
 
-    if (isset($_POST['edit'])) {
-        $fileCache = new \Ideal\Structure\Service\Cache\Model($file);
-        $response = $fileCache->checkSettings();
-        $response['text'] = empty($response['text']) ? 'Настройки сохранены' : $response['text'];
-        $file->changeAndSave(
-            DOCUMENT_ROOT . '/' . $config->cmsFolder . '/site_data.php',
-            $response['res'],
-            $response['class'],
-            $response['text']
-        );
+        $config = Config::getInstance();
+        $file = new ConfigPhp();
+
+        $file->loadFile($config->rootDir . '/config/site.php');
+
+        if (isset($_POST['edit'])) {
+            $fileCache = new CacheModel($file);
+            $response = $fileCache->checkSettings();
+            $response['text'] = empty($response['text']) ? 'Настройки сохранены' : $response['text'];
+            $file->changeAndSave(
+                DOCUMENT_ROOT . '/' . $config->cmsFolder . '/site_data.php',
+                $response['res'],
+                $response['class'],
+                $response['text']
+            );
+        }
+        $result .= $file->showEdit()
+            . '<br/><input type="submit" class="btn btn-info" name="edit" value="Сохранить настройки"/></form>';
+
+        return $result;
     }
-    echo $file->showEdit();
-    ?>
+}
 
-    <br/>
-
-    <input type="submit" class="btn btn-info" name="edit" value="Сохранить настройки"/>
-</form>

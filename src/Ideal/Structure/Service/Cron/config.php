@@ -1,8 +1,8 @@
 <?php
-return array(
+return [
+    'ID' => 'Ideal_Cron',
+    'structure' => 'Ideal_Service',
     'name' => 'Cron',
     'pos' => 100,
     'info' => '',
-    'structure' => 'Ideal_Service',
-    'ID' => 'Ideal_Cron'
-);
+];
