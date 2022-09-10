@@ -49,21 +49,11 @@ class AbstractModel
         $this->obj = $obj;
         $this->fieldName = $fieldName;
 
-        $parts = preg_split('/[_\\\\]+/', get_class($this));
-        $this->table = strtolower($config->db['prefix'] . $parts[0] . '_' . $parts[1] . '_' . $parts[2]);
-        $module = $parts[0];
-        $module = ($module == 'Ideal') ? '' : $module . '/';
-        $structureName = $parts[2];
+        $this->table = $config->getTableByClass(get_class($this), 'Medium');
+        $configClass = $config->getTypeClass(get_class($this), 'Config');
 
-        $includeFile = $module . 'Medium/' . $structureName . '/config.php';
-        /** @noinspection PhpIncludeInspection */
-        $structure = include($includeFile);
-        if (!is_array($structure)) {
-            throw new \Exception('Не удалось подключить файл: ' . $includeFile);
-        }
-
-        $this->params = $structure['params'];
-        $this->fields = $structure['fields'];
+        $this->params = $configClass::$params;
+        $this->fields = $configClass::$fields;
     }
 
     /**

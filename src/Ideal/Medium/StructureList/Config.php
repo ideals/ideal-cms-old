@@ -7,9 +7,13 @@
  * @license   http://idealcms.ru/license.html LGPL v3
  */
 
-return array(
-    'params' => array(
-        'has_table' => false
-    ),
-    'fields' => array()
-);
+namespace Ideal\Medium\StructureList;
+
+class Config
+{
+    public static array $params = [
+        'has_table' => false,
+    ];
+
+    public static array $fields = [];
+}

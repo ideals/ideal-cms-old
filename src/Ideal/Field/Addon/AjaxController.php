@@ -47,4 +47,9 @@ class AjaxController extends \Ideal\Core\AjaxController
 
         return json_encode($result, $options);
     }
+
+    public function scriptAction()
+    {
+        return file_get_contents(__DIR__ . '/script.js');
+    }
 }

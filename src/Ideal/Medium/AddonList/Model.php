@@ -22,12 +22,10 @@ class Model extends AbstractModel
     public function getList()
     {
         $addons = $this->obj->fields[$this->fieldName]['available'];
-        $list = array();
+        $list = [];
         foreach ($addons as $addon) {
-            $class = Util::getClassName($addon, 'Addon');
-            $folder = ltrim(ltrim(str_replace('\\', '/', $class), '/'), 'Ideal/');
-            $arr = require($folder . '/config.php');
-            $list[$addon] = $arr['params']['name'];
+            $class = Util::getClassName($addon, 'Addon') . '\\Config';
+            $list[$addon] = $class::$params['name'];
         }
         return $list;
     }

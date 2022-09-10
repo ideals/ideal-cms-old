@@ -8,7 +8,7 @@
 
     <base href="{{ subFolder }}/">
 
-    <link href="/js/{{ cmsFolder }}/jqueryui/jquery-ui.min.css" rel="stylesheet">
+    <link href="/js/{{ cmsFolder }}/jqueryui/themes/base/jquery-ui.min.css" rel="stylesheet">
     <link href="/js/{{ cmsFolder }}/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="/css/{{ cmsFolder }}/style.css" rel="stylesheet">
 </head>
@@ -322,7 +322,7 @@
                 }
 
                 $.ajax({
-                    url: 'index.php',
+                    url: '{{ cmsFolder }}/index.php',
                     data: dataToAjax,
                     success: function (data)
                     {

@@ -342,12 +342,10 @@ class Controller
         }
         $tabLine .= '</ul>';
         $tabsContent .= '</div>';
-        echo json_encode(
-            array(
-                'tabs' => $tabLine,
-                'content' => $tabsContent
-            )
-        );
+        echo json_encode([
+            'tabs' => $tabLine,
+            'content' => $tabsContent
+        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
     }
 
     public function showEditAction()

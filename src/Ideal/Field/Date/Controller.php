@@ -35,29 +35,16 @@ class Controller extends AbstractController
     public function getInputText()
     {
         $value = $this->getValue();
-        $date = empty($value) ? '' : date('d.m.Y H:i:s', $value);
+        $date = empty($value) ? '' : date('Y-m-d\TH:i', $value);
         $htmlName = $this->htmlName;
         $html = <<<HTML
-<link href="Ideal/Library/datetimepicker/build/css/bootstrap-datetimepicker.min.css" rel="stylesheet" type="text/css" >
-<script type="text/javascript" src="Ideal/Library/moment/moment.js"></script>
-<script type="text/javascript" src="Ideal/Library/moment/locale/ru.js"></script>
-<script type="text/javascript" src="Ideal/Library/datetimepicker/src/js/bootstrap-datetimepicker.js"></script>
 
 <div id="picker_{$htmlName}" class="input-group date">
     <span class="input-group-addon">
         <span class="glyphicon glyphicon-calendar" ></span>
     </span>
-    <input type="text" class="form-control" name="{$htmlName}" value="{$date}" >
+    <input type="datetime-local" class="form-control" name="{$htmlName}" value="{$date}" >
 </div>
-
-<script type="text/javascript">
-    $(function () {
-        $('#picker_{$htmlName}').datetimepicker({
-            format: 'DD.MM.YYYY HH:mm:ss',
-            locale: 'ru'
-        });
-    });
-</script>
 HTML;
 
         return $html;
@@ -85,7 +72,7 @@ HTML;
             return '0';
         }
 
-        $dateTime = date_create_from_format('d.m.Y H:i:s', $newValue);
+        $dateTime = date_create_from_format('Y-m-d\TH:i', $newValue);
         if ($dateTime === false) {
             // Ошибка в формате введённой даты
             return '';

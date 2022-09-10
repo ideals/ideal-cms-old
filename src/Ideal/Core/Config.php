@@ -191,6 +191,43 @@ class Config
     }
 
     /**
+     * Получение имени таблицы на основе названия класса
+     *
+     * @param string $name Название класса
+     * @param string $type Тип класса (Structure или Addon)
+     *
+     * @return string Название таблицы
+     */
+    public function getTableByClass(string $name, string $type = 'Structure'): string
+    {
+        $parts = explode('\\', $name);
+        if (!$parts || !isset($parts[3])) {
+            throw new \RuntimeException('Передано неправильное значение названия структуры: ' . $name);
+        }
+
+        return strtolower($this->db['prefix'] . $parts[0] . '_' . $parts[1] . '_' . $parts[2]);
+    }
+
+    /**
+     * Получение имени соседнего класса в структуре
+     *
+     * @param string $name Название структуры или аддона
+     * @param string $type Вид нужного класса
+     *
+     * @return string Название класса
+     */
+    public function getTypeClass(string $name, string $type): string
+    {
+        $nameParts = (array)explode('\\', $name);
+        if (!isset($nameParts[3])) {
+            throw new \RuntimeException('Передано неправильное значение названия класса: ' . $name);
+        }
+        $nameParts[3] = $type;
+
+        return implode('\\', $nameParts);
+    }
+
+    /**
      * Загружает все конфигурационные переменные из конфигурационных файлов
      * В дальнейшем доступ к ним осуществляется через __get этого класса
      *

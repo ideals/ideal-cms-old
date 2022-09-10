@@ -92,7 +92,7 @@ class Controller extends AbstractController
                 $('#tabs-content').append('{$tabs['contents']}');
             });
             </script>
-            <script type="text/javascript" src="Ideal/Field/Addon/script.js"></script>
+            <script type="text/javascript" src="index.php?mode=ajax&action=script&controller=\Ideal\Field\Addon"></script>
 HTML;
         return $html;
     }
