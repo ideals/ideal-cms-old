@@ -6,28 +6,28 @@
     <title>{{ title }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <base href="{{ subFolder }}/">
+    <base href="{{ subFolder }}/{{ cmsFolder }}/">
 
-    <link href="/js/{{ cmsFolder }}/jqueryui/themes/base/jquery-ui.min.css" rel="stylesheet">
-    <link href="/js/{{ cmsFolder }}/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/css/{{ cmsFolder }}/style.css" rel="stylesheet">
+    <link href="js/jqueryui/themes/base/jquery-ui.min.css" rel="stylesheet">
+    <link href="js/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
 </head>
 
 <body>
 
 <script type="text/javascript"
-        src="/js/{{ cmsFolder }}/jquery/jquery.min.js"></script>
+        src="js/jquery/jquery.min.js"></script>
 <script type="text/javascript"
-        src="/js/{{ cmsFolder }}/bootstrap/js/bootstrap.min.js"></script>
+        src="js/bootstrap/js/bootstrap.min.js"></script>
 <script type="text/javascript"
-        src="/js/{{ cmsFolder }}/jqueryui/jquery-ui.min.js"></script>
+        src="js/jqueryui/jquery-ui.min.js"></script>
 
 <script type="text/javascript"
-        src="/js/{{ cmsFolder }}/ckeditor/ckeditor.js"></script>
+        src="js/ckeditor/ckeditor.js"></script>
 <script type="text/javascript"
-        src="/js/{{ cmsFolder }}/ckfinder/ckfinder.js"></script>
+        src="js/ckfinder/ckfinder.js"></script>
 <script type="text/javascript"
-        src="/js/{{ cmsFolder }}/actions.js"></script>
+        src="js/actions.js"></script>
 
 {% block jsAdmin %}
 {% endblock %}

@@ -35,40 +35,41 @@ class PostUpdate
         $config->loadSettings($this->rootDir);
 
         $wwwDir = $this->rootDir . '/' . $config->cms['publicFolder'];
+        $adminDir = $wwwDir . '/' . $config->cmsFolder;
 
         $this->copyFolder(
             $this->vendorDir . '/ideals/idealcms-old/front/css',
-            $wwwDir . '/css/' . $config->cmsFolder
+            $adminDir . '/css/'
         );
 
         $this->copyFolder(
             $this->vendorDir . '/idealcms/bootstrap-multiselect/dist',
-            $wwwDir . '/js/' . $config->cmsFolder . '/bootstrap-multiselect'
+            $adminDir . '/js/' . '/bootstrap-multiselect'
         );
 
         $this->copyFolder(
             $this->vendorDir . '/idealcms/ckeditor/dist',
-            $wwwDir . '/js/' . $config->cmsFolder . '/ckeditor'
+            $adminDir . '/js/' . '/ckeditor'
         );
 
         $this->copyFolder(
             $this->vendorDir . '/idealcms/ckfinder/dist',
-            $wwwDir . '/js/' . $config->cmsFolder . '/ckfinder'
+            $adminDir . '/js/' . '/ckfinder'
         );
 
         $this->copyFolder(
             $this->vendorDir . '/components/jquery',
-            $wwwDir . '/js/' . $config->cmsFolder . '/jquery'
+            $adminDir . '/js/' . '/jquery'
         );
 
         $this->copyFolder(
             $this->vendorDir . '/components/jqueryui',
-            $wwwDir . '/js/' . $config->cmsFolder . '/jqueryui'
+            $adminDir . '/js/' . '/jqueryui'
         );
 
         $this->copyFolder(
             $this->vendorDir . '/twitter/bootstrap/dist/',
-            $wwwDir . '/js/' . $config->cmsFolder . '/bootstrap'
+            $adminDir . '/js/' . '/bootstrap'
         );
     }
 

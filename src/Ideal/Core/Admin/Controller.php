@@ -213,7 +213,7 @@ class Controller
                     && (!isset($v['acl']) || $v['acl']['enter']) ) {
                     // На активный элемент ставим ссылку
                     $par = $request->par . '-' . $v['ID'];
-                    $value = '<a href="' . $config->cmsFolder .'/index.php?par=' . $par . '">' . $value . '</a>';
+                    $value = '<a href="index.php?par=' . $par . '">' . $value . '</a>';
                 }
                 $fields .= '<td>' . $value . '</td>';
             }
