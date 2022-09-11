@@ -66,7 +66,7 @@ abstract class Model
                 $type = $parts[1];
                 $structureName = $structure['structure'];
                 $structureName = substr($structureName, strpos($structureName, '_') + 1);
-                $structure = $config->getStructureByName($structureFullName);
+                $structure = $config->getStructureByName($structure['structure']);
                 $className = $config->getStructureClass($structure['structure'], 'Config');
                 $cfg = new $className();
                 break;

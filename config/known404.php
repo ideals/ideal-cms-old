@@ -1,4 +1,5 @@
 <?php
+/** @noinspection ALL */
 // @codingStandardsIgnoreFile
 return [
     'known' => [ // Известные 404

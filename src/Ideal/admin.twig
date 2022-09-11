@@ -52,7 +52,7 @@
                 <ul class="nav navbar-nav">
                     {% for item in structures | filter(item => item.isShow) %}
                         <li {% if activeStructureId == item.ID %} class="active" {% endif %}>
-                            <a href="{{ cmsFolder }}/index.php?par={{ item.ID }}">{{ item.name }}</a>
+                            <a href="index.php?par={{ item.ID }}">{{ item.name }}</a>
                         </li>
                     {% endfor %}
                 </ul>
@@ -69,7 +69,7 @@
                                 <a onClick="showModal('{{ user.par }}', {{ user.ID }}, 'showEdit'); return false;"
                                    href="#">Профиль</a></li>
                             <li><a onClick="showClearCacheConfirm(); return false;" href="#">Очистить кэш</a></li>
-                            <li><a href="{{ cmsFolder }}/index.php?action=logout">Выход</a></li>
+                            <li><a href="index.php?action=logout">Выход</a></li>
                         </ul>
                     </li>
                 </ul>
@@ -322,7 +322,7 @@
                 }
 
                 $.ajax({
-                    url: '{{ cmsFolder }}/index.php',
+                    url: 'index.php',
                     data: dataToAjax,
                     success: function (data)
                     {
@@ -603,7 +603,7 @@
                 startupPath = typeof startupPath !== 'undefined' ?  startupPath : '';
                 window.idObject['fieldName'] = '#' + fieldName;
                 var finder = new CKFinder();
-                finder.basePath = '{{ cmsFolder }}/Ideal/Library/ckfinder/';
+                finder.basePath = 'js/ckfinder/';
                 finder.rememberLastFolder = true;
                 finder.selectActionFunction = setFileField;
                 if (startupPath != '') {

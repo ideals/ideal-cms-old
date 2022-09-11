@@ -50,8 +50,8 @@ class RewriteRule
     public function __construct()
     {
         $config = Config::getInstance();
-        $this->htFile = $config->rootDir . $config->cms['publicFolder'] . '/.htaccess';
-        $this->reFile = $config->rootDir . '/config//redirect.txt';
+        $this->htFile = $config->publicDir . '/.htaccess';
+        $this->reFile = $config->rootDir . '/config/redirect.txt';
 
         // Создаём файл redirects.txt, если он ещё не создан
         if (!file_exists($this->reFile)) {

@@ -74,7 +74,7 @@ HTML;
         }
 
         if (isset($_POST['edit'])) {
-            $file->changeAndSave(DOCUMENT_ROOT . '/' . $config->cmsFolder . '/site_map.php');
+            $file->changeAndSave($config->rootDir . '/config/site_map.php');
         }
 
         $showEdit = $file->showEdit();
@@ -171,7 +171,7 @@ HTML;
             error: function (xhr) {
                 $('#iframe').append('<pre> Не удалось завершить сканирование. Статус: '
                 + xhr.statusCode().status +
-                '\n Попытка продолжить сканирование через 10 секунд.</pre>');
+                '\\n Попытка продолжить сканирование через 10 секунд.</pre>');
                 setTimeout(
                     function () {
                         getSitemapAjaxify(param);

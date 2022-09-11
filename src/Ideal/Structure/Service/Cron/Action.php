@@ -10,15 +10,13 @@ class Action
     public function render(): string
     {
         $config = Config::getInstance();
-        $file = new ConfigPhp();
+
         $configFile = $config->rootDir . '/config/crontab';
         $data = file_exists($configFile) ? file_get_contents($configFile) : '';
 
         $test = '';
-        if (!file_exists($configFile)) {
-            if (!file_put_contents($configFile, '')) {
-                $test = 'Не могу создать файл для записи заданий: ' . $configFile;
-            }
+        if (!file_exists($configFile) && !file_put_contents($configFile, '')) {
+            $test = 'Не могу создать файл для записи заданий: ' . $configFile;
         }
 
         if (!is_writable($configFile)) {
@@ -28,8 +26,14 @@ class Action
         if (isset($_POST['crontab'])) {
             $data = $_POST['crontab'];
 
-            require $config->cmsFolder . '/Ideal/Library/Cron/loader.php';
-            $cron = new \Cron\CronClass();
+            $params = [
+                'site_root' => $config->rootDir,
+                'domain' => '',
+                'robotEmail' => '',
+                'adminEmail' => '',
+            ];
+
+            $cron = new Crontab($config->rootDir . '/config/crontab', $params);
             $cronArr = $cron->parseCrontab($data);
             if (!$cron->testTasks($cronArr)) {
                 $test = $cron->getMessage();
@@ -37,7 +41,7 @@ class Action
 
             if (empty($test)) {
                 file_put_contents($configFile, $_POST['crontab']);
-                $cron = new \Cron\CronClass();
+                $cron = new Crontab($config->rootDir . '/config/crontab', $params);
                 $cron->testAction();
                 $test = $cron->getMessage();
             }
@@ -55,7 +59,7 @@ class Action
             <div class=" general_cron_crontab-controls">
                 <textarea class="form-control" name="crontab"
                           placeholder="Задачи не установлены. Формат: * * * * * path/to/script.php"
-                          id="crontab" rows="5"><?= $data; ?></textarea>
+                          id="crontab" rows="5">$data</textarea>
                 <div id="general_cron_crontab-help"></div>
             </div>
         </div>

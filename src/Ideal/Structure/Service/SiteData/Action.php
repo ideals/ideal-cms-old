@@ -27,8 +27,8 @@ class Action
             $fileCache = new CacheModel($file);
             $response = $fileCache->checkSettings();
             $response['text'] = empty($response['text']) ? 'Настройки сохранены' : $response['text'];
-            $file->changeAndSave(
-                DOCUMENT_ROOT . '/' . $config->cmsFolder . '/site_data.php',
+            $result .= $file->changeAndSave(
+                $config->rootDir . '/config/site.php',
                 $response['res'],
                 $response['class'],
                 $response['text']

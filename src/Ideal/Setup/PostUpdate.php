@@ -38,8 +38,13 @@ class PostUpdate
         $adminDir = $wwwDir . '/' . $config->cmsFolder;
 
         $this->copyFolder(
-            $this->vendorDir . '/ideals/idealcms-old/front/css',
+            $config->cmsDir . '/front/css',
             $adminDir . '/css/'
+        );
+
+        $this->copyFolder(
+            $config->cmsDir . '/front/js',
+            $adminDir . '/js/'
         );
 
         $this->copyFolder(

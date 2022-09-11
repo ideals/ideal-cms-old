@@ -10,6 +10,7 @@
 namespace Ideal\Structure\Service\SiteData;
 
 use Ideal\Core\Util;
+use JsonException;
 
 /**
  * Чтение, отображение и запись специального формата конфигурационных php-файлов
@@ -80,35 +81,39 @@ class ConfigPhp
      * Сохранение обработанных конфигурационных данных в файл
      *
      * @param string $fileName Название php-файла, в который сохраняются данные
-     * @return int Возвращает количество записанных в файл байт или false
+     * @return false|int Возвращает количество записанных в файл байт или false
+     * @throws JsonException
      */
-    public function saveFile($fileName)
+    public function saveFile(string $fileName)
     {
         // Изменяем постоянные настройки сайта
-        $file = "<?php\n// @codingStandardsIgnoreFile\nreturn array(\n";
+        $file = "<?php\n" . '/** @noinspection ALL */' . "\n// @codingStandardsIgnoreFile\nreturn [\n";
         foreach ($this->params as $tabId => $tab) {
             $pad = 4;
-            if ($tabId != 'default') {
-                $file .= "    '{$tabId}' => array( // {$tab['name']}\n";
+            if ($tabId !== 'default') {
+                $file .= "    '{$tabId}' => [ // {$tab['name']}\n";
                 $pad = 8;
             }
             foreach ($tab['arr'] as $field => $param) {
                 $options = (defined('JSON_UNESCAPED_UNICODE')) ? JSON_UNESCAPED_UNICODE : 0;
-                $values = ($param['type'] == 'Ideal_Select') ? ' | ' . json_encode($param['values'], $options) : '';
+                $values = '';
+                if ($param['type'] === 'Ideal_Select') {
+                    $values =  ' | ' . json_encode($param['values'], JSON_THROW_ON_ERROR | $options);
+                }
 
                 // Экранируем переводы строки для сохранения в файле
                 $param['value'] = str_replace("\r", '', $param['value']);
                 $param['value'] = str_replace("\n", '\n', $param['value']);
 
                 $file .= str_repeat(' ', $pad) . "'" . $field . "' => " . '"' . $param['value'] . '", '
-                    . "// " . $param['label'] . ' | ' . $param['type'] . $values . "\n";
+                    . '// ' . $param['label'] . ' | ' . $param['type'] . $values . "\n";
             }
-            if ($tabId != 'default') {
-                $file .= "    ),\n";
+            if ($tabId !== 'default') {
+                $file .= "    ],\n";
             }
         }
 
-        $file .= ");\n";
+        $file .= "];\n";
 
         return file_put_contents($fileName, $file, FILE_USE_INCLUDE_PATH);
     }
@@ -120,36 +125,34 @@ class ConfigPhp
      * @param bool $res Флаг отражающий наличие ошибок на момент передачи работы методу
      * @param string $class Набор классов для информирующего блока
      * @param string $text Текст для информирующего блока
-     * @return bool Флаг успешности сохранения данных в файл
+     *
+     * @return string Сообщение об успешности сохранения данных в файл
+     * @throws JsonException
      */
-    public function changeAndSave($fileName, $res = true, $class = '', $text = 'Настройки сохранены!')
-    {
+    public function changeAndSave(
+        string $fileName,
+        bool   $res = true,
+        string $class = '',
+        string $text = 'Настройки сохранены!'
+    ): string {
         if (empty($class)) {
             $class = 'alert alert-block alert-success';
         }
         // Заменяем настройки на введённые пользователем
         $response = $this->pickupValues();
         if ($response['res'] === false) {
-            $res = false;
             $text = $response['text'];
             $class = 'alert alert-danger';
-        } else {
-            // Пытаемся сохранить файл, только если до этого не произошло ошибок
-            if ($res) {
-                if ($this->saveFile($fileName) === false) {
-                    $res = false;
-                    $text = 'Не получилось сохранить настройки в файл ' . $fileName;
-                    $class = 'alert alert-danger';
-                }
-            }
+        } elseif ($res && $this->saveFile($fileName) === false) {
+            $text = 'Не получилось сохранить настройки в файл ' . $fileName;
+            $class = 'alert alert-danger';
         }
 
-        print <<<DONE
+        return <<<DONE
         <div class="{$class} fade in">
         <button type="button" class="close" data-dismiss="alert">&times;</button>
         <span class="alert-heading">{$text}</span></div>
 DONE;
-        return $res;
     }
 
     /**

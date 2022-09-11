@@ -1,2 +1,1 @@
-*/10 2 * * * [[CMS]]/Ideal/Library/sitemap/index.php
-*/10 3 * * * [[CMS]]/Ideal/Library/FileMonitor/scan.php
+*/10 2 * * * bin/console

@@ -74,7 +74,7 @@ function rescanPhotogalleryItems(listSelector, infoSelector) {
 function imageGalleryShowFinder(fieldSelector) {
     var finder = new CKFinder();
     finder.selectActionData = {"fieldSelector": fieldSelector};
-    finder.basePath = '{{ cmsFolder }}/Ideal/Library/ckfinder/';
+    finder.basePath = 'js/ckfinder/';
     finder.selectActionFunction = imageGallerySetFileField;
     finder.popup();
 }

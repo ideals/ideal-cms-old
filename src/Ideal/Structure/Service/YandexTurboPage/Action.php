@@ -57,21 +57,11 @@ HTML;
         $config = Config::getInstance();
         $file = new ConfigPhp();
 
-        if (!$file->loadFile($config->rootDir . '/config/site_turbo.php')) {
+        if (!$file->loadFile($config->rootDir . '/config/turbo_page.php')) {
             // Если не удалось прочитать данные из кастомного файла, значит его нет
             // Поэтому читаем данные из демо-файла
-            $file->loadFile($config->rootDir . '/vendor/ideas/idealcms-old/Library/YandexTurboPage/site_turbo_demo.php');
+            $file->loadFile($config->cmsDir . '/config/turbo_page.php');
             $params = $file->getParams();
-
-            $sitemap = [];
-            if (file_exists($config->rootDir . '/config/site_map.php')) {
-                $sitemap = include $config->rootDir . '/config/site_map.php';
-                // Записываем путь до файла карты сайта по умолчанию в настройки
-                $params['default']['arr']['sitemapFile']['value'] = $sitemap['sitemap_file'];
-            }
-
-            // Записываем сайт для сканирования по умолчанию в настройки
-            $params['default']['arr']['website']['value'] = $sitemap ? $sitemap['website'] : 'http://' . $config->domain;
 
             // Записываем корневую папку на диске
             $params['default']['arr']['pageroot']['value'] = $config->rootDir . '/' . $config->cms['publicFolder'];
@@ -87,8 +77,10 @@ HTML;
         }
 
         if (isset($_POST['edit'])) {
-            $file->changeAndSave($config->rootDir . '/config/site_turbo.php');
+            $file->changeAndSave($config->rootDir . '/config/turbo_page.php');
         }
+
+        $showEdit = $file->showEdit();
 
         $result .= <<<HTML
 <!-- Nav tabs -->
@@ -101,11 +93,8 @@ HTML;
 <div class="tab-content">
     <div class="tab-pane active" id="settings">
         <form action="" method=post enctype="multipart/form-data">
-
-            <?php echo $file->showEdit(); ?>
-
+            {$showEdit}
             <br/>
-
             <input type="submit" class="btn btn-info" name="edit" value="Сохранить настройки"/>
         </form>
     </div>
@@ -132,8 +121,7 @@ HTML;
             <p>Чтобы прописать в cron'е команду на запуск составления карты сайта в терминале выполните команду:</p>
             <pre><code>crontab -e</code></pre>
             <p>Далее в открывшемся редакторе запишите такую строку:</p>
-            <pre><code>*/2 5 * * * /usr/bin/php <?php
-                  echo DOCUMENT_ROOT . '/' . $config->cmsFolder; ?>/Ideal/Library/YandexTurboPage/index.php</code></pre>
+            <pre><code>*/2 5 * * * /usr/bin/php index.php</code></pre>
             <p>Эта инструкция означает запуск скрипта каждые две минуты с пяти до шести ночи.
                 Если этого времени не хватает для составления фида Турбо-страниц, то можно увеличить диапазон часов.</p>
 </div>
@@ -180,7 +168,7 @@ HTML;
             error: function (xhr) {
                 $('#iframe').append('<pre> Не удалось завершить сканирование. Статус: '
                     + xhr.statusCode().status +
-                    '\n Попытка продолжить сканирование через 10 секунд.</pre>');
+                    '\\n Попытка продолжить сканирование через 10 секунд.</pre>');
                 setTimeout(
                     function () {
                         getYandexTurboFeedAjaxify(param);

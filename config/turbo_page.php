@@ -1,6 +1,7 @@
 <?php
+/** @noinspection ALL */
 // @codingStandardsIgnoreFile
-return array(
+return [
     'pageroot' => "", // Корневая папка сайта на диске | Ideal_Text
     'website' => "", // Сайт для сканирования | Ideal_Text
     'yandexRssFile' => "/yandexrss.xml", // Путь до файла турбо-фида | Ideal_Text
@@ -13,4 +14,4 @@ return array(
     'error_email_notify' => "errors@neox.ru", // Электронная почта для уведомления об ошибках в процессе работы скрипта | Ideal_Text
     'manager_email_notify' => "top@neox.ru", // Электронная почта для уведомления менеджера | Ideal_Text
     'max_file_feed_num' => "1", // Максимальное количество файлов-фидов | Ideal_Integer
-);
+];

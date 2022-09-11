@@ -33,7 +33,7 @@ class Versions
     {
         $config = Config::getInstance();
         // Файл лога обновлений
-        $log = DOCUMENT_ROOT . '/' . $config->cmsFolder . '/' . 'update.log';
+        $log = $config->rootDir . '/' . $config->cms['tmpFolder'] . '/update.log';
         // Проверяем существует ли файл лога
         if (!file_exists($log)) {
             $this->addAnswer('Файл лога обновлений не существует ' . $log, 'info');
@@ -72,7 +72,7 @@ class Versions
     {
         $config = Config::getInstance();
         // Путь к файлу README.md для cms
-        $mods['Ideal-CMS'] = DOCUMENT_ROOT . '/' . $config->cmsFolder . '/Ideal';
+        $mods['Ideal-CMS'] = $config->cmsDir;
 
         // Ищем файлы README.md в модулях
         $modDirName = DOCUMENT_ROOT . '/' . $config->cmsFolder . '/Mods';
@@ -89,16 +89,14 @@ class Versions
             }
         }
         // Получаем версии для каждого модуля и CMS из update.log
-        $versions = $this->getVersionFromFile($mods);
-
-        return $versions;
+        return $this->getVersionFromFile($mods);
     }
 
     /**
      * Получение версии из файла
      *
-     * @param string $mods Папки с модулями и CMS
-     * @return array|bool Версия CMS  и модулей
+     * @param array $mods Папки с модулями и CMS
+     * @return array Версия CMS  и модулей
      */
     protected function getVersionFromFile($mods)
     {
@@ -106,8 +104,7 @@ class Versions
         $version = $this->getVersionFromReadme($mods);
 
         if ($version === false) {
-            // Если произошла ошибка в определении версий модулей
-            return false;
+            throw new \RuntimeException('Произошла ошибка в определении версий модулей');
         }
 
         if (filesize($this->log) == 0) {

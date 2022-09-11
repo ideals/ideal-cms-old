@@ -11,6 +11,7 @@ namespace Ideal\Structure\Service\Backup;
 
 use Exception;
 use Ideal\Core\Config;
+use RuntimeException;
 
 class Action
 {
@@ -29,43 +30,43 @@ class Action
             $backupFolder = '/backup/';
 
             if ($tmpFolder === '') {
-                throw new Exception('Не задана временная папка tmpDir в файле site_data.php');
+                throw new RuntimeException('Не задана временная папка tmpDir в файле site.php');
             }
 
             // Определяем доступность временной папки
-            $tmpFolder = DOCUMENT_ROOT . $tmpFolder;
+            $tmpFolder = $config->rootDir . '/' . $tmpFolder;
             $tmpFull = stream_resolve_include_path($tmpFolder);
 
             // Проверяем существует ли временная папка и если нет, то пытаемся её создать
             if ($tmpFull === false) {
-                if (mkdir($tmpFolder, 0755)) {
+                if (mkdir($tmpFolder, 0755) || is_dir($tmpFolder)) {
                     $tmpFull = stream_resolve_include_path($tmpFolder);
                 }
             }
 
             if ($tmpFull === false) {
-                throw new Exception("Не удалось создать папку $tmpFolder для сохранения дампа базы");
+                throw new RuntimeException("Не удалось создать папку $tmpFolder для сохранения дампа базы");
             }
 
             if (!is_writable($tmpFull)) {
-                throw new Exception("Папка $tmpFull недоступна для записи");
+                throw new RuntimeException("Папка $tmpFull недоступна для записи");
             }
 
             // Проверяем существует ли папка для создания бэкапов и если нет, то пытаемся её создать
             $backupFolder = $tmpFull . $backupFolder;
             $backupPart = stream_resolve_include_path($backupFolder);
             if ($backupPart === false) {
-                if (mkdir($backupFolder, 0755)) {
+                if (mkdir($backupFolder, 0755) || is_dir($backupFolder)) {
                     $backupPart = stream_resolve_include_path($backupFolder);
                 }
             }
 
             if ($backupPart === false) {
-                throw new Exception("Не удалось создать папку $backupFolder для сохранения дампа базы");
+                throw new RuntimeException("Не удалось создать папку $backupFolder для сохранения дампа базы");
             }
 
             if (!is_writable($backupPart)) {
-                throw new Exception("Папка $backupPart недоступна для записи");
+                throw new RuntimeException("Папка $backupPart недоступна для записи");
             }
 
             // В результате $backupPart содержит полный путь к папке бэкапа
@@ -89,36 +90,11 @@ class Action
            onchange="upload(this.files[0])">
 </form>
 
-<!-- Modal -->
-<div class="modal fade" id="myModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title" id="myModalLabel">Комментарий</h4>
-            </div>
-            <div class="modal-body">
-                <textarea class="form-control" name="cmt" id="cmt"
-                          style="width:100%"></textarea>
-                <input type="hidden" id="dname" value="" />
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-default" type="button"
-                        data-dismiss="modal">Закрыть</button>
-                <button class="btn btn-primary"
-                        type="button"
-                        onclick="saveModal(); return false;">Сохранить</button>
-            </div>
-        </div>
-    </div>
-</div><!-- /.modal -->
-
 <div class="clearfix"></div>
 HTML;
 
         $result .= '<p>Папка с архивами: &nbsp;' . $backupPart . '</p>';
         // Получение списка файлов
-        $dumpFiles = [];
-
         if (is_dir($backupPart)) {
             $result .= '<table id="dumpTable" class="table table-hover">';
             $files = glob($backupPart . '/dump*.gz');
@@ -133,23 +109,9 @@ HTML;
                 $second = substr($file, 22, 2);
 
                 // Версия админки
-                preg_match("/(v.*)(\.sql|_)/U", $file, $ver);
+                preg_match('/(v.*)(\.sql|_)/U', $file, $ver);
 
                 $file = $backupPart . DIRECTORY_SEPARATOR . $file;
-
-                // Текст и кнопка комментария
-                $cmtText = 'Добавить комментарий'; // текст по умолчанию
-                $cmtBtnStyle = 'btn-default'; // стиль кнопки по умолчанию
-                // Считываем данные из файла
-                $cmtFileContents = '';
-                $cmtFileName = str_replace('.gz', '.txt', $file); // имя файла комментария
-                if (file_exists($cmtFileName)) {
-                    $cmtFileContents = file_get_contents($cmtFileName);
-                }
-                if ($cmtFileContents) {
-                    $cmtText = $cmtFileContents;
-                    $cmtBtnStyle = 'btn-info';
-                }
 
                 $result .= '<tr id="' . $file . '"><td>'
                     . '<a href="" onClick="return downloadDump(\'' . addslashes($file) . '\')"> '
@@ -158,7 +120,7 @@ HTML;
                     $result .= ' - ' . $ver[1];
                 }
                 // если загруженный сторонний файл, дописываем в названии "(upload)"
-                if (preg_match("/_upload/", $file)) {
+                if (strpos($file, '_upload') !== false) {
                     $result .= ' (upload)';
                 }
                 $result .= '</a></td>';
@@ -176,18 +138,11 @@ HTML;
                 $result .= ' <span class="glyphicon glyphicon-remove"></span> ';
                 $result .= '</button>&nbsp;';
 
-                // Кнопка комментария
-                $result .= '<button id="' . $file . '_btn_cmt"
-                    class="tlp btn ' . $cmtBtnStyle . ' btn-xs btn-cmt"
-                    title="' . $cmtText . '"
-                    onclick="showModal(\'' . addslashes($file) . '\'); false;">';
-                $result .= ' <span class="glyphicon glyphicon-pencil"></span> ';
-                $result .= '</button>&nbsp;';
-
                 $result .= '</td>';
                 $result .= '</tr>';
             }
         }
+        $backupPart = addslashes($backupPart);
 
         $result .= <<<HTML
 <script type="text/javascript">
@@ -196,64 +151,6 @@ HTML;
         $('.tlp').tooltip();
     });
 
-    // Отображает модальное окно для добавления/редактирования комментария
-    function showModal(nameFile) {
-        var url = window.location.href + "&action=ajaxComment";
-        // Добавляем имя файла в hidden input
-        $('#dname').val(nameFile);
-        // Заполняем textarea
-        $('#cmt').val('');
-        $.ajax({
-            url: url,
-            cache: false,
-            type: 'POST',
-            data: {
-                name: nameFile,
-                act: 'get'
-            },
-            success: function (data) {
-                // Выводим текст комментария в textarea
-                $('#cmt').val(data);
-            }
-        });
-        // Отображение модального окна
-        $('#myModal').modal({backdrop: 'static'});
-    }
-
-    // Сохраненяет текст комментария из модального окна
-    function saveModal() {
-        var url = window.location.href + "&action=ajaxComment";
-        // Имя файла дампа
-        var nameFile = $('#dname').val();
-        // Текст комментария
-        var cmtText = $('#cmt').val();
-        // Сохраняем комментарий
-        $.ajax({
-            url: url,
-            type: 'POST',
-            data: {
-                name: nameFile,
-                act: 'save',
-                text: cmtText
-            },
-            success: function (data) {
-                $('#cmt').val(''); // очищаем textarea
-                $('#myModal').modal('hide'); // закрываем модальное окно
-                var el = document.getElementById(nameFile+'_btn_cmt');
-                if (data.length > 0) {
-                    el.classList.remove('btn-default');
-                    el.classList.add('btn-info');
-                    el.setAttribute('title', data);
-                } else {
-                    el.classList.remove('btn-info');
-                    el.classList.add('btn-default');
-                    el.setAttribute('title', 'Добавить комментарий');
-                }
-                $('.tlp').tooltip('destroy').tooltip();
-            }
-        })
-    }
-
     // Загрузка файла
     function upload(file) {
         // FormData
@@ -261,7 +158,7 @@ HTML;
         fd.append('file', file);
         $('#uploadfile').val('');
         // Url
-        var url = window.location.href + "&action=ajaxUploadFile&bf=<?php echo addslashes($backupPart)?>";
+        var url = "index.php?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=uploadFile&bf={$backupPart}";
         // Сообщение о процессе загрузки
         $('#textDumpStatus').removeClass().addClass('alert alert-info').html('Идёт загрузка файла...');
         // Загрузка
@@ -293,11 +190,10 @@ HTML;
 
     // Импорт дампа БД
     function importDump(nameFile) {
-        if (confirm('Импортировать дамп БД:\n\n' + nameFile.split(/[\\/]/).pop() + '\n\n?')) {
+        if (confirm('Импортировать дамп БД:\\n\\n' + nameFile.split(/[\\\\/]/).pop() + '\\n\\n?')) {
             $('#textDumpStatus').removeClass().addClass('alert alert-info').html('Идёт импорт дампа БД');
-            var path = window.location.href;
             $.ajax({
-                url: path + "&action=ajaxImport",
+                url: "index.php?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=import",
                 type: 'POST',
                 data: {
                     name: nameFile
@@ -324,10 +220,9 @@ HTML;
 
     // Удаление файла
     function delDump(nameFile) {
-        if (confirm('Удалить файл копии БД:\n\n' + nameFile.split(/[\\/]/).pop() + '\n\n?')) {
-            var path = window.location.href;
+        if (confirm('Удалить файл копии БД:\\n\\n' + nameFile.split(/[\\\\/]/).pop() + '\\n\\n?')) {
             $.ajax({
-                url: path + "&action=ajaxDelete",
+                url: "index.php?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=delete",
                 type: 'POST',
                 data: {
                     name: nameFile
@@ -356,13 +251,12 @@ HTML;
     // Создание дампа базы данных
     function createDump() {
         $('#textDumpStatus').removeClass().addClass('alert alert-info').html('Идёт создание копии БД');
-        var path = window.location.href;
         $.ajax({
-            url: path + "&action=ajaxCreateDump",
+            url: "index.php?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=createDump",
             type: 'POST',
             data: {
                 createMysqlDump: true,
-                backupPart: '<?php echo addslashes($backupPart)?>'
+                backupPart: '{$backupPart}'
             },
             success: function (data) {
                 //Выводим сообщение

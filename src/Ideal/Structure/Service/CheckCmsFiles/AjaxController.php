@@ -9,28 +9,31 @@
 
 namespace Ideal\Structure\Service\CheckCmsFiles;
 
+use Ideal\Core\AjaxController as CoreAjaxController;
 use Ideal\Core\Config;
+use JsonException;
 
 /**
  * Проверка целостности файлов системы
  *
  */
-class AjaxController extends \Ideal\Core\AjaxController
+class AjaxController extends CoreAjaxController
 {
-
     /**
      * Действие срабатывающее при нажатии на кнопку "Проверка целостности файлов"
+     * @throws JsonException
      */
     public function checkCmsFilesAction()
     {
         $config = Config::getInstance();
-        $cmsFolder = DOCUMENT_ROOT . '/' . $config->cmsFolder . '/Ideal';
+        $cmsFolder = $config->cmsDir;
 
         // Получаем актуальную информацию о хэшах системных файлов
         $actualSystemFilesHash = self::getAllSystemFiles($cmsFolder, $cmsFolder);
 
         // Подгружаем имеющуюся информацию о хэшах системных файлов
-        $existingSystemFilesHash = unserialize(file_get_contents($cmsFolder . '/setup/prepare/hash_files'));
+        $file = file_get_contents($config->cmsDir . '/setup/hash_files');
+        $existingSystemFilesHash = unserialize($file, ['allowed_classes' => false]);
 
         // Получаем список новых системных файлов
         $newFiles = array_diff_key($actualSystemFilesHash, $existingSystemFilesHash);
@@ -47,7 +50,10 @@ class AjaxController extends \Ideal\Core\AjaxController
         $delFiles = implode('<br />', array_keys($delFiles));
         $newFiles = implode('<br />', array_keys($newFiles));
 
-        print json_encode(array('newFiles' => $newFiles, 'delFiles' => $delFiles, 'changeFiles' => $changeFiles));
+        print json_encode(
+            compact('newFiles', 'delFiles', 'changeFiles'),
+            JSON_THROW_ON_ERROR
+        );
         exit;
     }
 
@@ -58,9 +64,10 @@ class AjaxController extends \Ideal\Core\AjaxController
      * @param string $cmsFolder Путь до корневой папки системы
      * @return array Массив где ключами являются пути до файлов, а значениями их хэши
      */
-    public static function getAllSystemFiles($folder, $cmsFolder)
+    public static function getAllSystemFiles(string $folder, string $cmsFolder): array
     {
-        $systemFiles = array();
+        $subDirs = [];
+        $systemFiles = [];
         $files = scandir($folder);
         foreach ($files as $file) {
             // Отбрасываем не нужные каталоги и файлы
@@ -69,12 +76,13 @@ class AjaxController extends \Ideal\Core\AjaxController
             }
             // Если директория, то запускаем сбор внутри директории
             if (is_dir($folder . '/' . $file)) {
-                $systemFiles = array_merge($systemFiles, self::getAllSystemFiles($folder . '/' . $file, $cmsFolder));
+                $subDirs[] = self::getAllSystemFiles($folder . '/' . $file, $cmsFolder);
             } else {
                 $fileKeyArray = ltrim(str_replace($cmsFolder, '', $folder) . '/' . $file, '/');
                 $systemFiles[$fileKeyArray] = hash_file('crc32b', $folder . '/' . $file);
             }
         }
-        return $systemFiles;
+
+        return array_merge($systemFiles, ...$subDirs);
     }
 }

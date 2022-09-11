@@ -41,7 +41,7 @@ class PostCreateProject
 
         $this->cmsConfig = new ConfigEdit();
 
-        $file = $this->vendorDir . '/ideals/idealcms-old/config/cms.php';
+        $file = $this->vendorDir . '/' . Config::COMPOSER . '/config/cms.php';
 
         if (!$this->cmsConfig->loadFile($file)) {
             throw new RuntimeException('Отсутствует файл ' . $file);
@@ -96,7 +96,7 @@ class PostCreateProject
         $configFolder = $this->rootDir . '/config';
 
         $this->copyFile(
-            $this->vendorDir . '/ideals/idealcms-old/config/structure.php',
+            $this->vendorDir . '/' . Config::COMPOSER . '/config/structure.php',
             $configFolder . '/structure.php'
         );
 
@@ -121,7 +121,7 @@ class PostCreateProject
 
     private function modifyFile(string $fileFrom, string $fileTo, array $placeholder): void
     {
-        $fileFrom = $this->vendorDir . '/ideals/idealcms-old/' . $fileFrom;
+        $fileFrom = $this->vendorDir . '/' . Config::COMPOSER . '/' . $fileFrom;
         $fileTo = $this->rootDir . '/' . $fileTo;
         $content = file_get_contents($fileFrom);
 
@@ -177,7 +177,19 @@ class PostCreateProject
             $table = $config->getTableByName($v['structure'], 'addon');
             $className = $config->getStructureClass($v['structure'], 'Config', 'Addon');
             $cfg = new $className();
-            $db->create($table, $cfg::$fields);
+            if ($cfg::$fields !== []) {
+                $db->create($table, $cfg::$fields);
+            }
+        }
+
+        // Создаём таблицы связей
+        foreach ($config->mediums as $v) {
+            $table = $config->getTableByName($v['structure'], 'medium');
+            $className = $config->getStructureClass($v['structure'], 'Config', 'Medium');
+            $cfg = new $className();
+            if ($cfg::$fields !== []) {
+                $db->create($table, $cfg::$fields);
+            }
         }
 
         // Устанавливаем всё что нужно для работы структур

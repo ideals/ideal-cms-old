@@ -21,10 +21,12 @@ use InvalidArgumentException;
  * @property string urlSuffix Стандартный суффикс url для страниц сайта (обычно .html)
  * @property array smtp Массив с настройками SMTP
  * @property array structures Список всех подключённых к проекту структур
+ * @property array mediums Список подключённых связей
  * @property array addons Список подключённых аддонов
  */
 class Config
 {
+    public const COMPOSER = 'ideals/idealcms-old';
 
     /** @var object Необходима для реализации паттерна Singleton */
     private static object $instance;
@@ -34,6 +36,12 @@ class Config
 
     /** @var string Путь к корню проекта */
     public string $rootDir;
+
+    /** @var string Путь к публичной папке сервера */
+    public string $publicDir;
+
+    /** @var string Путь к файлам cms в папке vendor */
+    public string $cmsDir;
 
     /**
      * Статический метод, возвращающий находящийся в нём динамический объект
@@ -247,6 +255,9 @@ class Config
 
         // Подключаем файл с переменными изменяемыми в админке
         $this->import(include($rootDir . '/config/site.php'));
+
+        $this->publicDir = $this->rootDir . '/' . $this->cms['publicFolder'];
+        $this->cmsDir = $this->rootDir . '/vendor/' . self::COMPOSER;
     }
 
     /**

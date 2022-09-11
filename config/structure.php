@@ -119,6 +119,45 @@ return [
             'hasTable' => true,
         ],
     ],
+    // нужно только для проверки целостности
+    'mediums' => [
+        [
+            'ID' => 1,
+            'structure' => 'Ideal_AddonList',
+            'name' => 'Связи для аддонов',
+            'hasTable' => true,
+        ],
+        [
+            'ID' => 2,
+            'structure' => 'Ideal_StructureList',
+            'name' => 'Связи для структур',
+            'hasTable' => true,
+        ],
+        [
+            'ID' => 3,
+            'structure' => 'Ideal_TagList',
+            'name' => 'Связи для тэгов',
+            'hasTable' => true,
+        ],
+        [
+            'ID' => 4,
+            'structure' => 'Ideal_TemplateList',
+            'name' => 'Связи для шаблонов',
+            'hasTable' => true,
+        ],
+        [
+            'ID' => 5,
+            'structure' => 'Ideal_UserGroupList',
+            'name' => 'Связи для групп пользователей',
+            'hasTable' => true,
+        ],
+        [
+            'ID' => 6,
+            'structure' => 'Ideal_UserList',
+            'name' => 'Связи для пользователей',
+            'hasTable' => true,
+        ],
+    ],
     'services' => [
         [
             'ID' => 'Ideal_Acl',

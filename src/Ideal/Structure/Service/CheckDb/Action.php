@@ -52,75 +52,45 @@ HTML;
             }
         }
 
-        $checkTypeFile = function ($dir, $module, &$cfgTables, &$cfgTablesFull, &$config, $type) {
-            if (!($handle = opendir($dir))) {
-                // Невозможно открыть папку, значит ничего делать не надо
-                return;
-            }
-            while (false !== ($file = readdir($handle))) {
-                if (($file != '.') && ($file != '..') && (is_dir($dir . '/' . $file))) {
-                    $configfile = $dir . '/' . $file . '/config.php';
-                    if (file_exists($configfile)) {
-                        /** @noinspection PhpIncludeInspection */
-                        $c = require($configfile);
-                        if (isset($c['params']['has_table']) && ($c['params']['has_table'] == false)) {
-                            continue;
-                        }
-                        $t = strtolower($config->db['prefix'] . $module . '_' . $type . '_' . $file);
-                        if (array_key_exists($t, $cfgTables) === false) {
-                            $fields = $this->getFieldListWithTypes($c);
-                            $cfgTables[$t] = $fields;
-                            $cfgTablesFull[$t] = $module == 'Ideal' ? $type . '/' . $file : $module . '/' . $type . '/' . $file;
-                        }
-                    }
-                }
-            }
-        };
-
         $cfgTables = [];
         $cfgTablesFull = [];
         foreach ($config->structures as $v) {
             if (!$v['hasTable']) {
                 continue;
             }
-            $fields = $this->getFieldListWithTypes($v);
-            [$module, $structure] = explode('_', $v['structure'], 2);
-            $table = strtolower($config->db['prefix'] . $module . '_structure_' . $structure);
-            $cfgTables[$table] = $fields;
+            $table = $config->getTableByName($v['structure'], 'Structure');
+            $fields = $this->getFields($v, 'Structure');
+            $cfgTablesFull[$table] = $fields;
+            $cfgTables[$table] = $this->getFieldListWithTypes($fields);
+        }
 
-            // Обработка папки с кастомными аддонами
-            $dir = ($module === 'Ideal') ? $config->cmsFolder . '/Ideal.c' : $config->cmsFolder . '/' . 'Mods.c/' . $module;
-            $dir = stream_resolve_include_path($dir . '/Addon');
-            $checkTypeFile($dir, $module, $cfgTables, $cfgTablesFull, $config, 'Addon');
-            // Обработка папки с аддонами
-            $dir = ($module === 'Ideal') ? $config->cmsFolder . '/' : $config->cmsFolder . '/' . 'Mods/';
-            $dir = stream_resolve_include_path($dir . $module . '/Addon');
-            $checkTypeFile($dir, $module, $cfgTables, $cfgTablesFull, $config, 'Addon');
+        foreach ($config->addons as $v) {
+            if (!$v['hasTable']) {
+                continue;
+            }
+            $table = $config->getTableByName($v['structure'], 'Addon');
+            $fields = $this->getFields($v, 'Addon');
+            $cfgTablesFull[$table] = $fields;
+            $cfgTables[$table] = $this->getFieldListWithTypes($fields);
+        }
 
-            // Обработка папки с кастомными связующими таблицами
-            $dir = ($module === 'Ideal') ? $config->cmsFolder . '/Ideal.c/' : $config->cmsFolder . '/' . 'Mods.c/' . $module;
-            $dir = stream_resolve_include_path($dir . '/Medium');
-            $checkTypeFile($dir, $module, $cfgTables, $cfgTablesFull, $config, 'Medium');
-            // Обработка папки с связующими таблицами
-            $dir = ($module === 'Ideal') ? $config->cmsFolder . '/' : $config->cmsFolder . '/' . 'Mods/';
-            $dir = stream_resolve_include_path($dir . $module . '/Medium');
-            $checkTypeFile($dir, $module, $cfgTables, $cfgTablesFull, $config, 'Medium');
-
-            $module = ($module === 'Ideal') ? '' : $module . '/';
-            $cfgTablesFull[$table] = $module . 'Structure/' . $structure;
+        foreach ($config->mediums as $v) {
+            if (!$v['hasTable']) {
+                continue;
+            }
+            $table = $config->getTableByName($v['structure'], 'Medium');
+            $fields = $this->getFields($v, 'Medium');
+            $cfgTablesFull[$table] = $fields;
+            $cfgTables[$table] = $this->getFieldListWithTypes($fields);
         }
 
         // Если есть таблицы, которые надо создать
         if (isset($_POST['create'])) {
             foreach ($_POST['create'] as $table => $v) {
                 $result .= '<p>Создаём таблицу ' . $table . '…';
-                $file = $cfgTablesFull[$table] . '/config.php';
-                /** @noinspection PhpIncludeInspection */
-                $data = include($file);
-                $fields = $this->getFieldListWithTypes($data);
-                $db->create($table, $data['fields']);
+                $db->create($table, $cfgTablesFull[$table]);
                 $result .= ' Готово.</p>';
-                $dbTables[$table] = $fields;
+                $dbTables[$table] = $cfgTables[$table];
             }
         }
 
@@ -129,15 +99,13 @@ HTML;
             foreach ($_POST['create_field'] as $tableField => $v) {
                 [$table, $field] = explode('-', $tableField);
                 $result .= '<p>Добавляем поле ' . $field . ' в таблицу ' . $table . '…';
-                $file = $cfgTablesFull[$table] . '/config.php';
-                /** @noinspection UsingInclusionReturnValueInspection */
-                $data = include($file);
+                $data = $cfgTablesFull[$table];
 
-                //Поиск поля после которого нужно вставить новое
+                // Поиск поля после которого нужно вставить новое
                 $afterThisField = '';
-                foreach ($data['fields'] as $key => $value) {
+                foreach ($data as $key => $value) {
                     $value['sql'] = trim($value['sql']);
-                    if ($key != $field && !empty($value['sql'])) {
+                    if (($key !== $field) && !empty($value['sql'])) {
                         $afterThisField = $key;
                     } else {
                         break;
@@ -151,12 +119,12 @@ HTML;
                 }
 
                 // Составляем sql запрос для вставки поля в таблицу
-                $sql = "ALTER TABLE {$table} ADD {$field} {$data['fields'][$field]['sql']}"
-                    . " COMMENT '{$data['fields'][$field]['label']}' {$afterThisField};";
+                $sql = "ALTER TABLE {$table} ADD {$field} {$data[$field]['sql']}"
+                    . " COMMENT '{$data[$field]['label']}' {$afterThisField};";
                 $db->query($sql);
                 $result .= ' Готово.</p>';
                 $fields = $this->getFieldListWithTypes($data);
-                $dbTables[$table][$field] = $fields[$field];
+                $dbTables[$table][$field] = $cfgTables[$table][$field];
             }
         }
 
@@ -197,7 +165,6 @@ HTML;
             }
         }
 
-
         $isCool = true;
 
         foreach ($cfgTables as $tableName => $tableFields) {
@@ -205,56 +172,57 @@ HTML;
                 $result .= '<p class="well"><input type="checkbox" name="create[' . $tableName . ']">&nbsp; ';
                 $result .= 'Таблица <strong>' . $tableName . '</strong> отсутствует в базе данных. Создать?</p>';
                 $isCool = false;
-            } else {
-                // Получаем массив полей, которые нужно предложить создать
-                $onlyConfigExist = array_diff_key($tableFields, $dbTables[$tableName]);
-
-                // Предлагать создавать нужно только те поля, у которых определён sql тип.
-                $onlyConfigExist = array_filter($onlyConfigExist);
-
-                // Если какое-либо поле присутствует только в конфигурационном файле, то предлагаем его создать
-                if (count($onlyConfigExist) > 0) {
-                    foreach ($onlyConfigExist as $missingField => $missingFieldType) {
-                        $result .= '<p class="well">';
-                        $result .= '<input type="checkbox" name="create_field[' . $tableName . '-' . $missingField . ']">&nbsp; ';
-                        $result .= 'В таблице <strong>' . $tableName . '</strong> ';
-                        $result .= 'отсутствует поле <strong>' . $missingField . '</strong>. Создать?</p>';
-                    }
-                    $isCool = false;
-                }
-
-                // Получаем массив полей, которые нужно предложить удалить
-                $onlyBaseExist = array_diff_key($dbTables[$tableName], $tableFields);
-
-                // Если какое-либо поле присутствует только в базе данных, то предлагаем его удалить
-                if (count($onlyBaseExist) > 0) {
-                    foreach ($onlyBaseExist as $excessField => $excessFieldType) {
-                        $result .= '<p class="well">';
-                        $result .= '<input type="checkbox" name="delete_field[' . $tableName . '-' . $excessField . ']">&nbsp; ';
-                        $result .= 'Поле <strong>' . $excessField . '</strong> ';
-                        $result .= 'отсутствует в конфигурации таблицы <strong>' . $tableName . '</strong>. Удалить?</p>';
-                    }
-                    $isCool = false;
-                }
-
-                $fieldTypeDiff = $this->diffConfigBaseType($tableFields, $dbTables[$tableName]);
-                // Если есть расхождение в типах полей, то предлагаем вернуть всё к виду конфигурационных файлов
-                if (count($fieldTypeDiff) > 0) {
-                    foreach ($fieldTypeDiff as $fieldName => $typeDiff) {
-                        $result .= '<p class="well">'
-                            . '<input type="checkbox" '
-                            . 'name="change_type[' . $tableName . '-' . $fieldName . '-' . $typeDiff['conf'] . ']">&nbsp; '
-                            . 'Поле <strong>' . $fieldName . '</strong> в таблице <strong>' . $tableName . ' </strong> '
-                            . 'имеет тип <strong>' . $typeDiff['base'] . '</strong>, '
-                            . 'но в конфигурационном файле это поле определено типом '
-                            . '<strong>' . $typeDiff['conf'] . '</strong>. Преобразовать поле в базе данных?</p>';
-                    }
-                    $isCool = false;
-                }
-
-                // Удаляем имеющиеся в конфигурации таблицы из списка таблиц в базе
-                unset($dbTables[$tableName]);
+                continue;
             }
+
+            // Получаем массив полей, которые нужно предложить создать
+            $onlyConfigExist = array_diff_key($tableFields, $dbTables[$tableName]);
+
+            // Предлагать создавать нужно только те поля, у которых определён sql тип.
+            $onlyConfigExist = array_filter($onlyConfigExist);
+
+            // Если какое-либо поле присутствует только в конфигурационном файле, то предлагаем его создать
+            if (count($onlyConfigExist) > 0) {
+                foreach ($onlyConfigExist as $missingField => $missingFieldType) {
+                    $result .= '<p class="well">';
+                    $result .= '<input type="checkbox" name="create_field[' . $tableName . '-' . $missingField . ']">&nbsp; ';
+                    $result .= 'В таблице <strong>' . $tableName . '</strong> ';
+                    $result .= 'отсутствует поле <strong>' . $missingField . '</strong>. Создать?</p>';
+                }
+                $isCool = false;
+            }
+
+            // Получаем массив полей, которые нужно предложить удалить
+            $onlyBaseExist = array_diff_key($dbTables[$tableName], $tableFields);
+
+            // Если какое-либо поле присутствует только в базе данных, то предлагаем его удалить
+            if (count($onlyBaseExist) > 0) {
+                foreach ($onlyBaseExist as $excessField => $excessFieldType) {
+                    $result .= '<p class="well">';
+                    $result .= '<input type="checkbox" name="delete_field[' . $tableName . '-' . $excessField . ']">&nbsp; ';
+                    $result .= 'Поле <strong>' . $excessField . '</strong> ';
+                    $result .= 'отсутствует в конфигурации таблицы <strong>' . $tableName . '</strong>. Удалить?</p>';
+                }
+                $isCool = false;
+            }
+
+            $fieldTypeDiff = $this->diffConfigBaseType($tableFields, $dbTables[$tableName]);
+            // Если есть расхождение в типах полей, то предлагаем вернуть всё к виду конфигурационных файлов
+            if (count($fieldTypeDiff) > 0) {
+                foreach ($fieldTypeDiff as $fieldName => $typeDiff) {
+                    $result .= '<p class="well">'
+                        . '<input type="checkbox" '
+                        . 'name="change_type[' . $tableName . '-' . $fieldName . '-' . $typeDiff['conf'] . ']">&nbsp; '
+                        . 'Поле <strong>' . $fieldName . '</strong> в таблице <strong>' . $tableName . ' </strong> '
+                        . 'имеет тип <strong>' . $typeDiff['base'] . '</strong>, '
+                        . 'но в конфигурационном файле это поле определено типом '
+                        . '<strong>' . $typeDiff['conf'] . '</strong>. Преобразовать поле в базе данных?</p>';
+                }
+                $isCool = false;
+            }
+
+            // Удаляем имеющиеся в конфигурации таблицы из списка таблиц в базе
+            unset($dbTables[$tableName]);
         }
 
         foreach ($dbTables as $tableName => $tableFields) {
@@ -315,7 +283,7 @@ HTML;
 </style>
 
 <div class="tab-pane well" id="cache">
-    <button class="btn btn-info" value="Удаление файлов" onclick="dellCacheFiles()">
+    <button class="btn btn-info" value="Удаление файлов" onclick="clearCacheFiles()">
         Удаление файлов
     </button>
 </div>
@@ -330,13 +298,13 @@ HTML;
 </div>
 
 
-<script type="application/javascript">
-    function dellCacheFiles()
+<script>
+    function clearCacheFiles()
     {
         var text = '';
         $.ajax({
             url: 'index.php',
-            data: {action: 'dellCacheFiles', controller: 'Ideal\\Structure\\Service\\Cache', mode: 'ajax'},
+            data: {action: 'clearCacheFiles', controller: 'Ideal\\\Structure\\\Service\\\Cache', mode: 'ajax'},
             success: function (data)
             {
                 if (data.text) {
@@ -361,7 +329,7 @@ HTML;
         var text = '';
         $.ajax({
             url: 'index.php',
-            data: {action: 'checkCmsFiles', controller: 'Ideal\\Structure\\Service\\CheckCmsFiles', mode: 'ajax'},
+            data: {action: 'checkCmsFiles', controller: 'Ideal\\\Structure\\\Service\\\CheckCmsFiles', mode: 'ajax'},
             success: function (data)
             {
                 if (data.newFiles) {
@@ -388,8 +356,7 @@ HTML;
             error: function (xhr) {
                 $('#loading').html('');
                 $('#iframe').html('<pre> Не удалось завершить сканирование. Статус: '
-                    + xhr.statusCode().status +
-                    '\n Попробуйте повторить позже.</pre>');
+                    + xhr.statusCode().status + '\\nПопробуйте повторить позже.</pre>');
             },
             type: 'GET',
             dataType: "json"
@@ -402,28 +369,41 @@ HTML;
     }
 
     // Получаем информацию о полях из конфигурационных файлов
-    protected function getFieldListWithTypes($data): array
+    protected function getFields($data, $type = 'Structure'): array
+    {
+        $config = Config::getInstance();
+        $configClass = $config->getStructureClass($data['structure'], 'Config', $type);
+        $dataFields = $configClass::$fields;
+
+        $fields = [];
+        if (!isset($dataFields) || !is_array($dataFields)) {
+            return $fields;
+        }
+
+        return $dataFields;
+    }
+
+    // Получаем информацию о полях из конфигурационных файлов
+    protected function getFieldListWithTypes($dataFields): array
     {
         $fields = [];
-        if (isset($data['fields']) && is_array($data['fields'])) {
-            array_walk($data['fields'], function ($value, $key) use (&$fields) {
-                if (isset($value['sql'])) {
-                    $type = '';
-                    // получение всех значений при указании типа "SET"
-                    if (strncasecmp($value['sql'], 'set', 3) === 0) {
-                        preg_match('/set\(.*?\)/is', $value['sql'], $matchesType);
-                        if (isset($matchesType[0])) {
-                            $type = preg_replace('/\v|\s\s/is', '', $matchesType[0]);
-                        }
-                    } else {
-                        [$type] = explode(' ', $value['sql']);
+        array_walk($dataFields, static function ($value, $key) use (&$fields) {
+            if (isset($value['sql'])) {
+                $type = '';
+                // получение всех значений при указании типа "SET"
+                if (strncasecmp($value['sql'], 'set', 3) === 0) {
+                    preg_match('/set\(.*?\)/is', $value['sql'], $matchesType);
+                    if (isset($matchesType[0])) {
+                        $type = preg_replace('/\v|\s\s/is', '', $matchesType[0]);
                     }
-                    if ($type) {
-                        $fields[$key] = $type;
-                    }
+                } else {
+                    [$type] = explode(' ', $value['sql']);
                 }
-            });
-        }
+                if ($type) {
+                    $fields[$key] = $type;
+                }
+            }
+        });
 
         return $fields;
     }

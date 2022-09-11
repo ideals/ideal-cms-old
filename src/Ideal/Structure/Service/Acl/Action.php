@@ -9,12 +9,14 @@
 
 namespace Ideal\Structure\Service\Acl;
 
+use Ideal\Structure\Acl\Admin\Model;
+
 class Action
 {
     public function render(): string
     {
         // Получаем все группы пользователей системы для которых есть возможность менять права
-        $userGroups = \Ideal\Structure\Acl\Admin\Model::getAllUserGroups();
+        $userGroups = Model::getAllUserGroups();
         $result = <<<HTML
 <form class="form-horizontal">
     <div class="form-group">
@@ -55,7 +57,7 @@ HTML;
                 type: "POST",
                 data: {user_group_id: $(this).val()},
                 dataType: 'json',
-                url: '/?mode=ajax&controller=Ideal\\Structure\\Service\\Acl&action=mainUserGroupPermission',
+                url: '/?mode=ajax&controller=Ideal\\\\Structure\\\\Service\\\\Acl&action=mainUserGroupPermission',
                 success: function (data) {
                     $('#permission:hidden').show();
                     var trs = getTableRows(data);
@@ -75,7 +77,7 @@ HTML;
                     user_group_id: $('#selectUserGroup').val()
                 },
                 dataType: 'json',
-                url: '/?mode=ajax&controller=Ideal\\Structure\\Service\\Acl&action=changePermission'
+                url: '/?mode=ajax&controller=Ideal\\\\Structure\\\\Service\\\\Acl&action=changePermission'
             });
         });
 
@@ -103,10 +105,10 @@ HTML;
                         prev_structure: $(closestTr).data('prev_structure')
                     },
                     dataType: 'json',
-                    url: '/?mode=ajax&controller=Ideal\\Structure\\Service\\Acl&action=showChildren',
+                    url: '/?mode=ajax&controller=Ideal\\\\Structure\\\\Service\\\\Acl&action=showChildren',
                     success: function (data) {
                         if (!$.isEmptyObject(data)) {
-                            // Формируем дополнительныен пробелы
+                            // Формируем дополнительные пробелы
                             var spaces = '<span class="space">&nbsp;&nbsp;</span>'.repeat(lvl);
                             var trs = getTableRows(data, spaces, startId);
                             $(closestTr).after(trs);
