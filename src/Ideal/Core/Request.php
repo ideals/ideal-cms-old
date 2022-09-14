@@ -16,7 +16,6 @@ namespace Ideal\Core;
  * @property string action Зарезервировано для названия вызываемого экшена
  * @property string mode В случае ajax-запроса содержит 'ajax'
  * @property string controller Принудительное указание вызываемого контроллера
- * @mixin \Ideal\Core\Config
  */
 class Request
 {
@@ -26,9 +25,10 @@ class Request
      * Если в $_REQUEST параметр $name отсутствует, то будет возвращена пустая строка.
      *
      * @param string $name Название параметра
+     *
      * @return string Значение этого параметра в $_REQUEST
      */
-    public function __get($name)
+    public function __get(string $name)
     {
         // Перенос в $_REQUEST значений из formValues (используется исключительно для работы в админке)
         if (isset($_REQUEST['formValues'])) {
@@ -37,11 +37,7 @@ class Request
             unset($_REQUEST['formValues']);
         }
 
-        if (isset($_REQUEST[$name])) {
-            return $_REQUEST[$name];
-        }
-
-        return '';
+        return $_REQUEST[$name] ?? '';
     }
 
     /**
@@ -50,7 +46,7 @@ class Request
      * @param string $name Название параметра, который нужно задать
      * @param mixed $value Значение параметра
      */
-    public function __set($name, $value)
+    public function __set(string $name, $value)
     {
         $_REQUEST[$name] = $value;
     }
@@ -58,10 +54,11 @@ class Request
     /**
      * Проверка на существование переменной в $_REQUEST с помощью функции isset()
      *
-     * @param string $name название переменной
+     * @param string $name Название переменной
+     *
      * @return bool
      */
-    public function __isset($name)
+    public function __isset(string $name)
     {
         return isset($_REQUEST[$name]);
     }
@@ -70,11 +67,12 @@ class Request
      * Получение значения переменной из GET-параметра (без экранирования)
      *
      * @param string $name Название GET-параметра
+     *
      * @return string Если параметр не задан, вернёт пустую строку
      */
-    public function get($name)
+    public function get(string $name, string $default = ''): string
     {
-        return empty($_GET[$name]) ? '' : $_GET[$name];
+        return $_GET[$name] ?? $default;
     }
 
     /**
@@ -82,19 +80,19 @@ class Request
      *
      * @param string $without Параметр, который нужно исключить из query string
      * @param string $url Полный адрес вызываемой страницы
+     *
      * @return string Query string без параметра $without
      */
-    public function getQueryWithout($without, $url = '')
+    public function getQueryWithout(string $without, string $url = ''): string
     {
         $url = empty($url) ? $_SERVER['REQUEST_URI'] : $url;
         // Убираем переменную $without стоящую внутри GET-строки
-        $uri = preg_replace('/' . $without . '\=(.*)(\&|$)/iU', '', $url);
+        $uri = preg_replace('/' . $without . '=(.*)(&|$)/iU', '', $url);
         // Убираем переменную $without в конце строки
-        $uri = preg_replace('/' . $without . '\=(.*)(\&|$)/iU', '', $uri);
+        $uri = preg_replace('/' . $without . '=(.*)(&|$)/iU', '', $uri);
         // Убираем последний амперсанд, если остался после предыдущих операций
-        $uri = preg_replace('/\&$/', '', $uri);
+        $uri = preg_replace('/&$/', '', $uri);
         // Убираем последний знак вопроса, если остался после предыдущих операций
-        $uri = preg_replace('/\?$/', '', $uri);
-        return $uri;
+        return preg_replace('/\?$/', '', $uri);
     }
 }

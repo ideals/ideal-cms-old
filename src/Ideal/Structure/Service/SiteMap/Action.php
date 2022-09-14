@@ -67,7 +67,7 @@ HTML;
         if (!$file->loadFile($filePath)) {
             // Если не удалось прочитать данные из кастомного файла, значит его нет
             // Поэтому читаем данные из демо-файла
-            $file->loadFile($config->rootDir . '/vendor/idealcms/spider/examples/config.php');
+            $file->loadFile($config->rootDir . '/vendor/idealcms/spider/public_html/config.php');
             $params = $file->getParams();
             $params['default']['arr']['website']['value'] = 'http://' . $config->domain;
             $file->setParams($params);
@@ -124,7 +124,7 @@ HTML;
             <p>Чтобы прописать в cron'е команду на запуск составления карты сайта нужно зайти в пункт "Cron" раздела
                 "Сервис":</p>
             <p>В поле для редактирования добавить следующую строчку:</p>
-            <pre><code>*/3 2-4 * * * {$config->cmsFolder}/Ideal/Library/sitemap/index.php</code></pre>
+            <pre><code>*/3 2-4 * * * {$config->rootDir}/bin/console app:sitemap</code></pre>
             <p>Эта инструкция означает запуск скрипта сбора карты сайта каждые три минуты с двух до четырёх ночи.
                 Если этого времени не хватает для составления карты сайта, то можно увеличить диапазон часов.</p>
         </div>
@@ -135,14 +135,10 @@ HTML;
     function startSiteMap() {
         var param = '';
         if ($('#force').prop('checked')) {
-            param += '?w=1';
+            param += '&f=1';
         }
         if ($('#clear-temp').prop('checked')) {
-            if (param == '') {
-                param += '?с=1';
-            } else {
-                param += '&с=1';
-            }
+            param += '&с=1';
         }
         $('#loading').html('Идёт составление карты сайта. Ждите.');
         $('#iframe').html('');
@@ -150,18 +146,12 @@ HTML;
     }
 
     function getSitemapAjaxify(param) {
-        var extParam = param;
-        if (extParam == '') {
-            extParam += '?timestamp=' + Date.now();
-        } else {
-            extParam += '&timestamp=' + Date.now();
-        }
+        params = param + '&timestamp=' + Date.now();
         $.ajax({
-            url: 'Ideal/Library/sitemap/index.php' + extParam,
+            url: 'index.php?mode=ajax&action=run&controller=Ideal\\\\Structure\\\Service\\\\SiteMap' + params,
             success: function (data) {
                 $('#iframe').append(data);
                 if (/Выход по таймауту/gim.test(data)) {
-                    param = param.replace('?с=1', '');
                     param = param.replace('&с=1', '');
                     getSitemapAjaxify(param);
                 } else {
