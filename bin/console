@@ -11,6 +11,7 @@ $config->loadSettings(dirname(__DIR__));
 
 // Register all Commands
 $application->add(new Ideal\Command\SiteMapCommand());
+$application->add(new Ideal\Command\FileMonitorCommand());
 
 // Run it
 $application->run();

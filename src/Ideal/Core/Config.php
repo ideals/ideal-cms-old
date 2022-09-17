@@ -16,10 +16,12 @@ use InvalidArgumentException;
  * @property array cache Массив с настройками кэширования
  * @property string cmsFolder Название папки с CMS
  * @property array yandex Массив с настройками подключения к сервисам Яндекса
+ * @property string robotEmail Email робота, от которого будут отправляться сообщения с сайта
  * @property string domain Доменная часть адреса сайта на котором установлена CMS
  * @property array cms Массив настроек cms
  * @property string urlSuffix Стандартный суффикс url для страниц сайта (обычно .html)
  * @property array smtp Массив с настройками SMTP
+ * @property array monitoring Массив с настройками SMTP
  * @property array structures Список всех подключённых к проекту структур
  * @property array mediums Список подключённых связей
  * @property array addons Список подключённых аддонов

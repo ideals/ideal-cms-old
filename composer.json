@@ -29,6 +29,7 @@
     "idealcms/bootstrap-multiselect": "0.9.15",
     "idealcms/ckeditor": "4.4.6",
     "idealcms/ckfinder": "2.6.2.1",
+    "idealcms/file-monitor": "dev-master",
     "idealcms/formphp": "^5.0",
     "idealcms/mailer": "^5.0",
     "idealcms/pclzip": "^2.8",
