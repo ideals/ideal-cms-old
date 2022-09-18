@@ -1,1 +1,2 @@
-*/10 2 * * * bin/console
+*/10 2 * * * bin/console app:sitemap
+*/10 3 * * * bin/console app:file-monitor  --test -p=12

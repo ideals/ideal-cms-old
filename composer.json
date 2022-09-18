@@ -37,6 +37,7 @@
     "ifsnop/mysqldump-php": "^2.9",
     "matthiasmullie/minify": "^1.3",
     "mtdowling/cron-expression": "^1.2",
+    "samejack/php-argv": "dev-master",
     "symfony/console": "5.4.x-dev",
     "twig/twig": "^3.0",
     "twitter/bootstrap": "3.3.7"

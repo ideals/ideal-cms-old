@@ -61,9 +61,9 @@ class SiteMapCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $force = $input->getOption('force');
-        $clear = $input->getOption('clear');
-        $test = $input->getOption('test');
+        $force = (bool)$input->getOption('force');
+        $clear = (bool)$input->getOption('clear');
+        $test = (bool)$input->getOption('test');
 
         $config = Config::getInstance();
         $filePath = $config->rootDir . '/config/site_map.php';

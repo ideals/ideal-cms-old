@@ -28,9 +28,9 @@ class Action
 
             $params = [
                 'site_root' => $config->rootDir,
-                'domain' => '',
-                'robotEmail' => '',
-                'adminEmail' => '',
+                'domain' => $config->domain,
+                'robotEmail' => $config->robotEmail,
+                'adminEmail' => $config->cms['adminEmail'],
             ];
 
             $cron = new Crontab($config->rootDir . '/config/crontab', $params);
@@ -87,7 +87,8 @@ class Action
     </p>
     <pre><code>crontab -e</code></pre>
     <p>Далее в открывшемся редакторе запишите такую строку:</p>
-    <pre><code>* * * * * /usr/bin/php cron.php</code></pre>
+    <pre><code>* * * * * /usr/bin/php {$config->rootDir}/bin/console app:cron<
+    /code></pre>
     <p>
         Эта инструкция означает запуск скрипта каждую минуту.
         Если это будет сильно нагружать сервер, то можно сделать запуск скрипта реже.

@@ -4,6 +4,10 @@ namespace Ideal\Structure\Service\Cron;
 use Cron\CronExpression;
 use DateTime;
 use Exception;
+use samejack\PHP\ArgvParser;
+use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 class Crontab
 {
@@ -99,13 +103,14 @@ class Crontab
                 $success = false;
             }
 
-            if ($fileTask && !is_readable($fileTask)) {
-                $this->message .= "Файл \"{$fileTask}\" не существует или он недоступен для чтения\n";
-                $success = false;
-            } elseif (!$fileTask) {
-                $this->message .= "Не задан исполняемый файл для выражения \"{$taskExpression}\"\n";
-                $success = false;
-            }
+            // todo проверка наличия исполняемого файла на диске
+//            if ($fileTask && !is_readable($fileTask)) {
+//                $this->message .= "Файл \"{$fileTask}\" не существует или он недоступен для чтения\n";
+//                $success = false;
+//            } elseif (!$fileTask) {
+//                $this->message .= "Не задан исполняемый файл для выражения \"{$taskExpression}\"\n";
+//                $success = false;
+//            }
 
             // Получаем дату следующего запуска задачи
             $cronModel = CronExpression::factory($taskExpression);
@@ -182,7 +187,7 @@ class Crontab
             // Получаем дату следующего запуска задачи
             $cron = CronExpression::factory($taskExpression);
             $nextRunDate = $cron->getNextRunDate($this->modifyTime);
-            $nowCron = new DateTime();
+            $nextRunDate = $nowCron = new DateTime();
 
             // Если дата следующего запуска меньше, либо равна текущей дате, то запускаем скрипт
             if ($nextRunDate <= $nowCron) {
@@ -192,7 +197,18 @@ class Crontab
                 // избежать ситуации, когда два задания должны выполниться в одну минуту, а выполняется только одно
 
                 // Запускаем скрипт
-                require_once $fileTask;
+                if (mb_strpos($fileTask, 'bin/console') === false) {
+                    // Это просто скрипт, запускаем его с помощью подключения
+                    require_once $fileTask;
+                } else {
+                    // Это консольная команда, парсим вводные данные
+                    $argvParser = new ArgvParser();
+                    $params = $argvParser->parseConfigs($fileTask);
+                    $keys = array_keys($params);
+                    $params = array_merge(['command' => $keys[1]], array_slice($params, 2));
+                    require $this->siteRoot . '/bin/console';
+                }
+
                 break; // Прекращаем цикл выполнения задач, чтобы не произошло наложения задач друг на друга
             }
         }

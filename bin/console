@@ -1,17 +1,23 @@
 #!/usr/bin/env php
 <?php
 
+use Symfony\Component\Console\Input\ArrayInput;
+
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// Create the Application
+// Создание приложения
 $application = new Symfony\Component\Console\Application();
 
 $config = \Ideal\Core\Config::getInstance();
 $config->loadSettings(dirname(__DIR__));
 
-// Register all Commands
+// Регистрируем команды системы
 $application->add(new Ideal\Command\SiteMapCommand());
 $application->add(new Ideal\Command\FileMonitorCommand());
+$application->add(new Ideal\Command\CronCommand());
 
-// Run it
-$application->run();
+// Добавляет возможность запускать команду из кода
+$input = isset($params) ? new ArrayInput($params) : null;
+
+// Запускаем команду
+$application->run($input);
