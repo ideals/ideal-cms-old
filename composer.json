@@ -34,6 +34,7 @@
     "idealcms/mailer": "^5.0",
     "idealcms/pclzip": "^2.8",
     "idealcms/spider": "dev-master",
+    "idealcms/yandex-xml": "^2.0.2",
     "ifsnop/mysqldump-php": "^2.9",
     "matthiasmullie/minify": "^1.3",
     "mtdowling/cron-expression": "^1.2",

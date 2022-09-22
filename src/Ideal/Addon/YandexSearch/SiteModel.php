@@ -13,8 +13,8 @@ use Ideal\Addon;
 use Ideal\Core\Config;
 use Ideal\Core\View;
 use Ideal\Core\Request;
-use YandexXML\Client;
-use YandexXML\Exceptions\YandexXmlException;
+use AntonShevchuk\YandexXml\Client;
+use AntonShevchuk\YandexXml\Exceptions\YandexXmlException;
 
 /**
  * Класс аддона, обеспечивающий поиск по сайту
