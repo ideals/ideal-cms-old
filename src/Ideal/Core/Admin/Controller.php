@@ -28,10 +28,10 @@ class Controller
     protected $model;
 
     /** @var array Путь к этой странице, включая и её саму */
-    protected $path;
+    protected array $path;
 
     /** @var View Объект вида — twig-шаблонизатор */
-    protected $view;
+    protected View $view;
 
     public function createAction()
     {
@@ -106,12 +106,13 @@ class Controller
      */
     public function error404Action()
     {
-        $name = $title = 'Страница не найдена';
+        $title = 'Страница не найдена';
+        $name = $title;
         $this->templateInit('404.twig');
 
         // Добавляем в path пустой элемент
         $path = $this->model->getPath();
-        $path[] = array('ID' => '', 'name' => $name, 'url' => '404');
+        $path[] = ['ID' => '', 'name' => $name, 'url' => '404'];
         $this->model->setPath($path);
 
         // Устанавливаем нужный нам title
@@ -180,7 +181,7 @@ class Controller
     {
         $user = Structure\User\Model::getInstance();
         $user->logout();
-        header('Location: index.php');
+        header('Location: .');
         exit;
     }
 
@@ -200,7 +201,7 @@ class Controller
         $this->view->par = $request->par;
 
         // Отображение списка элементов
-        $rows = array();
+        $rows = [];
         foreach ($list as $k => $v) {
             $fields = '';
             foreach ($headers as $key => $v2) {
@@ -213,11 +214,11 @@ class Controller
                     && (!isset($v['acl']) || $v['acl']['enter']) ) {
                     // На активный элемент ставим ссылку
                     $par = $request->par . '-' . $v['ID'];
-                    $value = '<a href="index.php?par=' . $par . '">' . $value . '</a>';
+                    $value = '<a href="?par=' . $par . '">' . $value . '</a>';
                 }
                 $fields .= '<td>' . $value . '</td>';
             }
-            $rows[] = array(
+            $rows[] = [
                 'ID' => $v['ID'],
                 'row' => $fields,
                 'is_active' => (isset($v['is_active'])) ? $v['is_active'] : 1,
@@ -225,7 +226,7 @@ class Controller
                 'acl_edit' => (isset($v['acl'])) ? $v['acl']['edit'] : 1,
                 'acl_delete' => (isset($v['acl'])) ? $v['acl']['delete'] : 1,
                 'acl_enter' => (isset($v['acl'])) ? $v['acl']['enter'] : 1,
-            );
+            ];
         }
         $this->view->rows = $rows;
     }
@@ -241,21 +242,20 @@ class Controller
         $this->model = $router->getModel();
 
         // Определяем и вызываем требуемый action у контроллера
-        $request = new Request();
-        $actionName = $request->action;
-        if ($actionName == '') {
-            $actionName = 'index';
-        }
-        $actionName = $actionName . 'Action';
+        $request = $router->getRequest();
+        $actionName = $request->get('action', 'index') . 'Action';
+        $actionName = $this->model->is404 ? 'error404Action' : $actionName;
         $this->$actionName();
 
         $config = Config::getInstance();
 
-        $this->view->domain = strtoupper($config->domain);
-        $this->view->cmsFolder = $config->cmsFolder;
-        $this->view->subFolder = $config->cms['startUrl'];
-        $this->view->title = $this->model->getTitle();
-        $this->view->header = $this->model->getHeader();
+        $vars = [
+            'domain' => strtoupper($config->domain),
+            'cmsFolder' => $config->cmsFolder,
+            'subFolder' => $config->cms['startUrl'],
+            'title' => $this->model->getTitle(),
+            'header' => $this->model->getHeader(),
+        ];
 
         // Регистрируем объект пользователя
         /* @var $user Structure\User\Model */
@@ -265,32 +265,34 @@ class Controller
             // todo обычно юзеры всегда на первом уровне, но нужно доделать чтобы работало не только для первого уровня
             $user->data['par'] = substr($prev, strrpos($prev, '-') + 1);
         }
-        $this->view->user = $user->data;
-
+        $vars['user'] = $user->data;
 
         // Отображение верхнего меню структур
         $aclModel = new \Ideal\Structure\Acl\Admin\Model();
-        $this->view->structures = $aclModel->filterShow(0, $config->structures);
+        $vars['structures'] = $aclModel->filterShow(0, $config->structures);
         $path = $this->model->getPath();
-        $this->view->activeStructureId = $path[0]['ID'];
+        $vars['activeStructureId'] = $path[0]['ID'];
 
         // Отображение хлебных крошек
-        $pars = $breadCrumbs = array();
+        $breadCrumbs = [];
+        $pars = $breadCrumbs;
         foreach ($path as $v) {
             $pars[] = $v['ID'];
-            $breadCrumbs[] = array(
+            $breadCrumbs[] = [
                 'link' => implode('-', $pars),
                 'name' => $v['name']
-            );
+            ];
         }
-        $this->view->breadCrumbs = $breadCrumbs;
+        $vars['breadCrumbs'] = $breadCrumbs;
 
-        $this->view->toolbar = $this->model->getToolbar();
+        $vars['toolbar'] = $this->model->getToolbar();
 
-        $this->view->hideToolbarForm = !is_array($request->toolbar) || (count($request->toolbar) == 0);
+        $vars['hideToolbarForm'] = !is_array($request->get('toolbar')) || (count($request->get('toolbar')) === 0);
 
         // Определение места выполнения скрипта (на сайте в production, или локально в development)
-        $this->view->isProduction = $config->domain == str_replace('www.', '', $_SERVER['HTTP_HOST']);
+        $vars['isProduction'] = $config->domain === str_replace('www.', '', $_SERVER['HTTP_HOST']);
+
+        $this->view->mergeVars($vars);
 
         $this->finishMod($actionName);
 

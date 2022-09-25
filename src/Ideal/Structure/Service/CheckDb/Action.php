@@ -303,7 +303,7 @@ HTML;
     {
         var text = '';
         $.ajax({
-            url: 'index.php',
+            url: '',
             data: {action: 'clearCacheFiles', controller: 'Ideal\\\Structure\\\Service\\\Cache', mode: 'ajax'},
             success: function (data)
             {
@@ -328,7 +328,7 @@ HTML;
         $('#iframe').html('');
         var text = '';
         $.ajax({
-            url: 'index.php',
+            url: '',
             data: {action: 'checkCmsFiles', controller: 'Ideal\\\Structure\\\Service\\\CheckCmsFiles', mode: 'ajax'},
             success: function (data)
             {

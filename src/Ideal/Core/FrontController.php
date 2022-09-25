@@ -11,8 +11,14 @@ namespace Ideal\Core;
 
 use Ideal\Core\Admin;
 use Ideal\Core\Site;
-use Ideal\Core\Api;
-use Ideal\Structure\User;
+use Ideal\Structure\User\Admin\Plugin;
+use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\Routing\Exception\ResourceNotFoundException;
+use Symfony\Component\Routing\Matcher\UrlMatcher;
+use Symfony\Component\Routing\RequestContext;
+use Symfony\Component\Routing\Route;
+use Symfony\Component\Routing\RouteCollection;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Front Controller объединяет всю обработку запросов, пропуская запросы через единственный объект-обработчик.
@@ -28,138 +34,80 @@ class FrontController
      * Проводится роутинг, определяется контроллер страницы и отображаемый текст.
      * Выводятся HTTP-заголовки и отображается текст, сгенерированный с помощью view в controller
      *
-     * @param string $mode Режим работы admin или site
      */
-    public function run($mode)
+    public function run(): void
     {
-        // Запускаем роутер, для получения навигационной цепочки
-        if ($mode == 'api') {
-            $router = new Api\Router();
-        } elseif ($mode == 'admin') {
-            $router = new Admin\Router();
-        } else {
-            $router = new Site\Router();
-            $this->referer();
-        }
-
-        // Определяем имя контроллера для отображения запрошенной страницы
-        $controllerName = $router->getControllerName();
-
-        // Запускаем нужный контроллер и передаём ему навигационную цепочку
-        /* @var $controller Admin\Controller */
-        $controller = new $controllerName();
-
-        // Запускаем в работу контроллер структуры
-        $content = $controller->run($router);
-
-        if ($router->is404()) {
-            $httpHeaders = array('HTTP/1.0 404 Not Found');
-            if ($router->send404()) {
-                $this->emailError404();
-            }
-        } else {
-            $httpHeaders = $controller->getHttpHeaders();
-
-            $config = Config::getInstance();
-            $configCache = $config->cache;
-
-            // Если запрошена страница из пользовательской части, включён кэш и действие совершил не администратор,
-            // то сохранить её
-            $user = new User\Model();
-            if (!$user->checkLogin() && in_array($mode, array('api', 'admin'))
-                && isset($configCache['fileCache']) && $configCache['fileCache']) {
-                $model = $router->getModel();
-                $pageData = $model->getPageData();
-                if (isset($pageData['date_mod'])) {
-                    $modifyTime = $pageData['date_mod'];
-                } else {
-                    $modifyTime = time();
-                }
-                FileCache::saveCache($content, $_SERVER['REQUEST_URI'], $modifyTime);
-            }
-        }
-
-        $this->sendHttpHeaders($httpHeaders); // вывод http-заголовков
-
-        echo $content; // отображение страницы
-    }
-
-    /**
-     * Формирование заголовков (отдаются браузерам, паукам и проч.)
-     *
-     * @param array $httpHeaders
-     */
-    protected function sendHttpHeaders($httpHeaders)
-    {
-        $isContentType = false;
-        foreach ($httpHeaders as $k => $v) {
-            if (is_numeric($k)) {
-                // Ключ не указан, значит выводим только значение
-                header($v . "\r\n");
-            } else {
-                // Ключ указан, значит выводим и ключ и значение
-                header($k . ': ' . $v . "\r\n");
-            }
-            // Проверяем, не переопределён ли Content-Type
-            if (strtolower($k) == 'content-type') {
-                $isContentType = true;
-            }
-        }
-
-        if (!$isContentType) {
-            // Content-Type пользователем не изменён, отображаем стандартный
-            header("Content-Type: text/html; charset=utf-8");
-        }
-    }
-
-    /**
-     * Отправка письма о 404-ой ошибке
-     */
-    protected function emailError404()
-    {
+        // Подключаем класс конфига
         $config = Config::getInstance();
-        $sent404 = true;
-        if (isset($config->cms['error404Notice'])) {
-            $sent404 = $config->cms['error404Notice'];
+
+        $rootDir = dirname(DOCUMENT_ROOT);
+
+        // Загружаем список структур из конфигурационных файлов структур
+        $config->loadSettings($rootDir);
+
+        // Регистрируем плагин авторизации
+        $pluginBroker = PluginBroker::getInstance();
+        $pluginBroker->registerPlugin('onPostAdminDispatch', Plugin::class);
+
+        $routes = new RouteCollection();
+
+        // Добавляем маршрут админки
+        $route = new Route('/' . $config->cmsFolder . '/', ['_controller' => Admin\Router::class]);
+        $routes->add('admin', $route);
+
+        /** @noinspection UsingInclusionReturnValueInspection */
+        $callable = require $rootDir . '/config/routes.php';
+
+        $routes = $callable($routes);
+
+        $request = Request::createFromGlobals();
+        $context = new RequestContext();
+        $context->fromRequest($request);
+
+        // Routing can match routes with incoming requests
+        $referer = null;
+        $matcher = new UrlMatcher($routes, $context);
+        try {
+            // todo сравнение по http-методам
+            $parameters = $matcher->match($request->getPathInfo());
+        } catch (ResourceNotFoundException $e) {
+            // Стандартный роутинг не смог ничего найти, запускаем роутинг по БД
+            $parameters = [
+                '_controller' => Site\Router::class,
+                'slug' => $request->getPathInfo(),
+                'name' => 'front',
+            ];
+            $referer = $this->getReferer($request);
         }
-        if ($sent404) {
-            if (empty($_SERVER['HTTP_REFERER'])) {
-                $from = 'Прямой переход.';
-            } else {
-                $from = 'Переход со страницы ' . $_SERVER['HTTP_REFERER'];
-            }
-            $protocol = $config->getProtocol();
-            $message = "Здравствуйте!\n\nНа странице {$protocol}{$config->domain}{$_SERVER['REQUEST_URI']} "
-                . "произошли следующие ошибки.\n\n"
-                . "\n\nСтраница не найдена (404).\n\n"
-                . "\n\n{$from}\n\n";
-            $user = new User\Model();
-            if ($user->checkLogin()) {
-                $message .= "\n\nДействие совершил администратор.\n\n";
-            }
-            $message .= '$_SERVER = ' . "\n" . print_r($_SERVER, true) . "\n\n";
-            $subject = "Страница не найдена (404) на сайте " . $config->domain;
-            $mail = new \Ideal\Mailer();
-            $mail->setSubj($subject);
-            $mail->setPlainBody($message);
-            $mail->sent($config->robotEmail, $config->cms['adminEmail']);
+
+        $controllerName = $parameters['_controller'];
+        $actionName = $parameters['action'] ?? 'index';
+        $response = (new $controllerName())->$actionName($request);
+
+        if ($referer !== null) {
+            $response->headers->setCookie(Cookie::create('referer', $referer, time() + 315360000));
         }
+
+        $response->prepare($request);
+        $response->send();
     }
 
     /**
      * Получение реферера пользователя и установка реферера в куки
      */
-    public function referer()
+    protected function getReferer(Request $request): string
     {
         // Проверяем есть ли в куках информация о реферере
-        if (!isset($_COOKIE['referer'])) {
-            // Если информации о реферере нет в куках то добавляем её туда
+        $referer = $request->cookies->get('referer');
+        if ($referer === null) {
+            // Если информации о реферере нет в куках, то добавляем её туда
             if (!empty($_SERVER['HTTP_REFERER'])) {
                 $referer = $_SERVER['HTTP_REFERER'];
             } else {
                 $referer = 'null';
             }
-            setcookie("referer", $referer, time() + 315360000);
         }
+
+        return $referer;
     }
 }

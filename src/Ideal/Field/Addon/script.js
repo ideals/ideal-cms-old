@@ -115,7 +115,7 @@ $('#add-addon-add').click(function () {
     // Пытаемся получить заголовок и содержимое новой вкладки
     // В случае удачи — добавляем новую вкладку
     $.get(
-        "index.php",
+        "",
         {
             mode: 'ajax',
             controller: '\\Ideal\\Field\\Addon',

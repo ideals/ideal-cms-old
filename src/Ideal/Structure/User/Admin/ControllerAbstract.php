@@ -88,6 +88,7 @@ class ControllerAbstract extends AdminController
             }
             if ($user->login($_POST['user'], $_POST['pass'])) {
                 header('Location: ' . $_SERVER['REQUEST_URI']);
+                exit;
             }
         } else {
             // На странице авторизации отдавать 404 заголовок

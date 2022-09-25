@@ -159,4 +159,26 @@ class View
             rmdir($cachePath);
         }
     }
+
+    /**
+     * Установка значений переменных шаблона
+     *
+     * @param array $vars
+     * @return void
+     */
+    public function setVars(array $vars): void
+    {
+        $this->vars = $vars;
+    }
+
+    /**
+     * Объединение уже созданных переменных с дополнительным списком переменных
+     *
+     * @param array $vars
+     * @return void
+     */
+    public function mergeVars(array $vars): void
+    {
+        $this->vars = array_merge($this->vars, $vars);
+    }
 }

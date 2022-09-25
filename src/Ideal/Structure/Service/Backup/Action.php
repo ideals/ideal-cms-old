@@ -158,7 +158,7 @@ HTML;
         fd.append('file', file);
         $('#uploadfile').val('');
         // Url
-        var url = "index.php?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=uploadFile&bf={$backupPart}";
+        var url = "?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=uploadFile&bf={$backupPart}";
         // Сообщение о процессе загрузки
         $('#textDumpStatus').removeClass().addClass('alert alert-info').html('Идёт загрузка файла...');
         // Загрузка
@@ -193,7 +193,7 @@ HTML;
         if (confirm('Импортировать дамп БД:\\n\\n' + nameFile.split(/[\\\\/]/).pop() + '\\n\\n?')) {
             $('#textDumpStatus').removeClass().addClass('alert alert-info').html('Идёт импорт дампа БД');
             $.ajax({
-                url: "index.php?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=import",
+                url: "?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=import",
                 type: 'POST',
                 data: {
                     name: nameFile
@@ -222,7 +222,7 @@ HTML;
     function delDump(nameFile) {
         if (confirm('Удалить файл копии БД:\\n\\n' + nameFile.split(/[\\\\/]/).pop() + '\\n\\n?')) {
             $.ajax({
-                url: "index.php?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=delete",
+                url: "?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=delete",
                 type: 'POST',
                 data: {
                     name: nameFile
@@ -252,7 +252,7 @@ HTML;
     function createDump() {
         $('#textDumpStatus').removeClass().addClass('alert alert-info').html('Идёт создание копии БД');
         $.ajax({
-            url: "index.php?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=createDump",
+            url: "?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=createDump",
             type: 'POST',
             data: {
                 createMysqlDump: true,

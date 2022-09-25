@@ -53,7 +53,7 @@ class Controller extends Url\Controller
             $nameField = $this->field['nameField'];
         }
         return
-            '<script type="text/javascript" src="index.php?mode=ajax&action=script&controller=\Ideal\Field\UrlAuto" />'
+            '<script type="text/javascript" src="?mode=ajax&action=script&controller=\Ideal\Field\UrlAuto" />'
             . '<div class="input-group">' . $addOn
             . '<input type="text" class="form-control" name="' . $this->htmlName . '" id="' . $this->htmlName
             . '" value="' . $value['url'] . '" data-field="' . $nameField . '"><span class="input-group-btn">'

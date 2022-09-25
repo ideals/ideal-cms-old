@@ -148,7 +148,7 @@ HTML;
     function getSitemapAjaxify(param) {
         params = param + '&timestamp=' + Date.now();
         $.ajax({
-            url: 'index.php?mode=ajax&action=run&controller=Ideal\\\\Structure\\\Service\\\\SiteMap' + params,
+            url: '?mode=ajax&action=run&controller=Ideal\\\\Structure\\\Service\\\\SiteMap' + params,
             success: function (data) {
                 $('#iframe').append(data);
                 if (/Выход по таймауту/gim.test(data)) {

@@ -54,7 +54,7 @@ $.jsonp({
 /**
  * Объект осуществляющий процесс обновления*/
 function Update(moduleName, version, currentVersion, url, modalBox) {
-    this.url = 'index.php?par=' + url;
+    this.url = '?par=' + url;
     this.modalBox = modalBox;
     this.ajaxData = Object.freeze({
         mode: 'ajax',

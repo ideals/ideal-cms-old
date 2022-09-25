@@ -52,7 +52,7 @@
                 <ul class="nav navbar-nav">
                     {% for item in structures | filter(item => item.isShow) %}
                         <li {% if activeStructureId == item.ID %} class="active" {% endif %}>
-                            <a href="index.php?par={{ item.ID }}">{{ item.name }}</a>
+                            <a href="?par={{ item.ID }}">{{ item.name }}</a>
                         </li>
                     {% endfor %}
                 </ul>
@@ -69,7 +69,7 @@
                                 <a onClick="showModal('{{ user.par }}', {{ user.ID }}, 'showEdit'); return false;"
                                    href="#">Профиль</a></li>
                             <li><a onClick="showClearCacheConfirm(); return false;" href="#">Очистить кэш</a></li>
-                            <li><a href="index.php?action=logout">Выход</a></li>
+                            <li><a href="?action=logout">Выход</a></li>
                         </ul>
                     </li>
                 </ul>
@@ -84,7 +84,7 @@
                     {% if loop.last %}
                         {{ item.name }}
                     {% else %}
-                        <a href="index.php?par={{ item.link }}">{{ item.name }}</a>
+                        <a href="?par={{ item.link }}">{{ item.name }}</a>
                     {% endif %}
                 </li>
             {% endfor %}
@@ -322,7 +322,7 @@
                 }
 
                 $.ajax({
-                    url: 'index.php',
+                    url: '',
                     data: dataToAjax,
                     success: function (data)
                     {
@@ -404,7 +404,7 @@
             function onSubmitLogin()
             {
                 $.ajax({
-                    url: 'index.php',
+                    url: '',
                     data: $('#ajaxLogin').serialize(),
                     success: function (data)
                     {
@@ -455,7 +455,7 @@
 
                 // Делаем AJAX-запрос с этими данными
                 $.ajax({
-                    url: 'index.php',
+                    url: '',
                     type: 'POST',
                     dataType: "json",
                     data: {
@@ -626,7 +626,7 @@
                 if (confirm('Удалить этот элемент?')) {
                     // Если пользователь подтвердил удаление — отправляем ajax-запрос на удаление
                     $.getJSON(
-                        "index.php",
+                        "",
                         {
                             action: 'delete',
                             par: par,
@@ -680,7 +680,7 @@
         {
             if (confirm('Вы действительно хотите сбросить весь кэш?')) {
                 $.ajax({
-                    url: 'index.php',
+                    url: '',
                     data: {action: 'clearCache', controller: 'Ideal\\Structure\\Service\\Cache', mode: 'ajax'},
                     success: function ()
                     {

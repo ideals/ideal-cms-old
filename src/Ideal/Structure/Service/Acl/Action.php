@@ -57,7 +57,7 @@ HTML;
                 type: "POST",
                 data: {user_group_id: $(this).val()},
                 dataType: 'json',
-                url: '/?mode=ajax&controller=Ideal\\\\Structure\\\\Service\\\\Acl&action=mainUserGroupPermission',
+                url: '?mode=ajax&controller=Ideal\\\\Structure\\\\Service\\\\Acl&action=mainUserGroupPermission',
                 success: function (data) {
                     $('#permission:hidden').show();
                     var trs = getTableRows(data);
@@ -77,7 +77,7 @@ HTML;
                     user_group_id: $('#selectUserGroup').val()
                 },
                 dataType: 'json',
-                url: '/?mode=ajax&controller=Ideal\\\\Structure\\\\Service\\\\Acl&action=changePermission'
+                url: '?mode=ajax&controller=Ideal\\\\Structure\\\\Service\\\\Acl&action=changePermission'
             });
         });
 
@@ -105,7 +105,7 @@ HTML;
                         prev_structure: $(closestTr).data('prev_structure')
                     },
                     dataType: 'json',
-                    url: '/?mode=ajax&controller=Ideal\\\\Structure\\\\Service\\\\Acl&action=showChildren',
+                    url: '?mode=ajax&controller=Ideal\\\\Structure\\\\Service\\\\Acl&action=showChildren',
                     success: function (data) {
                         if (!$.isEmptyObject(data)) {
                             // Формируем дополнительные пробелы
@@ -113,7 +113,7 @@ HTML;
                             var trs = getTableRows(data, spaces, startId);
                             $(closestTr).after(trs);
                         } else {
-                            alert('Данный пункт не имееет дочерних элементов');
+                            alert('Данный пункт не имеет дочерних элементов');
                         }
                     }
                 });

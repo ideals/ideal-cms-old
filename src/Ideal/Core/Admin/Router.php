@@ -9,148 +9,162 @@
 
 namespace Ideal\Core\Admin;
 
+use Exception;
 use Ideal\Core\Config;
 use Ideal\Core\PluginBroker;
-use Ideal\Core\Request;
 use Ideal\Core\Util;
-use Ideal\Structure\Error404;
+use Symfony\Component\HttpFoundation\Request;
+use Ideal\Structure\User\Admin\Controller;
+use Symfony\Component\HttpFoundation\Response;
 
 class Router
 {
 
     /** @var string Название контроллера активной страницы */
-    protected $controllerName = '';
+    protected string $controllerName = '';
 
-    /** @var Model Модель активной страницы */
-    protected $model = null;
+    /** @var Model|null Модель активной страницы */
+    protected ?Model $model = null;
 
-    /** @var Model Модель для обработки 404-ых ошибок */
-    protected $error404 = null;
+    protected Request $request;
+
+    protected Response $response;
+
 
     /**
      * Производит роутинг исходя из запрошенного URL-адреса
      *
-     * Конструктор генерирует событие onPreDispatch, затем определяет модель активной страницы
-     * и генерирует событие onPostDispatch.
+     * Генерирует событие onPreAdminDispatch, затем определяет модель активной страницы
+     * и генерирует событие onPostAdminDispatch.
      * В результате работы конструктора инициализируются переменные $this->model и $this->ControllerName
+     *
+     * @param Request $request
+     * @return Response
+     * @throws Exception
      */
-    public function __construct()
+    public function index(Request $request): Response
     {
-        // Проверка на простой AJAX-запрос
-        $request = new Request();
-        if ($request->mode == 'ajax' && $request->controller != '') {
-            $controllerName = $request->controller . '\\AjaxController';
-            if (class_exists($controllerName)) {
-                // Если контроллер в запросе указан и запрошенный класс существует
-                // то устанавливаем контроллер и завершаем роутинг
-                if (!empty($request->action) && method_exists($controllerName, $request->action . 'Action')) {
-                    $this->controllerName = $controllerName;
-                }
-            }
-        }
+        $this->request = $request;
+        $this->response = new Response();
 
         $pluginBroker = PluginBroker::getInstance();
-        $pluginBroker->makeEvent('onPreDispatch', $this);
+        $pluginBroker->makeEvent('onPreAdminDispatch', $this);
 
-        $this->error404 = new Error404\Model();
-
-        if (is_null($this->model)) {
-            $this->model = $this->routeByPar();
+        if ($this->model === null && $request->get('mode') !== 'ajax') {
+            $this->model = $this->routeByPar($request->get('par', ''));
         }
 
-        $pluginBroker->makeEvent('onPostDispatch', $this);
+        $pluginBroker->makeEvent('onPostAdminDispatch', $this);
 
-        // Инициализируем данные модели
-        $this->model->initPageData();
+        if ($request->get('mode') !== 'ajax') {
+            // Инициализируем данные модели
+            $this->model->initPageData();
 
-        // Проверка прав доступа
-        $aclModel = new \Ideal\Structure\Acl\Admin\Model();
-        if (!$aclModel->checkAccess($this->model)) {
-            // Если доступ запрещён, перебрасываем на соответствующий контроллер
-            $this->controllerName = '\\Ideal\\Structure\\User\\Admin\\Controller';
-            $request->action = 'accessDenied';
+            // Проверка прав доступа
+            $aclModel = new \Ideal\Structure\Acl\Admin\Model();
+            if (!$aclModel->checkAccess($this->model)) {
+                // Если доступ запрещён, перебрасываем на соответствующий контроллер
+                $this->controllerName = Controller::class;
+                $request->query->set('action', 'accessDenied');
+            }
+
+            // Определяем корректную модель на основании поля structure
+            $this->model = $this->model->detectActualModel();
         }
 
-        // Определяем корректную модель на основании поля structure
-        $this->model = $this->model->detectActualModel();
+        $controllerName = $this->getControllerName($request);
+
+        // Запускаем нужный контроллер и передаём ему навигационную цепочку
+        /* @var Controller $controller */
+        $controller = new $controllerName();
+
+        // Запускаем в работу контроллер структуры
+        $content = $controller->run($this);
+
+        $statusCode = $this->model->is404 ? Response::HTTP_NOT_FOUND : Response::HTTP_OK;
+
+        return $this->response->setContent($content)->setStatusCode($statusCode);
     }
 
     /**
      * Определение модели активной страницы и пути к ней на основе переменной $_GET['par']
      *
+     * @param $par
      * @return Model Модель активной страницы
+     * @throws Exception
+     * @noinspection OffsetOperationsInspection
      */
-    protected function routeByPar()
+    protected function routeByPar($par): Model
     {
         $config = Config::getInstance();
 
         // Инициализируем $par — массив ID к активному объекту
-        $request = new Request();
-        $par = $request->par;
 
-        if ($par == '') {
+        if ($par === '') {
             // par не задан, берём стартовую структуру из списка структур
-            $path = array($config->getStartStructure());
+            $path = [$config->getStartStructure()];
             $prevStructureId = $path[0]['ID'];
-            $par = array();
+            $par = [];
         } else {
             // par задан, нужно его разложить в массив
             $par = explode('-', $par);
             // Определяем первую структуру
             $prevStructureId = $par[0];
-            $path = array($config->getStructureById($prevStructureId));
+            $path = [$config->getStructureById($prevStructureId)];
             unset($par[0]); // убираем первый элемент - ID начальной структуры
         }
 
+        $is404 = false;
         if (!isset($path[0]['structure'])) {
             // По par ничего не нашлось, берём стартовую структуру из списка структуру
-            $path = array($config->getStartStructure());
+            $path = [$config->getStartStructure()];
             $prevStructureId = $path[0]['ID'];
-            $par = array();
+            $par = [];
+            $is404 = true;
         }
 
         $modelClassName = Util::getClassName($path[0]['structure'], 'Structure') . '\\Admin\\Model';
         /* @var $structure Model */
         $structure = new $modelClassName('0-' . $prevStructureId);
+        $structure->is404 = $is404;
 
         // Запускаем определение пути и активной модели по $par
-        $model = $structure->detectPageByIds($path, $par);
-
-        return $model;
+        return $structure->detectPageByIds($path, $par);
     }
+
 
     /**
      * Возвращает название контроллера для активной страницы
      *
-     * @return string Название контроллера
+     * @param Request $request
+     * @return string  Название контроллера
+     * @noinspection MultipleReturnStatementsInspection
      */
-    public function getControllerName()
+    public function getControllerName(Request $request): string
     {
-        if ($this->controllerName != '') {
+        if ($this->controllerName !== '') {
             return $this->controllerName;
         }
 
         if (method_exists ($this->model, 'getControllerName')) {
             return $this->model->getControllerName();
         }
-        $request = new Request();
-        if ($request->mode == 'ajax' && $request->controller != '') {
+
+        if ($request->get('mode') === 'ajax' && $request->get('controller') !== '') {
             // Если это ajax-вызов с явно указанным namespace класса ajax-контроллера
-            return $request->controller . '\\AjaxController';
+            return $request->get('controller') . '\\AjaxController';
         }
 
         $path = $this->model->getPath();
         $end = end($path);
 
-        if ($request->mode == 'ajax' && $request->controller == '') {
+        if ($request->get('mode') === 'ajax' && $request->get('controller') === '') {
             // Если это ajax-вызов без указанного namespace класса ajax-контроллера,
             // то используем namespace модели
             return Util::getClassName($end['structure'], 'Structure') . '\\Admin\\AjaxController';
         }
 
-        $controllerName = Util::getClassName($end['structure'], 'Structure') . '\\Admin\\Controller';
-
-        return $controllerName;
+        return Util::getClassName($end['structure'], 'Structure') . '\\Admin\\Controller';
     }
 
     /**
@@ -160,7 +174,7 @@ class Router
      *
      * @param $name string Название контроллера
      */
-    public function setControllerName($name)
+    public function setControllerName(string $name): void
     {
         $this->controllerName = $name;
     }
@@ -170,7 +184,7 @@ class Router
      *
      * @return Model Инициализированный объект модели активной страницы
      */
-    public function getModel()
+    public function getModel(): ?Model
     {
         return $this->model;
     }
@@ -178,16 +192,48 @@ class Router
     /**
      * Возвращает статус 404-ошибки, есть он или нет
      */
-    public function is404()
+    public function is404(): bool
     {
-        return $this->model->is404;
+        return (bool)$this->model->is404;
     }
 
     /**
-     * Возвращает значение флага отпрваки сообщения о 404ой ошибке
+     * @return Request
      */
-    public function send404()
+    public function getRequest(): Request
     {
-        return $this->error404->send404();
+        return $this->request;
+    }
+
+    /**
+     * @param Request $request
+     *
+     * @return Router
+     */
+    public function setRequest(Request $request): self
+    {
+        $this->request = $request;
+
+        return $this;
+    }
+
+    /**
+     * @return Response
+     */
+    public function getResponse(): Response
+    {
+        return $this->response;
+    }
+
+    /**
+     * @param Response $response
+     *
+     * @return Router
+     */
+    public function setResponse(Response $response): self
+    {
+        $this->response = $response;
+
+        return $this;
     }
 }
