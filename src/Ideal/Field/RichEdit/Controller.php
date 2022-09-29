@@ -49,7 +49,7 @@ class Controller extends AbstractController
             <textarea name="{$this->htmlName}"
                 id="{$this->htmlName}">{$value}</textarea>
             <script>
-                CKFinder.setupCKEditor( null, "/{$config->cmsFolder}/Ideal/Library/ckfinder/" );
+                CKFinder.setupCKEditor( null, "/{$config->cmsFolder}/js/ckfinder/" );
                 // Закрываем от авто модификации и wysiwig-редактирования содержимое тега script
                 CKEDITOR.config.protectedSource.push(/<script[\\s\\S]*?script>/ig);
                 // Код в блоке <div class="protectedSource"></div> не будет редактироваться во WYSIWIG,
