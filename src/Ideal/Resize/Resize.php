@@ -2,40 +2,98 @@
 /**
  * Изменение размера изображения
  */
-namespace Resize;
+namespace Ideal\Resize;
+
+use RuntimeException;
 
 class Resize
 {
     /** @var int $width Ширина нового изображения */
-    protected $width;
+    protected int $width;
 
     /** @var int $height Высота нового изображения */
-    protected $height;
+    protected int $height;
 
-    /** @var array $color Цвет фона изображения */
-    protected $color = null;
+    /** @var null|array $color Цвет фона изображения */
+    protected ?array $color = null;
 
     /** @var string $sizeDelimiter Разделитель значений размеров изображения */
-    protected $sizeDelimiter = 'x';
+    protected string $sizeDelimiter = 'x';
 
     /** @var string $fullNameOriginal Полное имя изображения с исходным размером */
-    protected $fullNameOriginal;
+    protected string $fullNameOriginal;
 
     /** @var string $fullNameResized Полное имя изображения с изменённым размером */
-    protected $fullNameResized;
+    protected string $fullNameResized;
 
     /** @var bool Флаг того, что происходит обработка локального файла или картинки с другого сервера */
-    protected $isLocal = true;
+    protected bool $isLocal = true;
+
+    protected string $siteRoot;
+    private string $resizedPath;
+    private array $allowSizes;
+    private int $imageSizeInBytes;
+
+    public function __construct(string $siteRoot, string $resizedPath, array $allowSizes)
+    {
+        $this->siteRoot = $siteRoot;
+        $this->resizedPath = $resizedPath;
+        $this->allowSizes = $allowSizes;
+    }
 
     /**
      * @param string $image Строка содержащая параметры требуемого изображения, а также путь к исходному изображению
      */
-    public function run($image)
+    public function resize(string $image): string
     {
+        $image = (string) mb_ereg_replace('^' . $this->resizedPath, '', $image);
         $this->setImage($image);
         $rImage = $this->resizeImage();
-        $image = str_replace(':', '', $image); // заменяем двоеточие в адресе (если это адрес)
         $this->saveImage($rImage, $image);
+
+        return $rImage;
+    }
+
+    public function getHeaders(): array
+    {
+        $time = time();
+
+        // Получение даты изменения оригинального файла
+        if ($this->isLocal) {
+            $time = filemtime($this->fullNameOriginal);
+            touch($this->fullNameResized, $time);
+        }
+
+        // Вывод изображения
+        $getInfo = (array) getimagesize($this->fullNameResized);
+
+        return [
+            'Accept-Ranges' => 'bytes',
+            'Content-Length' => $this->imageSizeInBytes,
+            'Content-type' => $getInfo['mime'],
+            'Last-Modified' => gmdate('D, d M Y H:i:s', $time) . ' GMT'
+        ];
+    }
+
+    /**
+     * @param string $image Строка содержащая параметры требуемого изображения, а также путь к исходному изображению
+     * @noinspection BadExceptionsProcessingInspection
+     */
+    public function run(string $image): void
+    {
+        $image = (string) mb_ereg_replace('^' . $this->resizedPath, '', $image);
+
+        try {
+            $this->setImage($image);
+            $rImage = $this->resizeImage();
+            $image = str_replace(':', '', $image); // заменяем двоеточие в адресе (если это адрес)
+            $this->saveImage($rImage, $image);
+        } catch (RuntimeException $e) {
+            // Отправка 404 ошибки
+            header('HTTP/1.x 404 Not Found');
+            exit;
+        }
+
         $this->echoImage($rImage);
     }
 
@@ -43,8 +101,10 @@ class Resize
      * Разбор параметров требуемого изображения и их проверка
      *
      * @param string $image Строка содержащая размеры требуемого изображения, а также путь к исходному изображению
+     * @return void
+     * @throws RuntimeException
      */
-    protected function setImage($image)
+    protected function setImage(string $image): void
     {
         $matches = [];
         preg_match('/http(s?)\/(.*)/i', $image, $matches);
@@ -55,18 +115,18 @@ class Resize
             $imgInfo = [str_replace('/' . $matches[0], '', $image)];
         } else {
             // Если указан путь к локальному файлу
-            $imgInfo = explode('/', $image);
+            $imgInfo = (array) explode('/', $image);
         }
 
         // Получаем требуемые размеры нового изображения
-        $imgSize = explode($this->sizeDelimiter, $imgInfo[0]);
+        $imgSize = (array) explode($this->sizeDelimiter, $imgInfo[0]);
 
         // Проверяем существование необходимых параметров ширины и высоты
-        if (isset($imgSize[0]) && isset($imgSize[1])) {
+        if (isset($imgSize[1])) {
             $this->width = (int)$imgSize[0];
             $this->height = (int)$imgSize[1];
         } else {
-            $this->exit404();
+            throw new RuntimeException('Не указаны высота и/или ширина картинки');
         }
 
         // Проверяем существование параметра цвет
@@ -76,13 +136,13 @@ class Resize
         }
 
         // Заданы нулевые размеры для resize, такой картинки не бывает
-        if ($this->width == 0 && $this->height == 0) {
-            $this->exit404();
+        if ($this->width === 0 && $this->height === 0) {
+            throw new RuntimeException('Высота и ширина не могут быть нулевыми');
         }
 
         // Проверяем являются ли новые размеры разрешёнными
         if (!$this->isAllowResize()) {
-            $this->exit404();
+            throw new RuntimeException('Неразрешённый размер уменьшенного изображения');
         }
 
         unset($imgInfo[0]);
@@ -91,11 +151,11 @@ class Resize
             return;
         }
 
-        /** @var string $imgPath Путь к исходнму изображению */
-        $this->fullNameOriginal = $_SERVER['DOCUMENT_ROOT'] . '/' . implode('/', $imgInfo);
+        /** @var string $imgPath Путь к исходному изображению */
+        $this->fullNameOriginal = $this->siteRoot . '/' . implode('/', $imgInfo);
         // Проверяем, существует ли исходный файл
         if (!file_exists($this->fullNameOriginal)) {
-            $this->exit404();
+            throw new RuntimeException('Файл ' . $this->fullNameOriginal . 'отсутствует на диске');
         }
     }
 
@@ -104,42 +164,28 @@ class Resize
      *
      * @return bool Истина, в случае наличия требуемого размера в списке разрешённых или отсутствия такого списка
      */
-    protected function isAllowResize()
+    protected function isAllowResize(): bool
     {
-        // Находим путь к конфигурационному файлу админки
-        $self = trim($_SERVER['PHP_SELF'], '/');
-        $cmsFolder = '/' . substr($self, 0, strpos($self, '/'));
-        $path = $_SERVER['DOCUMENT_ROOT'] . $cmsFolder . '/site_data.php';
-
-        if (is_file($path)) {
-            /** @var string $path Путь к исходному изображению */
-            $config = include_once($path);
-        } else {
-            return false;
-        }
-
         // Проверяем существует ли список разрешённых размеров
-        if (!isset($config['allowResize'])) {
-            return true;
+        if ($this->allowSizes === []) {
+            return false;
         }
 
         // Проверяем есть ли в списке разрешённых размеров изображений запрошенное
-        $allowResize = explode("\n", $config['allowResize']);
-        if (!in_array($this->width . $this->sizeDelimiter . $this->height, $allowResize)) {
-            return false;
-        }
-        return true;
+        return in_array($this->width . $this->sizeDelimiter . $this->height, $this->allowSizes, true);
     }
 
     /**
      * Изменение размера изображения
      *
-     * @return mixed Данные изображения
+     * @return string Данные изображения
      */
-    protected function resizeImage()
+    protected function resizeImage(): string
     {
         $imageInfo = getimagesize($this->fullNameOriginal);
-        $src = null;
+        if (!is_array($imageInfo)) {
+            throw new RuntimeException('Не получилось проанализировать исходную картинку: ' . $this->fullNameOriginal);
+        }
 
         switch ($imageInfo['mime']) {
             case 'image/jpeg':
@@ -151,18 +197,21 @@ class Resize
             case 'image/gif':
                 $src = imagecreatefromgif($this->fullNameOriginal);
                 break;
+            default:
+                $src = null;
         }
 
-        // Если тип изображения не соответствует необходимому
         if ($src === null) {
-            $this->exit404();
+            throw new RuntimeException(
+                'Тип изображения (' . $imageInfo['mime'] . ') не соответствует необходимому'
+            );
         }
 
         // Пропорциональное изменение изображения по ширине и высоте
-        if ($this->width == 0) {
+        if ($this->width === 0) {
             $this->width = round(($this->height * imagesx($src)) / imagesy($src));
         }
-        if ($this->height == 0) {
+        if ($this->height === 0) {
             $this->height = round(($this->width * imagesy($src)) / imagesx($src));
         }
 
@@ -187,7 +236,7 @@ class Resize
                 if ($destWidth > $this->width) {
                     $destWidth = $this->width;
                 }
-                imageCopyResampled(
+                imagecopyresampled(
                     $dest2,
                     $src,
                     0,
@@ -203,7 +252,7 @@ class Resize
                 // Изменение размера изображения и обрезка по ширине
                 $dest = $this->imageCreate($destWidth, $this->height, $imageInfo['mime']);
                 $destWidth2 = ($destWidth - $this->width) / 2;
-                imageCopyResampled($dest, $src, 0, 0, 0, 0, $destWidth, $this->height, imagesx($src), imagesy($src));
+                imagecopyresampled($dest, $src, 0, 0, 0, 0, $destWidth, $this->height, imagesx($src), imagesy($src));
                 imagecopy($dest2, $dest, 0, 0, $destWidth2, 0, imagesx($dest), imagesy($dest));
             }
         } else {
@@ -219,7 +268,7 @@ class Resize
                 if ($destHeight > $this->height) {
                     $destHeight = $this->height;
                 }
-                imageCopyResampled(
+                imagecopyresampled(
                     $dest2,
                     $src,
                     $destWidth2,
@@ -235,7 +284,7 @@ class Resize
                 // Изменение размера изображения и обрезка по высоте
                 $dest = $this->imageCreate($this->width, $destHeight, $imageInfo['mime']);
                 $destHeight2 = ($destHeight - $this->height) / 2;
-                imageCopyResampled($dest, $src, 0, 0, 0, 0, $this->width, $destHeight, imagesx($src), imagesy($src));
+                imagecopyresampled($dest, $src, 0, 0, 0, 0, $this->width, $destHeight, imagesx($src), imagesy($src));
                 imagecopy($dest2, $dest, 0, 0, 0, $destHeight2, imagesx($dest), imagesy($dest));
                 imagedestroy($dest);
             }
@@ -243,25 +292,25 @@ class Resize
 
         ob_start();
         switch ($imageInfo['mime']) {
-            case "image/jpeg":
+            case 'image/jpeg':
                 // 98 - соответствует по размеру файла тому, что генерирует Photoshop с качеством 80
                 // 83 - оптимальное качество согласно PageSpeed Insights
                 imagejpeg($dest2, null, 83);
                 break;
-            case "image/png":
+            case 'image/png':
                 imagepng($dest2, null, 1);
                 break;
-            case "image/gif":
+            case 'image/gif':
                 imagegif($dest2);
                 break;
         }
-        $image = ob_get_contents();
-        ob_end_clean();
+        $image = ob_get_clean();
 
-        // Если не удалось создать изображение
-        if ($image == '') {
-            $this->exit404();
+        if ($image === '') {
+            throw new RuntimeException('Не удалось создать изображение');
         }
+
+        $this->imageSizeInBytes = strlen($image);
 
         return $image;
     }
@@ -272,32 +321,38 @@ class Resize
      * @param int $width Ширина нового изображения
      * @param int $height Высота нового изображения
      * @param string $mime Тип файла
-     * @return mixed Идентификатор изображения
+     * @return resource Идентификатор изображения
      */
-    protected function imageCreate($width, $height, $mime)
+    protected function imageCreate(int $width, int $height, string $mime)
     {
         $img = imagecreatetruecolor($width, $height);
-        if ($mime == "image/png") {
+
+        if (is_bool($img)) {
+            throw new RuntimeException('Не удалось начать обработку изображения');
+        }
+
+        if ($mime === 'image/png') {
             imagecolortransparent($img, imagecolorallocatealpha($img, 0, 0, 0, 127));
             imagealphablending($img, false);
             imagesavealpha($img, true);
         }
+
         return $img;
     }
 
     /**
-     * @param mixed $rImage Изображение в бинарном виде
+     * @param string $rImage Изображение в бинарном виде
      * @param string $originalImagePath Путь к оригиналу изображения
      */
-    protected function saveImage($rImage, $originalImagePath)
+    protected function saveImage(string $rImage, string $originalImagePath): void
     {
         /** @var string $pathResizedImg Путь к новому изображению */
-        $resizedImgFile = $_SERVER['DOCUMENT_ROOT'] . '/images/resized/' . $originalImagePath;
+        $resizedImgFile = $this->siteRoot . $this->resizedPath . $originalImagePath;
         $pathResizedImg = dirname($resizedImgFile);
 
         /** Добавляем структуру категорий */
-        if (!is_dir($pathResizedImg)) {
-            mkdir($pathResizedImg, 0777, true);
+        if (!file_exists($pathResizedImg) && !mkdir($pathResizedImg, 0777, true) && !is_dir($pathResizedImg)) {
+            throw new RuntimeException(sprintf('Невозможно создать папку "%s"', $pathResizedImg));
         }
 
         $this->fullNameResized = $resizedImgFile;
@@ -310,31 +365,12 @@ class Resize
      *
      * @param mixed $image Изображение в бинарном виде
      */
-    protected function echoImage($image)
+    protected function echoImage($image): void
     {
-        $time = time();
-
-        // Получение даты изменения оригинального файла
-        if ($this->isLocal) {
-            $time = filemtime($this->fullNameOriginal);
-            touch($this->fullNameResized, $time);
+        foreach ($this->getHeaders() as $key => $value) {
+            header($key . ': ' . $value);
         }
 
-        // Вывод изображения
-        $getInfo = getimagesize($this->fullNameResized);
-
-        header('Content-type: ' . $getInfo['mime']);
-        header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $time) . ' GMT');
-
         echo($image);
-    }
-
-    /**
-     *  Отправка 404 ошибки
-     */
-    protected function exit404()
-    {
-        header("HTTP/1.x 404 Not Found");
-        exit;
     }
 }
