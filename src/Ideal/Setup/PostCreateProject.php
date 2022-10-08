@@ -100,6 +100,21 @@ class PostCreateProject
             $configFolder . '/structure.php'
         );
 
+        $this->copyFile(
+            $this->vendorDir . '/' . Config::COMPOSER . '/front/site/css/bootstrap.css',
+            $this->rootDir . '/css/bootstrap.css'
+        );
+
+        $this->copyFile(
+            $this->vendorDir . '/' . Config::COMPOSER . '/front/site/css/default.css',
+            $this->rootDir . '/css/default.css'
+        );
+
+        $this->copyFile(
+            $this->vendorDir . '/' . Config::COMPOSER . '/front/site/js/default.js',
+            $this->rootDir . '/js/default.js'
+        );
+
         $this->modifyFile('config/db.php', 'config/db.php', $placeholder);
         $this->modifyFile('config/site.php', 'config/site.php', $placeholder);
         $this->modifyFile('config/routes.php', 'config/routes.php', $placeholder);

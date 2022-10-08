@@ -38,12 +38,12 @@ class PostUpdate
         $adminDir = $wwwDir . '/' . $config->cmsFolder;
 
         $this->copyFolder(
-            $config->cmsDir . '/front/css',
+            $config->cmsDir . '/front/admin/css',
             $adminDir . '/css/'
         );
 
         $this->copyFolder(
-            $config->cmsDir . '/front/js',
+            $config->cmsDir . '/front/admin/js',
             $adminDir . '/js/'
         );
 
