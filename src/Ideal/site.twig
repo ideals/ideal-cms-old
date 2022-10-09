@@ -12,8 +12,8 @@
 
     {% if minifier == 1 %}
         <link media="all" rel="stylesheet" type="text/css" href="css/all.min.css?{{ "
-            css[]=#{startUrl}/js/bootstrap.css
-            &css[]=#{startUrl}/js/default.css"
+            css[]=#{startUrl}/css/bootstrap.css
+            &css[]=#{startUrl}/css/default.css"
         | replace({'[':'%5B', ']':'%5D', "\n": '', ' ':''}) }}">
         <script type="text/javascript" src="js/all.min.js?{{ "
             js[]=#{startUrl}/js/default.js"

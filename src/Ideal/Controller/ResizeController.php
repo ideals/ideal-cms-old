@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ResizeController
 {
-    public function index(Request $request): Response
+    public function indexAction(Request $request): Response
     {
         $response = new Response();
 

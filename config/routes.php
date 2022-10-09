@@ -1,5 +1,6 @@
 <?php
 
+use Ideal\Controller\MinifyController;
 use Ideal\Controller\ResizeController;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
@@ -10,6 +11,14 @@ return static function (RouteCollection $routes) {
     $route = new Route('/images/resized/{slug}', ['_controller' => ResizeController::class]);
     $route->setRequirements(['slug' => '.+']);
     $routes->add('resized', $route);
+
+    // Объединение и минификация css
+    $route = new Route('/css/all.min.css', ['_controller' => MinifyController::class, 'action' => 'css']);
+    $routes->add('min.css', $route);
+
+    // Объединение и минификация js
+    $route = new Route('/js/all.min.js', ['_controller' => MinifyController::class, 'action' => 'js']);
+    $routes->add('min.js', $route);
 
     return $routes;
 };
