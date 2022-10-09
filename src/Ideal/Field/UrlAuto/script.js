@@ -119,6 +119,9 @@ function loadUrlAuto(e) {
     var input = $(e).parent().parent().parent().find('input');
     var butt = $(e).parent().parent().find('button');
     var name = $("#general_" + input.attr('data-field')).val();
+    if (name === undefined) {
+        return;
+    }
     name = translit(name);
     var url = $("#general_url").val();
     if ((name !== url) || (butt.text() === AUTO_URL_ON)) return;
@@ -130,6 +133,7 @@ function loadUrlAuto(e) {
 
 $(document).ready(function () {
     var element = $('#general_url');
+    console.log(element.attr('data-field'));
     var name = "#general_" + element.attr('data-field');
     $('body').on("keyup", name, function () {
         if (element.attr("readonly")) {

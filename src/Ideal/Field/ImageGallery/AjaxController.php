@@ -7,7 +7,7 @@
  * @license   http://idealcms.ru/license.html LGPL v3
  */
 
-namespace Ideal\Field\UrlAuto;
+namespace Ideal\Field\ImageGallery;
 
 /**
  * Класс AjaxController предоставляет доступ к js-скрипту

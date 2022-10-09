@@ -9,7 +9,7 @@
 
 namespace Ideal\Structure\Service\CheckCmsFiles;
 
-use Ideal\Core\AjaxController as CoreAjaxController;
+use Ideal\Core\Admin\AjaxController as CoreAjaxController;
 use Ideal\Core\Config;
 use JsonException;
 

@@ -266,8 +266,8 @@ DONE;
             'type' => $type,
             'sql' => '',
         );
-        if ($type == 'Ideal_Select') {
-            $param[$fieldName]['values'] = json_decode($fields[2]);
+        if ($type === 'Ideal_Select') {
+            $param[$fieldName]['values'] = json_decode($fields[2], true, 512, JSON_THROW_ON_ERROR);
         }
         return $param;
     }

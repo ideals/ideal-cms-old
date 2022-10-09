@@ -33,9 +33,9 @@ class Controller extends AbstractController
     /**
      * {@inheritdoc}
      */
-    public function getInputText()
+    public function getInputText(): string
     {
-        return '<script type="text/javascript" src="Ideal/Field/Password/admin.js" /><div class="row">'
+        return '<script type="text/javascript" src="?mode=ajax&action=script&controller=\\Ideal\\Field\\Password" /><div class="row">'
         . '<div class="col-xs-3"><input type="password" class="form-control" id="' . $this->htmlName
         . '" name="' . $this->htmlName
         . '" ></div>'
@@ -50,7 +50,7 @@ class Controller extends AbstractController
     /**
      * {@inheritdoc}
      */
-    public function parseInputValue($isCreate)
+    public function parseInputValue($isCreate): array
     {
         $this->newValue = $this->pickupNewValue();
 
@@ -58,10 +58,10 @@ class Controller extends AbstractController
         $fieldName = $this->groupName . '_' . $this->name . '-check';
         $newCheckValue = $request->$fieldName;
 
-        $item = array();
+        $item = [];
         $item['fieldName'] = $this->htmlName;
 
-        if ($this->newValue == '') {
+        if ($this->newValue === '') {
             $item['value'] = null;
         } else {
             $item['value'] = password_hash($this->newValue, PASSWORD_DEFAULT);

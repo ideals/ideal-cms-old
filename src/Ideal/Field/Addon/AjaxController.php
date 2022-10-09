@@ -10,15 +10,17 @@
 namespace Ideal\Field\Addon;
 
 use Ideal\Core\Request;
+use JsonException;
 
 /**
  * Класс AjaxController отвечает за операции по редактированию списка подключённых аддонов
  *
  */
-class AjaxController extends \Ideal\Core\AjaxController
+class AjaxController extends \Ideal\Core\Admin\AjaxController
 {
     /**
      * Добавление аддона к списку
+     * @throws JsonException
      */
     public function addAction()
     {
@@ -26,7 +28,7 @@ class AjaxController extends \Ideal\Core\AjaxController
 
         if ($request->id == 0) {
             // Если аддон подключается к ещё несозданному элементу, то данные модели из БД взять не получится
-            $this->model->setPageData(array());
+            $this->model->setPageData([]);
         } else {
             $this->model->setPageDataById($request->id);
         }
@@ -39,17 +41,22 @@ class AjaxController extends \Ideal\Core\AjaxController
         $result = $addonModel->getTab($request->newId, $request->addonName);
 
         // Возвращаем информацию только о новом подключенном аддоне
-        $json = array();
-        $json[] = array($request->newId, $request->addonName, $result['name']);
+        $json = [];
+        $json[] = [$request->newId, $request->addonName, $result['name']];
 
         $options = (defined('JSON_UNESCAPED_UNICODE')) ? JSON_UNESCAPED_UNICODE : 0;
-        $result['list'] = json_encode($json, $options);
+        $result['list'] = json_encode($json, JSON_THROW_ON_ERROR | $options);
 
-        return json_encode($result, $options);
+        return json_encode($result, JSON_THROW_ON_ERROR | $options);
     }
 
-    public function scriptAction()
+    /**
+     * @return string
+     */
+    public function scriptAction(): string
     {
-        return file_get_contents(__DIR__ . '/script.js');
+        $this->setContentType('application/javascript');
+
+        return (string)file_get_contents(__DIR__ . '/script.js');
     }
 }

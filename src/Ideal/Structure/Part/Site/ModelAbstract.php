@@ -27,7 +27,7 @@ class ModelAbstract extends Site\Model
         // составляем запрос из списка URL
         $_sql = ' is_skip=1';
         foreach ($url as $v) {
-            if ($v == '') {
+            if ($v === '') {
                 continue;
             }
             $_sql .= ' OR BINARY url="' . $db->real_escape_string($v) . '"';

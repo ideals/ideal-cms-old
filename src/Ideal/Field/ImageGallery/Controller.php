@@ -37,7 +37,7 @@ class Controller extends AbstractController
     {
         $value = htmlspecialchars($this->getValue());
         $html = <<<HTML
-            <script type="text/javascript" src="Ideal/Field/ImageGallery/script.js"></script>
+            <script type="text/javascript" src="?mode=ajax&action=script&controller=\\Ideal\\Field\\ImageGallery"></script>
             <input class="images-values" type="hidden" id="{$this->htmlName}" name="{$this->htmlName}"
             value="{$value}">
             <div id="{$this->htmlName}-control-group">

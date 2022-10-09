@@ -16,6 +16,7 @@ use Ideal\Core\Util;
 use Symfony\Component\HttpFoundation\Request;
 use Ideal\Structure\User\Admin\Controller;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 
 class Router
 {
@@ -28,9 +29,6 @@ class Router
 
     protected Request $request;
 
-    protected Response $response;
-
-
     /**
      * Производит роутинг исходя из запрошенного URL-адреса
      *
@@ -42,10 +40,9 @@ class Router
      * @return Response
      * @throws Exception
      */
-    public function index(Request $request): Response
+    public function indexAction(Request $request): Response
     {
         $this->request = $request;
-        $this->response = new Response();
 
         $pluginBroker = PluginBroker::getInstance();
         $pluginBroker->makeEvent('onPreAdminDispatch', $this);
@@ -72,6 +69,10 @@ class Router
             $this->model = $this->model->detectActualModel();
         }
 
+        if ($this->model !== null && $this->model->is404) {
+            return new Response('', Response::HTTP_NOT_FOUND);
+        }
+
         $controllerName = $this->getControllerName($request);
 
         // Запускаем нужный контроллер и передаём ему навигационную цепочку
@@ -79,11 +80,14 @@ class Router
         $controller = new $controllerName();
 
         // Запускаем в работу контроллер структуры
-        $content = $controller->run($this);
+        try {
+            $response = $controller->run($this);
+        } catch (ResourceNotFoundException $exception) {
+            // todo логирование $exception при включённом флаге отладки
+            $response = new Response('', Response::HTTP_NOT_FOUND);
+        }
 
-        $statusCode = $this->model->is404 ? Response::HTTP_NOT_FOUND : Response::HTTP_OK;
-
-        return $this->response->setContent($content)->setStatusCode($statusCode);
+        return $response;
     }
 
     /**
@@ -131,7 +135,6 @@ class Router
         // Запускаем определение пути и активной модели по $par
         return $structure->detectPageByIds($path, $par);
     }
-
 
     /**
      * Возвращает название контроллера для активной страницы
@@ -213,26 +216,6 @@ class Router
     public function setRequest(Request $request): self
     {
         $this->request = $request;
-
-        return $this;
-    }
-
-    /**
-     * @return Response
-     */
-    public function getResponse(): Response
-    {
-        return $this->response;
-    }
-
-    /**
-     * @param Response $response
-     *
-     * @return Router
-     */
-    public function setResponse(Response $response): self
-    {
-        $this->response = $response;
 
         return $this;
     }

@@ -7,7 +7,7 @@
  * @license   http://idealcms.ru/license.html LGPL v3
  */
 
-namespace Ideal\Field\UrlAuto;
+namespace Ideal\Field\Template;
 
 /**
  * Класс AjaxController предоставляет доступ к js-скрипту
@@ -22,6 +22,6 @@ class AjaxController extends \Ideal\Core\Admin\AjaxController
     {
         $this->setContentType('application/javascript');
 
-        return (string)file_get_contents(__DIR__ . '/script.js');
+        return (string)file_get_contents(__DIR__ . '/templateShowing.js');
     }
 }

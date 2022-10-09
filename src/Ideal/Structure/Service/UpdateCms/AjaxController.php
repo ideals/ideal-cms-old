@@ -15,7 +15,7 @@ use Ideal\Core\Config;
  * Обновление IdealCMS или одного модуля
  *
  */
-class AjaxController extends \Ideal\Core\AjaxController
+class AjaxController extends \Ideal\Core\Admin\AjaxController
 {
     /** @var string Сервер обновлений */
     protected $srv = 'http://idealcms.ru/update';

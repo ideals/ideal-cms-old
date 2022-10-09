@@ -596,6 +596,20 @@ abstract class Model
     }
 
     /**
+     * "Умная" установка 404: если флаг уже установлен в true, то не сбрасываем его
+     *
+     * @param bool $is404 Устанавливаемый флаг 404-ой ошибки
+     *
+     * @return $this
+     */
+    public function set404(bool $is404): self
+    {
+        $this->is404 = $this->is404 || $is404;
+
+        return $this;
+    }
+
+    /**
      * Формирование prev_structure из текущего элемента
      *
      * @return string Строка prev_structure

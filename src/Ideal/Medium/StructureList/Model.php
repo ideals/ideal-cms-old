@@ -25,9 +25,9 @@ class Model extends AbstractModel
         // Получаем список структур, которые можно создавать в этой структуре
         $modelStructures = $this->obj->params['structures'];
         $config = Config::getInstance();
-        $list = array();
+        $list = [];
         foreach ($config->structures as $structure) {
-            if (in_array($structure['structure'], $modelStructures)) {
+            if (in_array($structure['structure'], $modelStructures, true)) {
                 // Удаляем из списка структур на создание те, что нельзя создавать этому пользователю
                 // TODO сделать проверку есть ли доступ у пользователя к этой структуре
                 // $user->enableStructure($structure['structure']);

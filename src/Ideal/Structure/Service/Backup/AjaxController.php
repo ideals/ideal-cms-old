@@ -10,7 +10,7 @@
 namespace Ideal\Structure\Service\Backup;
 
 use Exception;
-use Ideal\Core\AjaxController as CoreAjaxController;
+use Ideal\Core\Admin\AjaxController as CoreAjaxController;
 use Ideal\Core\Config;
 use Ideal\Core\Db;
 use Ideal\Structure\Service\UpdateCms\Versions;

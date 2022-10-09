@@ -29,7 +29,7 @@ class Model extends AbstractModel
         $objClassNameSlice = explode('\\', $objClassName);
 
         // Получаем название текущего типа структуры
-        $modelStructures = array($objClassNameSlice[0] . '_' . $objClassNameSlice[2]);
+        $modelStructures = [$objClassNameSlice[0] . '_' . $objClassNameSlice[2]];
 
         // Заносим уже введённое значение в список доступных шаблонов, так как оно может быть кастомным
         $pageData = $this->obj->getPageData();
@@ -45,29 +45,23 @@ class Model extends AbstractModel
 
         // Получаем список структур, которые можно создавать в этой структуре
         foreach ($config->structures as $structure) {
-            if (in_array($structure['structure'], $modelStructures)) {
+            if (in_array($structure['structure'], $modelStructures, true)) {
                 $structures[] = $structure['structure'];
             }
         }
 
         // Проходим по списку всех возможных типов из этого раздела и ищем в них шаблоны для отображения
-        // TODO учесть вевроятность снижения производительности при наличии достстоно большого количества типов структур
+        $list = [];
         foreach ($structures as $value) {
             $folderName = str_replace('\\', '/', Util::getClassName($value, 'Structure'));
-            $parts = explode('/', $folderName);
-            $moduleName = $parts[1];
-            if ($moduleName == 'Ideal') {
-                $folderPartNames = array('Ideal', 'Ideal.c');
-                $moduleName = '';
-                $folderName = str_replace('/Ideal', '', $folderName);
-            } else {
-                $folderPartNames = array('Mods', 'Mods.c');
-                $moduleName = $moduleName . '/';
-            }
-            $structureName = $parts[3];
-            foreach ($folderPartNames as $folderPartName) {
-                $twigTplRootScanFolder = DOCUMENT_ROOT . '/' . $config->cmsFolder
-                    . '/' . $folderPartName . '/' . $moduleName . 'Structure/' . $structureName . '/Site/';
+
+            $folders = [
+                '/src' . $folderName,
+                '/vendor' . '/ideals/idealcms-old/src' . $folderName,
+            ];
+
+            foreach ($folders as $folder) {
+                $twigTplRootScanFolder = $config->rootDir . $folder . '/Site/';
 
                 // Проверяем на существование директорию перед сканированием.
                 if (is_dir($twigTplRootScanFolder)) {
@@ -77,12 +71,13 @@ class Model extends AbstractModel
                     // Получаем список доступных для выбора шаблонов
                     foreach ($templates as $node) {
                         if (preg_match($nameTpl, $node)) {
-                            $list[$value][$node] = $folderPartName . $folderName . '/' . $node;
+                            $list[$value][$node] = $folder . '/Site/' . $node;
                         }
                     }
                 }
             }
         }
+
         return $list;
     }
 }

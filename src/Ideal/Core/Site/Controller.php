@@ -11,9 +11,12 @@ namespace Ideal\Core\Site;
 
 use Ideal\Core;
 use Ideal\Core\Config;
-use Ideal\Core\Request;
 use Ideal\Core\View;
+use Ideal\Setup\ModuleConfig;
 use Ideal\Structure\User;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 
 class Controller
 {
@@ -37,35 +40,11 @@ class Controller
     protected $view;
 
     /**
-     * Действие для отсутствующей страницы сайта (обработка ошибки 404)
-     */
-    public function error404Action()
-    {
-        $name = $title = 'Страница не найдена';
-        if (isset($this->view)) {
-            // Если шаблон был инициирован ранее, сбрасываем его, чтобы поставить шаблон 404-ой ошибки
-            unset($this->view);
-        }
-        $this->templateInit('404.twig');
-
-        // Добавляем в path пустой элемент
-        $path = $this->model->getPath();
-        $path[] = array('ID' => '', 'name' => $name, 'url' => '404');
-        $this->model->setPath($path);
-
-        // Устанавливаем нужный нам title
-        $pageData = $this->model->getPageData();
-        $pageData['title'] = $title;
-        $this->model->setPageData($pageData);
-    }
-
-    /**
      * Инициализация twig-шаблона сайта
      *
      * @param string $tplName Название файла шаблона (с путём к нему), если не задан - будет index.twig
-     * @param array $tplFolders Список дополнительных папок с файлами шаблонов
      */
-    public function templateInit($tplName = '', $tplFolders = array())
+    public function templateInit(string $tplName = 'index.twig')
     {
         // Если вьюха уже установлена, то ничего делать не надо
         // для переустановки вьюхи надо придумать отдельный метод, когда это потребуется
@@ -73,33 +52,32 @@ class Controller
             return;
         }
 
-        // Инициализация шаблона страницы
-        if ($tplName == '') {
-            if ($this->tplName == '') {
-                $tplName = $this->getPathToTwigTemplate('index.twig');
-            } else {
-                $tplName = $this->tplName;
-            }
-        }
-
-        // Проверяем, присутствует ли указанный файл шаблона на диске
-        if (!stream_resolve_include_path($tplName)) {
-            echo 'Нет файла шаблона ' . $tplName;
-            exit;
-        }
-        $tplRoot = dirname(stream_resolve_include_path($tplName));
-        $tplName = basename($tplName);
-
-        // Построение полных путей для дополнительных папок шаблонов
-        if (count($tplFolders) > 0) {
-            foreach ($tplFolders as $k => $v) {
-                $tplFolders[$k] = stream_resolve_include_path($v);
-            }
-        }
-
         $config = Config::getInstance();
-        $folders = array_merge(array($tplRoot), $tplFolders);
-        $this->view = new View($folders, $config->cache['templateSite']);
+
+        // Инициализация общего шаблона страницы
+        $roots = [];
+        $gblRoot = $config->rootDir . '/src/Ideal';
+        if (file_exists($gblRoot)) {
+            $roots[] = $gblRoot;
+        }
+
+        $idealModuleConfig = new ModuleConfig();
+        $roots[] = $config->getModulePath($idealModuleConfig) . '/Ideal';
+
+        $classPath = dirname(str_replace('\\', '/', get_class($this)));
+        $tplRoot = $config->rootDir . '/src/' . $classPath;
+        if (file_exists($tplRoot)) {
+            $roots[] = $tplRoot;
+        }
+
+        $roots[] = $config->getModulePath($this) . '/' . $classPath;
+
+        // Инициализируем Twig-шаблонизатор
+        $config = Config::getInstance();
+        $this->view = new View(
+            array_unique($roots),
+            $config->cache['templateAdmin']
+        );
         $this->view->loadTemplate($tplName);
     }
 
@@ -178,34 +156,49 @@ class Controller
      * Отображение структуры в браузере
      *
      * @param Router $router
-     * @return string Содержимое отображаемой страницы
+     *
+     * @return Response
      */
-    public function run(Router $router)
+    public function run(Router $router): Response
     {
         $this->model = $router->getModel();
+        $request = $router->getRequest();
 
         // Определяем и вызываем требуемый action у контроллера
-        if ($router->is404()) {
-            $actionName = 'error404';
-        } else {
-            $request = new Request();
-            $actionName = $request->action;
-            if ($actionName == '') {
-                $actionName = 'index';
-            }
-        }
+        $actionName = $request->get('action', 'index') . 'Action';
 
-        $actionName = $actionName . 'Action';
-
-        if (method_exists($this, $actionName)) {
-            // Вызываемый action существует, запускаем его
-            $this->$actionName();
-        } else {
+        if (!method_exists($this, $actionName)) {
             // Вызываемый action отсутствует, запускаем 404 ошибку
-            $this->error404Action();
-            $this->model->is404 = true;
+            throw new ResourceNotFoundException(sprintf(
+                'Не найден экшен %s в классе %s',
+                $actionName,
+                get_class($this)
+            ));
         }
 
+        // Вызываемый action существует, запускаем его
+        $this->$actionName();
+
+        // Заполняем шаблон общими данными сайта
+        $this->fillView();
+
+        // Проводим финальные модификации контента в контроллере отображаемой структуры
+        $this->finishMod($actionName);
+
+        // Twig рендерит текст странички из шаблона
+        $text = $this->view->render();
+
+        // Проводим финальные модификации страницы, общие для всех страниц
+        $helper = new Helper();
+        if (method_exists($helper, 'finishMod')) {
+            $text = $helper->finishMod($text);
+        }
+
+        return new Response($text, $this->model->is404 ? Response::HTTP_NOT_FOUND : Response::HTTP_OK);
+    }
+
+    protected function fillView()
+    {
         $config = Config::getInstance();
 
         $this->view->domain = strtoupper($config->domain);
@@ -232,19 +225,6 @@ class Controller
         $this->view->title = $this->model->getTitle();
         $this->view->metaTags = $this->model->getMetaTags($helper->xhtml);
         $this->view->canonical = $this->model->getCanonical();
-
-        // Проводим финальные модификации контента в контроллере отображаемой структуры
-        $this->finishMod($actionName);
-
-        // Twig рендерит текст странички из шаблона
-        $text = $this->view->render();
-
-        // Проводим финальные модификации страницы, общие для всех страниц
-        if (method_exists($helper, 'finishMod')) {
-            $text = $helper->finishMod($text);
-        }
-
-        return $text;
     }
 
     /**
@@ -289,8 +269,8 @@ class Controller
      */
     protected function getPathToTwigTemplate($tplName)
     {
-        // Если был введён полный путь то он используется напрямую иначе только имя
-        // Считаем что был введён полный путь если присутствует хотябы один слэш
+        // Если был введён полный путь, то он используется напрямую, иначе только имя
+        // Считаем, что был введён полный путь если присутствует хотя бы один слэш
         if (strpos($tplName, '/') !== false) {
             return $tplName;
         }

@@ -15,7 +15,6 @@ use Ideal\Core\Request;
 /**
  * Специальное поле, предоставляющее возможность выбрать шаблон для отображения структуры
  *
- *
  * Пример объявления в конфигурационном файле структуры:
  *
  *     'template' => array(
@@ -38,15 +37,14 @@ class Controller extends Select\Controller
      */
     public function getInputText()
     {
-
         $html = '';
 
-        // Подключаем скрипт смены списка шабонов, только если доступна более чем одна структура
+        // Подключаем скрипт смены списка шаблонов, только если доступна более чем одна структура
         if (count($this->list) > 1) {
-            $html .= '<script type="text/javascript" src="Ideal/Field/Template/templateShowing.js" />';
+            $html .= '<script type="text/javascript" src="?mode=ajax&action=script&controller=\\Ideal\\Field\\Template" />';
         }
 
-        // Получаем значение поумолчанию для структуры
+        // Получаем значение по умолчанию для структуры
         $pageData = $this->model->getPageData();
         if (isset($pageData['structure']) && !empty($pageData['structure'])) {
             $structureValue = $pageData['structure'];
@@ -58,7 +56,7 @@ class Controller extends Select\Controller
         // Составляем списки шаблонов
         foreach ($this->list as $key => $value) {
             // индикатор показа списка по умолчанию
-            $structureValue == $key ? $display = "block" : $display = "none";
+            $display = $structureValue === $key ? 'block' : 'none';
             $key = strtolower($key);
             $nameId = $this->htmlName . '_' . $key;
 
@@ -135,6 +133,8 @@ class Controller extends Select\Controller
                                 .removeClass( "ui-corner-all" )
                                 .addClass( "custom-combobox-toggle ui-corner-right general_template_{$key}" )
                                 .css("display", "{$display}")
+                                .css("background", "none")
+                                .css("border", "0")
                                 .html("<span class=\"arrow-down\"></span>")
                                 .mousedown(function() {
                                     wasOpen = input.autocomplete( "widget" ).is(":visible");

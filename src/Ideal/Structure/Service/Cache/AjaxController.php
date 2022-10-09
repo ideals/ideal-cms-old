@@ -10,11 +10,11 @@
 namespace Ideal\Structure\Service\Cache;
 
 use Ideal\Addon\SiteMap;
-use Ideal\Core\AjaxController as CoreAjaxController;
+use Ideal\Core\Admin\AjaxController as CoreAjaxController;
+use Ideal\Core\Config;
 use Ideal\Core\FileCache;
 use Ideal\Core\Memcache;
 use Ideal\Core\View;
-use Ideal\Core\Config;
 use JsonException;
 
 /**

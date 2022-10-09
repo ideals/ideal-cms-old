@@ -12,7 +12,14 @@ namespace Ideal\Structure\User\Admin;
 use Exception;
 use Ideal\Core\Admin\Controller as AdminController;
 use Ideal\Core\Request;
+use Ideal\Core\View;
 use Ideal\Structure\User;
+use JsonException;
+use RuntimeException;
+use Symfony\Component\HttpFoundation\Response;
+use Twig\Error\LoaderError;
+use Twig\Error\RuntimeError;
+use Twig\Error\SyntaxError;
 
 /**
  * Класс, отвечающий за отображение списка пользователей в админке, а также
@@ -54,23 +61,25 @@ class ControllerAbstract extends AdminController
 
     /**
      * Отображение формы авторизации, если пользователь не авторизован
-     * @throws \JsonException
+     *
+     * @throws JsonException
+     * @throws LoaderError
+     * @throws RuntimeError
+     * @throws SyntaxError
      */
-    public function loginAction()
+    public function loginAction(): Response
     {
         // Проверяем что запрашивается json
-        $jsonResponse = false;
-        $pattern = '/.*json.*/i';
-        if (preg_match($pattern, $_SERVER['HTTP_ACCEPT'])) {
-            $jsonResponse = true;
-        }
+        $jsonResponse = stripos($_SERVER['HTTP_ACCEPT'], 'json') !== false;
 
         // Если запрашивается не json и не html версия, то вероятнее всего это бот
-        if (!$jsonResponse && !preg_match('/.*html.*/i', $_SERVER['HTTP_ACCEPT'])) {
-            throw new Exception('Какой-то робот пытается зайти на страницу админки.');
+        if (!$jsonResponse && stripos($_SERVER['HTTP_ACCEPT'], 'html') === false) {
+            throw new RuntimeException('Какой-то робот пытается зайти на страницу админки.');
         }
 
         $user = User\Model::getInstance();
+
+        $response = new Response();
 
         // Проверяем правильность логина и пароля
         if (isset($_POST['user'], $_POST['pass'])) {
@@ -92,7 +101,7 @@ class ControllerAbstract extends AdminController
             }
         } else {
             // На странице авторизации отдавать 404 заголовок
-            $this->model->is404 = true;
+            $response->setStatusCode(Response::HTTP_NOT_FOUND);
         }
 
         // Если запрашивается json при не авторизованном пользователе
@@ -106,6 +115,13 @@ class ControllerAbstract extends AdminController
 
         $this->templateInit('login.twig');
         $this->view->message = $user->errorMessage;
+
+        if ($this->model === null) {
+            $this->model = new Model('');
+            $this->view = new View('');
+        }
+
+        return $response;
     }
 
     /**

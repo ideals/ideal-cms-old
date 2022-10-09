@@ -17,13 +17,14 @@ use Ideal\Core\View;
 use Ideal\Setup\ModuleConfig;
 use Ideal\Structure;
 use Ideal\Core\FileCache;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Twig\Error\LoaderError;
 use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
 
 class Controller
 {
-
     /** @var Model Модель соответствующая этому контроллеру */
     protected $model;
 
@@ -99,26 +100,6 @@ class Controller
 
         echo json_encode($result);
         exit;
-    }
-
-    /**
-     * Действие для отсутствующей страницы сайта (обработка ошибки 404)
-     */
-    public function error404Action()
-    {
-        $title = 'Страница не найдена';
-        $name = $title;
-        $this->templateInit('404.twig');
-
-        // Добавляем в path пустой элемент
-        $path = $this->model->getPath();
-        $path[] = ['ID' => '', 'name' => $name, 'url' => '404'];
-        $this->model->setPath($path);
-
-        // Устанавливаем нужный нам title
-        $pageData = $this->model->getPageData();
-        $pageData['title'] = $title;
-        $this->model->setPageData($pageData);
     }
 
     /**
@@ -221,11 +202,11 @@ class Controller
             $rows[] = [
                 'ID' => $v['ID'],
                 'row' => $fields,
-                'is_active' => (isset($v['is_active'])) ? $v['is_active'] : 1,
-                'is_not_menu' => (isset($v['is_not_menu'])) ? $v['is_not_menu'] : 0,
-                'acl_edit' => (isset($v['acl'])) ? $v['acl']['edit'] : 1,
-                'acl_delete' => (isset($v['acl'])) ? $v['acl']['delete'] : 1,
-                'acl_enter' => (isset($v['acl'])) ? $v['acl']['enter'] : 1,
+                'is_active' => $v['is_active'] ?? 1,
+                'is_not_menu' => $v['is_not_menu'] ?? 0,
+                'acl_edit' => $v['acl']['edit'] ?? 1,
+                'acl_delete' => $v['acl']['delete'] ?? 1,
+                'acl_enter' => $v['acl']['enter'] ?? 1,
             ];
         }
         $this->view->rows = $rows;
@@ -244,8 +225,15 @@ class Controller
         // Определяем и вызываем требуемый action у контроллера
         $request = $router->getRequest();
         $actionName = $request->get('action', 'index') . 'Action';
-        $actionName = $this->model->is404 ? 'error404Action' : $actionName;
-        $this->$actionName();
+        if (!method_exists($this, $actionName)) {
+            throw new ResourceNotFoundException(sprintf(
+                'Не найден экшен %s в классе %s',
+                $actionName,
+                get_class($this)
+            ));
+        }
+
+        $response = $this->$actionName() ?? new Response();
 
         $config = Config::getInstance();
 
@@ -296,7 +284,7 @@ class Controller
 
         $this->finishMod($actionName);
 
-        return $this->view->render();
+        return $response->setContent($this->view->render());
     }
 
     /**

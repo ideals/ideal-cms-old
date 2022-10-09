@@ -139,7 +139,7 @@ class View
 
     public function render(): string
     {
-        return $this->template->render($this->vars);
+        return isset($this->template) ? $this->template->render($this->vars) : '';
     }
 
     /**

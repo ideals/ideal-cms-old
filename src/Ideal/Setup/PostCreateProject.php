@@ -102,17 +102,17 @@ class PostCreateProject
 
         $this->copyFile(
             $this->vendorDir . '/' . Config::COMPOSER . '/front/site/css/bootstrap.css',
-            $this->rootDir . '/css/bootstrap.css'
+            $this->rootDir . '/' . $folder . '/css/bootstrap.css'
         );
 
         $this->copyFile(
             $this->vendorDir . '/' . Config::COMPOSER . '/front/site/css/default.css',
-            $this->rootDir . '/css/default.css'
+            $this->rootDir . '/' . $folder . '/css/default.css'
         );
 
         $this->copyFile(
             $this->vendorDir . '/' . Config::COMPOSER . '/front/site/js/default.js',
-            $this->rootDir . '/js/default.js'
+            $this->rootDir . '/' . $folder . '/js/default.js'
         );
 
         $this->modifyFile('config/db.php', 'config/db.php', $placeholder);

@@ -75,7 +75,7 @@ class Controller extends AbstractController
         $item = parent::parseInputValue($isCreate);
 
         // Если редактируется материал и ссылка не изменилась, ошибок нет
-        if (!$isCreate && $this->getValue() == $this->newValue) {
+        if (!$isCreate && $this->getValue() === $this->newValue) {
             return $item;
         }
 
@@ -85,25 +85,25 @@ class Controller extends AbstractController
         // Получаем SEO ссылку на создаваемый/редактируемый материал
         $url = new Model();
         $value = htmlspecialchars($this->newValue);
-        $link = $url->getUrlWithPrefix(array('url' => $value), $this->model->getParentUrl());
+        $link = $url->getUrlWithPrefix(['url' => $value], $this->model->getParentUrl());
 
         if (empty($value)) {
             $item['message'] = 'Поле url должно быть заполнено!';
             return $item;
         }
 
-        if ($value[0] == '/' || parse_url($link, PHP_URL_SCHEME) != '') {
+        if ($value[0] === '/' || parse_url($link, PHP_URL_SCHEME) !== '') {
             // Если введённый url фактически является ссылкой, а не реальным URL,
             // то проверять его существование не надо
             return $item;
         }
 
         // Проверяем url на существование
-        $httpCode = self::checkUrl($link);
-        if ($httpCode == 200) {
+        $httpCode = (int)self::checkUrl($link);
+        if ($httpCode === 200) {
             $item['message'] = 'URL: ' . $link . ' уже используется!';
-        } elseif ($httpCode != 404) {
-            // Если не 404 ошибка, то уведомляем об этом польлзователя и не создаём страницу
+        } elseif ($httpCode !== 404) {
+            // Если не 404 ошибка, то уведомляем об этом пользователя и не создаём страницу
             $item['message'] = 'URL: ' . $link . ' выдаёт ошибку с HTTP-кодом ' . $httpCode;
         }
 
@@ -116,8 +116,7 @@ class Controller extends AbstractController
     public function pickupNewValue()
     {
         // В url не нужны пробелы ни спереди, ни сзади
-        $value = trim(parent::pickupNewValue());
-        return $value;
+        return trim(parent::pickupNewValue());
     }
 
     /**

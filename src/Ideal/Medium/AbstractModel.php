@@ -60,7 +60,7 @@ class AbstractModel
      * Получение списка элементов для отображения в select'е или другом поле редактирования
      *
      * @throws \Exception
-     * @return array|void
+     * @return array
      */
     public function getList()
     {

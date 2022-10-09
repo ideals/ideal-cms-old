@@ -16,7 +16,7 @@ use Ideal\Spider\Crawler;
 use JsonException;
 use RuntimeException;
 
-class AjaxController extends \Ideal\Core\AjaxController
+class AjaxController extends \Ideal\Core\Admin\AjaxController
 {
     /**
      * Запуск сбора карты сайта

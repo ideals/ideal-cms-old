@@ -11,8 +11,10 @@ namespace Ideal\Core;
 
 use Ideal\Core\Admin;
 use Ideal\Core\Site;
+use Ideal\Structure\Error404\Site\Controller;
 use Ideal\Structure\User\Admin\Plugin;
 use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Matcher\UrlMatcher;
 use Symfony\Component\Routing\RequestContext;
@@ -64,7 +66,6 @@ class FrontController
         $context = new RequestContext();
         $context->fromRequest($request);
 
-        // Routing can match routes with incoming requests
         $referer = null;
         $matcher = new UrlMatcher($routes, $context);
         try {
@@ -75,14 +76,20 @@ class FrontController
             $parameters = [
                 '_controller' => Site\Router::class,
                 'slug' => $request->getPathInfo(),
-                'name' => 'front',
+                '_route' => 'front',
             ];
             $referer = $this->getReferer($request);
         }
 
         $controllerName = $parameters['_controller'];
-        $actionName = $parameters['action'] ?? 'index';
+        $actionName = ($parameters['action'] ?? 'index') . 'Action';
+        /** @var Response $response */
         $response = (new $controllerName())->$actionName($request);
+
+        if ($response->getStatusCode() === Response::HTTP_NOT_FOUND && $response->getContent() === '') {
+            $this->save404($request);
+            $response = (new Controller())->errorAction($request);
+        }
 
         if ($referer !== null) {
             $response->headers->setCookie(Cookie::create('referer', $referer, time() + 315360000));
@@ -94,6 +101,9 @@ class FrontController
 
     /**
      * Получение реферера пользователя и установка реферера в куки
+     *
+     * @param Request $request
+     * @return string
      */
     protected function getReferer(Request $request): string
     {
@@ -101,8 +111,8 @@ class FrontController
         $referer = $request->cookies->get('referer');
         if ($referer === null) {
             // Если информации о реферере нет в куках, то добавляем её туда
-            if (!empty($_SERVER['HTTP_REFERER'])) {
-                $referer = $_SERVER['HTTP_REFERER'];
+            if (!empty($request->server->get('HTTP_REFERER'))) {
+                $referer = $request->server->get('HTTP_REFERER');
             } else {
                 $referer = 'null';
             }
@@ -110,4 +120,12 @@ class FrontController
 
         return $referer;
     }
+
+    protected function save404(Request $request): void
+    {
+        $error404 = new \Ideal\Structure\Error404\Model();
+        $error404->setUrl($request->getUri());
+        $error404->save404();
+    }
+
 }

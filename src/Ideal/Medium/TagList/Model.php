@@ -30,7 +30,7 @@ class Model extends AbstractModel
         $sql = 'SELECT ID, name FROM ' . $table . ' ORDER BY name ASC';
         $arr = $db->select($sql);
 
-        $list = array();
+        $list = [];
         foreach ($arr as $item) {
             $list[$item['ID']] = $item['name'];
         }

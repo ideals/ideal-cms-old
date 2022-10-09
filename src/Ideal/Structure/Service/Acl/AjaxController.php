@@ -15,7 +15,7 @@ use Ideal\Structure\Acl\Admin\Model as StructureAclModel;
  * Реакция на действия со страницы "Права доступа"
  *
  */
-class AjaxController extends \Ideal\Core\AjaxController
+class AjaxController extends \Ideal\Core\Admin\AjaxController
 {
 
     /** @var object Ideal\Structure\Acl\Admin\Model */

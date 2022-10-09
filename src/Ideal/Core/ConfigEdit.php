@@ -180,7 +180,7 @@ class ConfigEdit
             'sql' => '',
         ];
         if ($type === 'Ideal_Select') {
-            $param['values'] = json_decode($fields[2], false, 512, JSON_THROW_ON_ERROR);
+            $param['values'] = json_decode($fields[2], true, 512, JSON_THROW_ON_ERROR);
         }
 
         return $param;

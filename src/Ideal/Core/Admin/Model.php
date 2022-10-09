@@ -424,7 +424,8 @@ abstract class Model extends Core\Model
             'type' => 'admin',
         );
         $pageData = $this->getPageData();
-        $logName = empty($pageData['name']) ? print_r($pageData, true) : $pageData['name'];
+        $altName = reset($this->params['field_list']);
+        $logName = empty($pageData['name']) ? $pageData[$altName] : $pageData['name'];
         $message = $action . ' «' . $logName . '»';
         $logModel->info($message, $context);
     }

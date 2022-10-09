@@ -38,7 +38,7 @@ class Controller extends AbstractController
     protected static $instance;
 
     /** @var array Список вариантов выбора для select */
-    protected $list;
+    protected array $list = [];
 
     /**
      * {@inheritdoc}
