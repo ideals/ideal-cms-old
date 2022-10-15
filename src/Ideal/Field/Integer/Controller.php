@@ -9,6 +9,7 @@
 
 namespace Ideal\Field\Integer;
 
+use Exception;
 use Ideal\Field\AbstractController;
 
 /**
@@ -29,10 +30,11 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
-        $value = intval($this->getValue());
+        $value = (int)$this->getValue();
         return
             '<input type="number" class="form-control" name="' . $this->htmlName
             . '" id="' . $this->htmlName
@@ -42,18 +44,16 @@ class Controller extends AbstractController
     /**
      * {@inheritdoc}
      */
-    public function getValue()
+    public function getValue(): string
     {
-        $value = intval(parent::getValue());
-        return $value;
+        return (int)parent::getValue();
     }
 
     /**
      * {@inheritdoc}
      */
-    public function pickupNewValue()
+    public function pickupNewValue(): string
     {
-        $value = intval(parent::pickupNewValue());
-        return $value;
+        return (int)parent::pickupNewValue();
     }
 }

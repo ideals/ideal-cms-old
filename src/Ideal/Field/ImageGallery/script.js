@@ -1,8 +1,8 @@
 $(document).ready(function () {
-    // Обходим каждый элемент с класом "images-values" так как аддонов "Фотогалерея" может быть несколько.
-    $('.images-values').each(function (index) {
+    // Обходим каждый элемент с классом "images-values" так как аддонов "Фотогалерея" может быть несколько.
+    $('.images-values').each(function () {
         var currentData = $(this).val();
-        if (currentData != '') {
+        if (currentData !== '') {
             var currentDataArray = JSON.parse(currentData);
             var id = $(this).attr("id");
             var imageList = getImageList(currentDataArray, id);
@@ -16,22 +16,22 @@ $(document).ready(function () {
         // Ищем поле содержащее адрес до изображения
         var imageUrl = $(this).closest('li').children('div').find('.gallery-item-url').val();
 
-        // Ищем поле которое хранит всю информацию о изображениях в списке
+        // Ищем поле которое хранит всю информацию об изображениях в списке
         var imagesValues = $(this).closest('.tab-pane').children('.images-values');
 
-        // Получаем всю информацию о изображениях в списке в виде текста
+        // Получаем всю информацию об изображениях в списке в виде текста
         var currentData = $(imagesValues).val();
 
         // Визуально удаляем изображение из списка
         $(this).closest('li').remove();
 
-        // Получаем информацию о изображениях в списке ввиде массива
+        // Получаем информацию об изображениях в списке в виде массива
         var currentDataArray = JSON.parse(currentData);
 
         // Ищем ключ верхнего уровня удаляемого элемента
         var arrayKey = secondLevelFind(currentDataArray, imageUrl);
 
-        // Удаляем информацию о изображении из массива
+        // Удаляем информацию об изображении из массива
         currentDataArray.splice(arrayKey, 1);
 
         // Записываем обновлённую информацию о списке изображений в нужное поле
@@ -43,24 +43,24 @@ $(document).ready(function () {
         var id = $('.images-values').attr("id");
         var listSelector = '#' + id + '-list';
         var infoSelector = '#' + id;
-        rescanPhotogalleryItems(listSelector, infoSelector)
+        rescanPhotoGalleryItems(listSelector, infoSelector);
     });
 });
 
 // Запускаем возможность сортировки списка
 function startSortable(listSelector, infoSelector) {
     $(listSelector + " .sortable").sortable({
-        stop: function (event, ui) {
-            rescanPhotogalleryItems(listSelector, infoSelector)
+        stop: function () {
+            rescanPhotoGalleryItems(listSelector, infoSelector);
         }
     });
 }
 
 // Пересобираем информацию о фотогалерее
-function rescanPhotogalleryItems(listSelector, infoSelector) {
+function rescanPhotoGalleryItems(listSelector, infoSelector) {
     var urls = [];
-    $(listSelector + " .sortable").find('li').each(function (index) {
-        if ($(this).find('.gallery-item-url').val() != undefined) {
+    $(listSelector + " .sortable").find('li').each(function () {
+        if ($(this).find('.gallery-item-url').val() !== undefined) {
             var url = $(this).find('.gallery-item-url').val();
             var description = $(this).find('.gallery-item-description').val();
             urls.push([url, description]);
@@ -88,9 +88,9 @@ function imageGallerySetFileField(fileUrl, data, allFiles) {
     });
     var currentData = $(fieldSelector).val();
     // Если пока нет никаких данных по изображениям значит записываем только что выбранные
-    if (currentData != '') {
+    if (currentData !== '') {
         var currentDataArray = JSON.parse(currentData);
-        urls = currentDataArray.concat(urls)
+        urls = currentDataArray.concat(urls);
     }
     $(fieldSelector).val(JSON.stringify(urls));
     var imageList = getImageList(urls, data.selectActionData.fieldSelector);
@@ -117,7 +117,7 @@ function getImageList(imageList, fieldId) {
         fieldList += '<input type="text" class="form-control gallery-item-url" name="gallery-item-url-' + index + '"';
         fieldList += ' id="gallery-item-url' + index + '" value="' + value[0] + '">';
         fieldList += '</div>';
-        fieldList += '<div class="col-xs-4 text-center">'
+        fieldList += '<div class="col-xs-4 text-center">';
         fieldList += '<input type="text" class="form-control gallery-item-description"';
         fieldList += ' name="gallery-item-description' + index + '"';
         fieldList += ' id="gallery-item-description' + index + '" value="' + value[1] + '"';
@@ -135,7 +135,7 @@ function getImageList(imageList, fieldId) {
 // Ищет элемент на втором уровне двумерного массива и возвращает ключ первого уровня
 function secondLevelFind(arr, value) {
     for (var i = 0; i < arr.length; i++) {
-        if (arr[i][0] == value) {
+        if (arr[i][0] === value) {
             return i;
         }
     }

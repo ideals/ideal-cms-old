@@ -13,12 +13,13 @@ use Ideal\Core\Config;
 use Ideal\Core\Db;
 use Ideal\Core\Util;
 use Ideal\Field\Cid;
+use RuntimeException;
 
 class ModelAbstract extends \Ideal\Core\Admin\Model
 {
     public string $cid;
 
-    public function delete(): int
+    public function delete(): bool
     {
         parent::delete();
         $lvl = $this->pageData['lvl'] + 1;
@@ -28,12 +29,13 @@ class ModelAbstract extends \Ideal\Core\Admin\Model
         $db = Db::getInstance();
         $res = $db->select($_sql);
         if (count($res) > 0) {
-            return 2;
+            // TODO сделать проверку успешности удаления
+            throw new RuntimeException('Не могу удалить элемент, т.к. запросу соответствуют несколько элементов');
         }
         $db->delete($this->_table)->where('ID=:id', ['id' => $this->pageData['ID']]);
         $db->exec();
-        // TODO сделать проверку успешности удаления
-        return 1;
+
+        return true;
     }
 
     /**
@@ -165,7 +167,7 @@ class ModelAbstract extends \Ideal\Core\Admin\Model
         $this->setPageData($pageData);
     }
 
-    protected function getWhere($where): string
+    protected function getWhere(string $where): string
     {
         $path = $this->getPath();
         $c = count($path);

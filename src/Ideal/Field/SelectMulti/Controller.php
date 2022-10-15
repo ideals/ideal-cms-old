@@ -9,7 +9,9 @@
 
 namespace Ideal\Field\SelectMulti;
 
+use Exception;
 use Ideal\Field\AbstractController;
+use Ideal\Medium\AbstractModel;
 
 /**
  * Поле для выбора значения из списка вариантов
@@ -34,13 +36,14 @@ class Controller extends AbstractController
     /** @inheritdoc */
     protected static $instance;
 
-    /** @var  \Ideal\Medium\AbstractModel Объект доступа к редактируемым данным */
+    /** @var  AbstractModel Объект доступа к редактируемым данным */
     protected $medium;
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $list = $this->medium->getList();
         $variants = $this->medium->getValues();
@@ -50,9 +53,10 @@ class Controller extends AbstractController
 <!-- Initialize the bootstrap multiselect plugin: -->
 <script type="text/javascript">
     $(document).ready(function() {
-        $('#{$this->htmlName}').multiselect({
-        'onDropdownShown':function(event) {
-        $('.modal-body').height($('.modal-body').height() + $('.multiselect-container.dropdown-menu').height())
+        $('#$this->htmlName').multiselect({
+        'onDropdownShown':function() {
+            const modalBody = $('.modal-body'); 
+            modalBody.height(modalBody.height() + $('.multiselect-container.dropdown-menu').height())
         }
         });
     });
@@ -72,7 +76,7 @@ HTML;
             . '[]" id="' . $this->htmlName . '">';
         foreach ($list as $k => $v) {
             $selected = '';
-            if (in_array($k, $variants)) {
+            if (in_array($k, $variants, true)) {
                 $selected = ' selected="selected"';
             }
             $html .= '<option value="' . $k . '"' . $selected . '>' . $v . '</option>';
@@ -84,7 +88,7 @@ HTML;
     /**
      * {@inheritdoc}
      */
-    public function parseInputValue($isCreate)
+    public function parseInputValue(bool $isCreate): array
     {
         // При сохранении выбранных значений при использовании промежуточной таблицы,
         // потребуются дополнительные запросы к БД, которые генерирует медиум
@@ -92,20 +96,18 @@ HTML;
         $this->newValue = null;
         $newValue = $this->pickupNewValue();
 
-        $item = array(
+        return [
             'fieldName' => $this->htmlName,
             'value' => null,
             'message' => '',
             'sqlAdd' => $this->medium->getSqlAdd($newValue)
-        );
-
-        return $item;
+        ];
     }
 
     /**
      * {@inheritdoc}
      */
-    public function setModel($model, $fieldName, $groupName = 'general')
+    public function setModel($model, string $fieldName, string $groupName = 'general'): void
     {
         parent::setModel($model, $fieldName, $groupName);
 

@@ -13,12 +13,12 @@ use Ideal\Addon\AbstractSiteModel;
 
 class SiteModel extends AbstractSiteModel
 {
-    public function getPageData()
+    public function getPageData(): array
     {
         $this->setPageDataByPrevStructure($this->prevStructure);
 
         // Для фронтенда к контенту добавляется выполнение указанного файла
-        if ($this->pageData['php_file'] != '') {
+        if ($this->pageData['php_file'] !== '') {
             if (file_exists(DOCUMENT_ROOT . $this->pageData['php_file'])) {
                 require DOCUMENT_ROOT . $this->pageData['php_file'];
             } else {

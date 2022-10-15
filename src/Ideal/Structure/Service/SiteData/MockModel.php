@@ -9,11 +9,13 @@
 
 namespace Ideal\Structure\Service\SiteData;
 
+use Ideal\Core\Admin\Model;
+
 /**
  * Класс-заглушка для редактирования настроек в php-файлах
  *
  * Используется в ConfigPhp.php
  */
-class MockModel extends \Ideal\Core\Admin\Model
+class MockModel extends Model
 {
 }

@@ -15,14 +15,20 @@ use Ideal\Field;
 abstract class Model extends Core\Model
 {
 
-    public $metaTags = array(
+    public array $metaTags = [
         'robots' => 'index, follow'
-    );
+    ];
 
     /** @var bool Нужно ли удалять заголовок h1 из текста */
-    protected $isExtractHeader = true;
+    protected bool $isExtractHeader = true;
 
-    abstract public function detectPageByUrl($path, $url);
+    /**
+     * @param array $path
+     * @param array $url
+     *
+     * @return $this
+     */
+    abstract public function detectPageByUrl(array $path, array $url);
 
     /**
      * Заглушка для метода, возвращающего список вложенных элементов выбранного элемента структуры
@@ -31,9 +37,9 @@ abstract class Model extends Core\Model
      *
      * @return array Список вложенных элементов
      */
-    public function getStructureElements()
+    public function getStructureElements(): array
     {
-        return array();
+        return [];
     }
 
     public function getBreadCrumbs()
@@ -41,17 +47,17 @@ abstract class Model extends Core\Model
         $path = $this->path;
         $path[0]['name'] = $path[0]['startName'];
 
-        if (isset($this->path[1]['url']) && ($this->path[1]['url'] == '/') && count($path) == 2) {
+        if (isset($this->path[1]['url']) && ($this->path[1]['url'] === '/') && count($path) === 2) {
             // На главной странице хлебные крошки отображать не надо
             return '';
         }
 
         // Отображение хлебных крошек
-        $pars = array();
-        $breadCrumbs = array();
+        $pars = [];
+        $breadCrumbs = [];
         $url = new Field\Url\Model();
         foreach ($path as $v) {
-            if (isset($v['is_skip']) && $v['is_skip'] && isset($v['is_not_menu']) && $v['is_not_menu']) {
+            if (isset($v['is_skip'], $v['is_not_menu']) && $v['is_skip'] && $v['is_not_menu']) {
                 continue;
             }
             $url->setParentUrl($pars);
@@ -59,19 +65,20 @@ abstract class Model extends Core\Model
             $pars[] = $v;
             if ($link === '/') {
                 if ($v['url'] === '') {
-                    $breadCrumbs[] = array(
+                    $breadCrumbs[] = [
                         'link' => $link,
                         'name' => $v['startName']
-                    );
+                    ];
                 } else {
                     // В случае, если путь строится для главной страницы - дублирование не нужно
+                    /** @noinspection PhpUnnecessaryStopStatementInspection */
                     continue;
                 }
             } else {
-                $breadCrumbs[] = array(
+                $breadCrumbs[] = [
                     'link' => $link,
                     'name' => $v['name']
-                );
+                ];
             }
         }
         return $breadCrumbs;
@@ -82,16 +89,14 @@ abstract class Model extends Core\Model
         $header = '';
         // Если есть шаблон с контентом, пытаемся из него извлечь заголовок H1
         if (isset($this->pageData['content']) && !empty($this->pageData['content'])) {
-            list($header, $text) = $this->extractHeader($this->pageData['content']);
+            [$header, $text] = $this->extractHeader($this->pageData['content']);
             $this->pageData['content'] = $text;
         } elseif (!empty($this->pageData['addon'])) {
             // Последовательно пытаемся получить заголовок из всех аддонов до первого найденного
             if (isset($this->pageData['addons'])) {
-                for ($i = 0; $i < count($this->pageData['addons']); $i++) {
-                    if (isset($this->pageData['addons'][$i]['content'])
-                        && $this->pageData['addons'][$i]['content'] !== ''
-                    ) {
-                        list($header, $text) = $this->extractHeader($this->pageData['addons'][$i]['content']);
+                foreach ($this->pageData['addons'] as $i => $iValue) {
+                    if (isset($iValue['content']) && $iValue['content'] !== '') {
+                        [$header, $text] = $this->extractHeader($iValue['content']);
                         if (!empty($header)) {
                             $this->pageData['addons'][$i]['content'] = $text;
                             break;
@@ -101,14 +106,14 @@ abstract class Model extends Core\Model
             }
         }
 
-        if ($header == '') {
+        if ($header === '' && isset($this->pageData['name'])) {
             // Если заголовка H1 в тексте нет, берём его из названия name
             $header = $this->pageData['name'];
         }
         return $header;
     }
 
-    public function extractHeader($text)
+    public function extractHeader($text): array
     {
         $header = '';
         if (preg_match('/<h1.*>\s*(.*)<\/h1>/isU', $text, $headerArray)) {
@@ -117,7 +122,7 @@ abstract class Model extends Core\Model
             }
             $header = $headerArray[1];
         }
-        return array($header, $text);
+        return [$header, $text];
     }
 
     /**
@@ -126,19 +131,19 @@ abstract class Model extends Core\Model
      * @param bool $xhtml XHTML или не XHTML формат кода
      * @return string Мета-теги страницы в html-формате
      */
-    public function getMetaTags($xhtml = false)
+    public function getMetaTags(bool $xhtml = false): string
     {
         $meta = '';
         $xhtmlChar = $xhtml ? '/' : '';
         $end = end($this->path);
 
-        if (isset($end['description']) && $end['description'] != '' && (!isset($this->pageNum) || $this->pageNum === 1)) {
+        if (isset($end['description']) && $end['description'] !== '' && (!isset($this->pageNum) || $this->pageNum === 1)) {
             $meta .= '<meta name="description" content="'
                 . str_replace('"', '&quot;', $end['description'])
                 . '" ' . $xhtmlChar . '>';
         }
 
-        if (isset($end['keywords']) && $end['keywords'] != '' && (!isset($this->pageNum) || $this->pageNum === 1)) {
+        if (isset($end['keywords']) && $end['keywords'] !== '' && (!isset($this->pageNum) || $this->pageNum === 1)) {
             $meta .= '<meta name="keywords" content="'
                 . str_replace('"', '&quot;', $end['keywords'])
                 . '" ' . $xhtmlChar . '>';
@@ -153,24 +158,24 @@ abstract class Model extends Core\Model
     }
 
     /**
-     * Получение тайтла (<title>) для страницы
+     * Получение <title> для страницы
      *
-     * Тайтл может быть либо задан через параметр title в $this->pageDate, а если title отсутствует или пуст,
-     * то тайтл генерируется из параметра name.
+     * Title может быть либо задан через параметр title в $this->pageDate, а если title отсутствует или пуст,
+     * то title генерируется из параметра name.
      * Кроме того, в случае, если запрашивается не первая страница листалки (новости, статьи и т.п.), то
      * этот метод добавляет суффикс листалки с указанием номера страницы
      *
-     * @return string Тайтл для страницы
+     * @return string Title для страницы
      */
-    public function getTitle()
+    public function getTitle(): string
     {
         $end = $this->pageData;
         $concat = ($this->pageNum > 1) ? str_replace('[N]', $this->pageNum, $this->pageNumTitle) : '';
-        if (isset($end['title']) && $end['title'] != '') {
+        if (isset($end['title']) && $end['title'] !== '') {
             return $end['title'] . $concat;
-        } else {
-            return $end['name'] . $concat;
         }
+
+        return $end['name'] . $concat;
     }
 
     /**
@@ -178,11 +183,11 @@ abstract class Model extends Core\Model
      *
      * @return string Каноническая ссылка для запрошенной страницы
      */
-    public function getCanonical()
+    public function getCanonical(): string
     {
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
-        list($path) = explode('?', $_SERVER['REQUEST_URI']);
-        $canonical = "{$protocol}{$_SERVER['HTTP_HOST']}{$path}";
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($_SERVER['SERVER_PORT'] === 443) ? 'https://' : 'http://';
+        [$path] = explode('?', $_SERVER['REQUEST_URI']);
+        $canonical = "$protocol{$_SERVER['HTTP_HOST']}$path";
         $config = Core\Config::getInstance();
         $indexedOptions = explode(',', $config->cms['indexedOptions']);
         $params = array_intersect_key($_GET, array_flip($indexedOptions));

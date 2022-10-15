@@ -15,9 +15,9 @@ use Ideal\Structure\Part\Widget\MainMenu;
 class Helper
 {
 
-    public $xhtml = false;
+    public bool $xhtml = false;
 
-    public function getVariables($model)
+    public function getVariables($model): array
     {
         // Получаем данные из виджета главного меню
         $mainMenu = new MainMenu($model);
@@ -36,7 +36,7 @@ class Helper
      * @param string $text Окончательно сформированная страница
      * @return string Модифицированная страница
      */
-    public function finishMod($text)
+    public function finishMod(string $text): string
     {
         return $text;
     }

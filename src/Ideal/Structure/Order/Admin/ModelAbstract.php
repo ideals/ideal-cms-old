@@ -16,24 +16,22 @@ use Ideal\Core\Request;
 class ModelAbstract extends \Ideal\Structure\Roster\Admin\ModelAbstract
 {
 
-    public function getToolbar()
+    public function getToolbar(): string
     {
         $db = Db::getInstance();
         $config = Config::getInstance();
 
         // Ищем всех заказчиков для составления фильтра
-        $_table = $config->db['prefix'] . 'ideal_structure_order';
-        $_sql = "SELECT DISTINCT order_type FROM {$_table} ORDER BY order_type";
-        $this->types = $db->select($_sql);
+        $table = $config->db['prefix'] . 'ideal_structure_order';
+        $_sql = "SELECT DISTINCT order_type FROM $table ORDER BY order_type";
+        $types = $db->select($_sql);
 
         $request = new Request();
-        $currentType = '';
-        if (isset($request->toolbar['types'])) {
-            $currentType = $request->toolbar['types'];
-        }
+        $toolbar = $request->get('toolbar');
+        $currentType =  $toolbar['types'] ?? '';
 
         $select = '<select class="form-control" name="toolbar[types]"><option value="">Не фильтровать</option>';
-        foreach ($this->types as $type) {
+        foreach ($types as $type) {
             $selected = '';
             if ($type['order_type'] === $currentType) {
                 $selected = 'selected="selected"';
@@ -52,22 +50,22 @@ class ModelAbstract extends \Ideal\Structure\Roster\Admin\ModelAbstract
      * @param string $where Исходная WHERE-часть
      * @return string Модифицированная WHERE-часть, с расширенным запросом, если установлена GET-переменная category
      */
-    protected function getWhere($where)
+    protected function getWhere(string $where): string
     {
         $request = new Request();
-        $currentType = '';
-        if (isset($request->toolbar['types'])) {
-            $currentType = $request->toolbar['types'];
-        }
-        if ($currentType != '') {
-            $db = DB::getInstance();
-            if ($where != '') {
+        $toolbar = $request->get('toolbar');
+        $currentType =  $toolbar['types'] ?? '';
+
+        if ($currentType !== '') {
+            $db = Db::getInstance();
+            if ($where !== '') {
                 $where .= ' AND ';
             }
             // Выборка статей, принадлежащих этой категории
             $where .= 'order_type = "' . $db->real_escape_string($currentType) . '" ';
         }
-        if ($where != '') {
+
+        if ($where !== '') {
             $where = 'WHERE ' . $where;
         }
 

@@ -25,7 +25,7 @@ class FreshNews
      * @param int $num Кол-во новостей
      * @return array
      */
-    public function getFreshNews($num = 3)
+    public function getFreshNews(int $num = 3): array
     {
         $db = Db::getInstance();
         $config = Config::getInstance();
@@ -36,9 +36,9 @@ class FreshNews
                  FROM ' . $table . '
                  WHERE is_active=1
                  ORDER BY date_create DESC
-                 LIMIT ' . intval($num);
+                 LIMIT ' . $num;
         $news = $db->select($_sql);
-        $freshNews = array();
+        $freshNews = [];
         $num = 0;
         foreach ($news as $v) {
             $freshNews[$num]['name'] = $v['name'];

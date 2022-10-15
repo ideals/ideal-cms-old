@@ -11,9 +11,6 @@ namespace Ideal\Core;
 
 use Exception;
 use Twig\Environment;
-use Twig\Error\LoaderError;
-use Twig\Error\RuntimeError;
-use Twig\Error\SyntaxError;
 use Twig\Loader\FilesystemLoader;
 use Twig\TemplateWrapper;
 
@@ -38,8 +35,6 @@ class View
      *
      * @param string|array $pathToTemplates Путь или массив путей к папкам, где лежат используемые шаблоны
      * @param bool $isCache
-     *
-     * @throws Exception
      */
     public function __construct($pathToTemplates, bool $isCache = false)
     {
@@ -127,14 +122,16 @@ class View
      * Загрузка в шаблонизатор файла с twig-шаблоном
      *
      * @param string $fileName Название twig-файла
-     *
-     * @throws LoaderError
-     * @throws RuntimeError
-     * @throws SyntaxError
      */
     public function loadTemplate(string $fileName): void
     {
-        $this->template = $this->templater->load($fileName);
+        try {
+            $this->template = $this->templater->load($fileName);
+        } catch (Exception $e) {
+            // todo кастомизировать сообщение и залогировать ошибку
+            echo $e->getMessage();
+            exit;
+        }
     }
 
     public function render(): string
@@ -180,5 +177,28 @@ class View
     public function mergeVars(array $vars): void
     {
         $this->vars = array_merge($this->vars, $vars);
+    }
+
+    /**
+     * @param string $key
+     * @param $value
+     *
+     * @return $this
+     */
+    public function set(string $key, $value): self
+    {
+        $this->vars[$key] = $value;
+
+        return $this;
+    }
+
+    /**
+     * @param string $key
+     *
+     * @return mixed
+     */
+    public function get(string $key)
+    {
+        return $this->vars[$key];
     }
 }

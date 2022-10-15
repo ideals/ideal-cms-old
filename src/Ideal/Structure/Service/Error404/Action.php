@@ -11,9 +11,13 @@ namespace Ideal\Structure\Service\Error404;
 
 use Ideal\Core\Config;
 use Ideal\Structure\Service\SiteData\ConfigPhp;
+use JsonException;
 
 class Action
 {
+    /**
+     * @throws JsonException
+     */
     public function render(): string
     {
         $result = '<form action="" method=post enctype="multipart/form-data">';

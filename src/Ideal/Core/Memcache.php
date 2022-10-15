@@ -23,10 +23,10 @@ namespace Ideal\Core;
 class Memcache
 {
     /** @var MemcacheWrapper|null Экземпляр класса MemcacheWrapper или null если не доступен класс Memcache */
-    private $memcacheWrapper = null;
+    private ?MemcacheWrapper $memcacheWrapper = null;
 
     /** @var array Массив для хранения подключений к разным серверам кэширования */
-    private static $connectedServers;
+    private static array $connectedServers;
 
     /**
      * При создании экземпляра данного класса экземпляр класса MemcacheWrapper помещается в свойство $memcacheWrapper, если класс \Memcache доступен.
@@ -46,35 +46,35 @@ class Memcache
      * @param array $arguments Массив аргументов, передаваемый методу
      * @return bool|mixed Результат выполнения метода из класса \Memcache или false в случае если такой метод не реализован или класс \Memcache не доступен.
      */
-    public function __call($name, $arguments)
+    public function __call(string $name, array $arguments)
     {
         if ($this->memcacheWrapper !== null && method_exists($this->memcacheWrapper, $name)) {
-            return call_user_func_array(array($this->memcacheWrapper, $name), $arguments);
-        } else {
-            return false;
+            return call_user_func_array([$this->memcacheWrapper, $name], $arguments);
         }
+
+        return false;
     }
 
     /**
      * Получение singleton-объекта MemcacheWrapper
      *
-     * Если переменная $params не задана, то данные для подключения берутся из конфига CMS
-     * В массива $params должны быть следующие элементы: host, port
+     * Если переменная $params не задана, то данные для подключения берутся из конфига CMS.
+     * В массиве $params должны быть следующие элементы: host, port
      *
-     * @param array $params Параметры подключения
+     * @param array|null $params Параметры подключения
      * @return Memcache
      */
-    public static function getInstance($params = null)
+    public static function getInstance(array $params = null): Memcache
     {
         if (!$params) {
             $params = Config::getInstance()->memcache;
         }
 
         if (!is_array($params)) {
-            $params = array(
+            $params = [
                 'host' => 'localhost',
                 'port' => 11211
-            );
+            ];
         }
 
         $serverId = "memcache://{$params['host']}/{$params['port']}";
@@ -93,17 +93,17 @@ class Memcache
     }
 
     /**
-     * @param string $host Хост сервера
+     * @param string $host Название хоста сервера
      * @param int $port Порт сервера
      * @return bool Возвращает true при успешном выполнении и false в случае ошибки
      */
-    public function connect($host, $port)
+    public function connect(string $host, int $port): bool
     {
         if ($this->memcacheWrapper !== null) {
             return $this->memcacheWrapper->connect($host, $port);
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -111,17 +111,18 @@ class Memcache
      *
      * @param string $key Ключ для записи $value
      * @param mixed $value Значение, помещаемое в кэш
-     * @param bool $ttl Время жизни значения в кэше
+     * @param null|int $ttl Время жизни значения в кэше
      * @param string|array $tagsKeys Строка или массив с тегами для ключа $key
      * @return bool Возвращает true при успешном выполнении и false в случае ошибки
+     * @noinspection ParameterDefaultValueIsNotNullInspection
      */
-    public function addWithTags($key, $value, $ttl = false, $tagsKeys = 'default')
+    public function addWithTags(string $key, $value, ?int $ttl = null, $tagsKeys = 'default'): bool
     {
         if ($this->memcacheWrapper !== null) {
             return $this->memcacheWrapper->addWithTags($key, $value, $ttl, $tagsKeys);
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -130,13 +131,13 @@ class Memcache
      * @param $tag string|array Строка или массив тегов
      * @return bool Возвращает true при успешном выполнении и false в случае ошибки
      */
-    public function deleteByTag($tag)
+    public function deleteByTag($tag): bool
     {
         if ($this->memcacheWrapper !== null) {
             return $this->memcacheWrapper->deleteByTag($tag);
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -144,18 +145,18 @@ class Memcache
      *
      * Если значения по ключу $key не было, то оно будет создано
      *
-     * @param $key
+     * @param string $key
      * @param int $value
-     * @param bool $ttl
+     * @param null|int $ttl
      * @return bool Возвращает true при успешном выполнении и false в случае ошибки
      */
-    public function safeIncrement($key, $value = 1, $ttl = false)
+    public function safeIncrement(string $key, int $value = 1, int $ttl = null): bool
     {
         if ($this->memcacheWrapper !== null) {
             return $this->memcacheWrapper->safeIncrement($key, $value, $ttl);
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -164,13 +165,13 @@ class Memcache
      * @param string $key Ключ кэширования
      * @return mixed
      */
-    public function getWithTags($key)
+    public function getWithTags(string $key)
     {
         if ($this->memcacheWrapper !== null) {
             return $this->memcacheWrapper->getWithTags($key);
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -178,18 +179,18 @@ class Memcache
      *
      * Если значения по ключу $key не было, то оно будет создано
      *
-     * @param      $key
+     * @param string $key
      * @param int $value
-     * @param bool $ttl
+     * @param null|int $ttl
      * @return bool Возвращает true при успешном выполнении и false в случае ошибки
      */
-    public function safeDecrement($key, $value = 1, $ttl = false)
+    public function safeDecrement(string $key, int $value = 1, ?int $ttl = null): bool
     {
         if ($this->memcacheWrapper !== null) {
             return $this->memcacheWrapper->safeDecrement($key, $value, $ttl);
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -197,16 +198,17 @@ class Memcache
      *
      * @param string $key Ключ для записи $value
      * @param mixed $value Значение, помещаемое в кэш
-     * @param bool $ttl Время жизни значения в кэше
+     * @param null|int $ttl Время жизни значения в кэше
      * @param string|array $tagsKeys Строка или массив с тегами для ключа $key
      * @return bool Возвращает true при успешном выполнении и false в случае ошибки
+     * @noinspection ParameterDefaultValueIsNotNullInspection
      */
-    public function setWithTags($key, $value, $ttl = false, $tagsKeys = 'default')
+    public function setWithTags(string $key, $value, ?int $ttl = null, $tagsKeys = 'default'): bool
     {
         if ($this->memcacheWrapper !== null) {
             return $this->memcacheWrapper->setWithTags($key, $value, $ttl, $tagsKeys);
-        } else {
-            return false;
         }
+
+        return false;
     }
 }

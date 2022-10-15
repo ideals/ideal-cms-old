@@ -29,7 +29,7 @@ class AjaxController extends CoreAjaxController
      *
      * @throws JsonException
      */
-    public function clearCacheAction()
+    public function clearCacheAction(): void
     {
         $config = Config::getInstance();
         $configCache = $config->cache;
@@ -67,7 +67,7 @@ class AjaxController extends CoreAjaxController
      *
      * @throws JsonException
      */
-    public function clearCacheFilesAction()
+    public function clearCacheFilesAction(): void
     {
         $config = Config::getInstance();
         $delPages = [];

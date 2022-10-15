@@ -9,6 +9,8 @@
 
 namespace Ideal\Field\Image;
 
+use Exception as ExceptionAlias;
+use Ideal\Controller\ResizeController;
 use Ideal\Core\Config;
 use Ideal\Field\AbstractController;
 
@@ -32,14 +34,15 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws ExceptionAlias
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $value = htmlspecialchars($this->getValue());
         $startupPath = '';
         if (empty($value)) {
             $img = '<span class="glyphicon glyphicon-remove" id="' . $this->htmlName . 'Span"></span>'
-                . '<img id="' . $this->htmlName . 'Img" src="" style="max-height:32px;display:none;">';
+                . '<img id="' . $this->htmlName . 'Img" src="" style="max-height:32px;display:none;" alt="">';
         } else {
             $img = '<img id="' . $this->htmlName . 'Img" src="' . $value . '" style="max-height:32px">';
             $startupPath = substr(dirname($value), strpos($value, '/', 2)) . '/';
@@ -59,8 +62,9 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws ExceptionAlias
      */
-    public function parseInputValue($isCreate)
+    public function parseInputValue(bool $isCreate): array
     {
         $item = parent::parseInputValue($isCreate);
 
@@ -80,39 +84,23 @@ class Controller extends AbstractController
      *
      * @param string $value
      * @return string
+     * @noinspection MultipleReturnStatementsInspection
      */
-    protected function imageRegenerator($value)
+    protected function imageRegenerator(string $value): string
     {
         $config = Config::getInstance();
-        if ($value == '' || $config->allowResize == '') {
+        if ($value === '' || $config->allowResize === '') {
             return '';
         }
 
-        // Из .htaccess определяем папку с resized-изображениями
-        $folder = '';
-        $htaccess = file(DOCUMENT_ROOT . '/.htaccess');
-        foreach ($htaccess as $v) {
-            $pos = strpos($v, 'Ideal/Library/Resize/image.php');
-            if ($pos == 0) {
-                continue;
-            }
-            preg_match('/\^(.*)\/\(/', $v, $matches);
-            if (is_null($matches)) {
-                return 'Не могу определить по файлу .htaccess папку для resized-картинок. '
-                . 'Правило должно быть вида ^images/resized/(.*)';
-            }
-            $folder = DOCUMENT_ROOT . '/' . $matches[1] . '/';
-            break;
-        }
-
-        if ($folder == '') {
-            return 'В корневом .htaccess не задано правило для resized-картинок';
-        }
+        // Из `.htaccess` определяем папку с resized-изображениями
+        $resizer = new ResizeController();
+        $folder = DOCUMENT_ROOT . '/' . $resizer->getResizedFolder();
 
         // Удаляем старое изображение из resized-папок
         $allowResize = explode('\n', $config->allowResize);
         foreach ($allowResize as $v) {
-            $fileName = $folder . $v . $value;
+            $fileName = $folder . '/' . $v . $value;
             if (!file_exists($fileName)) {
                 continue;
             }
@@ -121,21 +109,22 @@ class Controller extends AbstractController
             }
             unlink($fileName);
         }
+
         return '';
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getValueForList($values, $fieldName)
+    public function getValueForList(array $values, string $fieldName): string
     {
         $result = '';
-        if ($values[$fieldName] != '') {
+        if ($values[$fieldName] !== '') {
             $result = <<<HTML
 <span
     class="has-popover"
     data-placement="top"
-    data-content="<img src='{$values[$fieldName]}' width='200'>"
+    data-content="<img src='$values[$fieldName]' width='200'>"
     data-html="true"
     data-trigger="hover">
         <span class="glyphicon glyphicon-camera text-muted"></span>

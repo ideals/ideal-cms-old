@@ -11,9 +11,13 @@ namespace Ideal\Structure\Service\SiteMap;
 
 use Ideal\Core\Config;
 use Ideal\Structure\Service\SiteData\ConfigPhp;
+use JsonException;
 
 class Action
 {
+    /**
+     * @throws JsonException
+     */
     public function render(): string
     {
         $result = <<<HTML
@@ -91,7 +95,7 @@ HTML;
     <div class="tab-pane active" id="settings">
         <form action="" method=post enctype="multipart/form-data">
 
-            {$showEdit}
+            $showEdit
 
             <br/>
 
@@ -124,7 +128,7 @@ HTML;
             <p>Чтобы прописать в cron'е команду на запуск составления карты сайта нужно зайти в пункт "Cron" раздела
                 "Сервис":</p>
             <p>В поле для редактирования добавить следующую строчку:</p>
-            <pre><code>*/3 2-4 * * * {$config->rootDir}/bin/console app:sitemap</code></pre>
+            <pre><code>*/3 2-4 * * * $config->rootDir/bin/console app:sitemap</code></pre>
             <p>Эта инструкция означает запуск скрипта сбора карты сайта каждые три минуты с двух до четырёх ночи.
                 Если этого времени не хватает для составления карты сайта, то можно увеличить диапазон часов.</p>
         </div>

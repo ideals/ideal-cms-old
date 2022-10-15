@@ -39,7 +39,7 @@ class Install implements InstallStructureInterface
                 'structure' => 'Ideal_Order',
                 'pos' => $newPos,
                 'name' => 'Заказы с сайта',
-                'url' => 'zakazy-s-sajta',
+                'url' => 'orders-from-site',
                 'parent_url' => '---',
                 'annot' => ''
             ]

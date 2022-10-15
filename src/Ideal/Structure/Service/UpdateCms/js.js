@@ -6,23 +6,23 @@ $.jsonp({
     success: function (versions) {
         nowVersions = $.parseJSON(nowVersions);
 
-        if (versions['message'] !== undefined) {
-            $('<h4>').appendTo('#form-input').html(versions['message']);
+        if (versions.message !== undefined) {
+            $('<h4>').appendTo('#form-input').html(versions.message);
             nowVersions = null;
         }
 
         $.each(nowVersions, function (key, value) {
             // Выводим заголовок с именем обновляемого модуля
-            var buf = key + " " + value;
+            const buf = key + " " + value;
             $('<h4>').appendTo('#form-input').text(buf);
-            var update = versions[key];
+            const update = versions[key];
 
-            if ((update == undefined) || (update == "")) {
+            if ((update === undefined) || (update === "")) {
                 $('<p>').appendTo('#form-input').text("Обновление не требуется.");
                 return true;
             }
-            if (update['message'] !== undefined) {
-                $('<p>').appendTo('#form-input').text(update['message']);
+            if (update.message !== undefined) {
+                $('<p>').appendTo('#form-input').text(update.message);
                 return true;
             }
 
@@ -33,16 +33,17 @@ $.jsonp({
                 .attr('method', 'post');
 
             $.each(update, function (keyLine, line) {
-                buf = 'updateModule("' + key + '", "' + line['version'] + '", "' + value + '")';
+                const buf = 'updateModule("' + key + '", "' + line.version + '", "' + value + '")';
                 $('<button>')
                     .appendTo('form.update-form')
                     .attr('class', 'btn ')
                     .attr('onClick', buf)
-                    .text('Обновить на версию ' + line['version'] + ' (' + line['date'] + ')');
-                if (line['danger']) {
-                    $('button:last').attr('class', 'btn btn-danger')
+                    .text('Обновить на версию ' + line.version + ' (' + line.date + ')');
+                let buttonLast = $('button:last');
+                if (line.danger) {
+                    buttonLast.attr('class', 'btn btn-danger');
                 }
-                $('button:last').after('&nbsp; &nbsp;');
+                buttonLast.after('&nbsp; &nbsp;');
             });
         });
     },
@@ -65,7 +66,7 @@ function Update(moduleName, version, currentVersion, url, modalBox) {
     });
 
     this.ajaxRequest = function(data) {
-        var update = this;
+        const update = this;
         $.ajax({
             url: this.url,
             type: 'POST',
@@ -83,18 +84,19 @@ function Update(moduleName, version, currentVersion, url, modalBox) {
                 update.print('Не удалось выполнить ajax запрос: ' + data.action + '<br />' + result.responseText, 'error');
                 update.modalBox.find('.close, .btn-close').removeAttr('disabled');
             }
-        })
+        });
     };
 
     /**
      * Проверка данных полученных из ajax запроса
      * @param data
+     * @param action
      * @returns {boolean}
      */
     this.dataCheck = function(data, action) {
         // Если не получен структурированный результат выполнения действия и метод вызван не в первый раз,
         // выводим полученные данные
-        if (data.error == 'undefined' && data != true ) {
+        if (data.error === 'undefined' && data !== true ) {
             this.print('Сбой в работе при выполнении действия' + action + '<br />' + data, 'error');
             return false;
         }
@@ -103,7 +105,7 @@ function Update(moduleName, version, currentVersion, url, modalBox) {
             this.print(data.message[i][0], data.message[i][1]);
         }
         // Если нет сообщений, но зафиксирована ошибка
-        if ((data.message.length == 0) && (data.error == true)) {
+        if ((data.message.length === 0) && (data.error === true)) {
             this.print('Произошла ошибка в работе метода ' + action, 'error');
             return false;
         }
@@ -112,7 +114,6 @@ function Update(moduleName, version, currentVersion, url, modalBox) {
 
     this.print = function(data, type) {
         type = type || 'info';
-        var classBlock = '';
         switch (type) {
             case ('error'): classBlock = 'alert alert-danger fade in'; break;
             case ('info'): classBlock = 'alert alert-info fade in'; break;
@@ -140,32 +141,32 @@ function Update(moduleName, version, currentVersion, url, modalBox) {
                 break;
             case 'ajaxGetUpdateScript':
                 this.phpScripts = JSON.parse(result.data.scripts);
-                if (typeof(this.phpScripts['pre']) != 'undefined') {
-                    this.phpScripts['pre']['count'] = this.phpScripts['pre'].length;
+                if (typeof(this.phpScripts.pre) != 'undefined') {
+                    this.phpScripts.pre.count = this.phpScripts.pre.length;
                 } else {
-                    this.phpScripts['pre'] = {};
-                    this.phpScripts['pre']['count'] = 0;
+                    this.phpScripts.pre = {};
+                    this.phpScripts.pre.count = 0;
                 }
-                if (typeof(this.phpScripts['after']) != 'undefined') {
-                    this.phpScripts['after']['count'] = this.phpScripts['after'].length;
+                if (typeof(this.phpScripts.after) != 'undefined') {
+                    this.phpScripts.after.count = this.phpScripts.after.length;
                 } else {
-                    this.phpScripts['after'] = {};
-                    this.phpScripts['after']['count'] = 0;
+                    this.phpScripts.after = {};
+                    this.phpScripts.after.count = 0;
                 }
-                if (this.phpScripts['pre']['count'] > 0) {
-                    this.actionScript = this.phpScripts['pre'];
+                if (this.phpScripts.pre.count > 0) {
+                    this.actionScript = this.phpScripts.pre;
                     this.actionScriptsequence = 'pre';
-                    this.actionScript['count']--;
+                    this.actionScript.count--;
                     data.action = 'ajaxRunScript';
                     break;
                 }
                 data.action = 'ajaxSwap';
                 break;
             case 'ajaxSwap':
-                if (this.phpScripts['after']['count'] > 0) {
-                    this.actionScript = this.phpScripts['after'];
+                if (this.phpScripts.after.count > 0) {
+                    this.actionScript = this.phpScripts.after;
                     this.actionScriptsequence = 'after';
-                    this.actionScript['count']--;
+                    this.actionScript.count--;
                     data.action = 'ajaxRunScript';
                     break;
                 }
@@ -175,13 +176,13 @@ function Update(moduleName, version, currentVersion, url, modalBox) {
                 if (result.data != null) {
                     break;
                 }
-                if (this.actionScript['count'] > 0) {
+                if (this.actionScript.count > 0) {
                     data.action = 'ajaxRunScript';
-                    this.actionScript['count']--;
+                    this.actionScript.count--;
                     break;
-                } else if(this.actionScriptsequence == 'pre') {
+                } else if(this.actionScriptsequence === 'pre') {
                     data.action = 'ajaxSwap';
-                    break
+                    break;
                 }
                 data.action = 'ajaxEndVersion';
                 break;
@@ -207,16 +208,17 @@ function Update(moduleName, version, currentVersion, url, modalBox) {
 
 /** Обновление CMS или модуля */
 function updateModule(moduleName, version, currentVersion) {
-    var update = new Update(moduleName, version, currentVersion, url, $('#modalUpdate'));
+    const modalUpdate = $('#modalUpdate');
+    var update = new Update(moduleName, version, currentVersion, url, modalUpdate);
     update.modalBox.find('.modal-body').html('');
     update.modalBox.find('.close, .btn-close').attr('disabled', 'disabled');
     // Открываем модальное окно
     update.modalBox.modal('show');
     update.print('Обновление начато!', 'success');
 
-    $('#modalUpdate').on('hidden.bs.modal', function (e) {
+    modalUpdate.on('hidden.bs.modal', function () {
         location.reload(true);
     });
 
-    var result = update.run(true);
+    update.run(true);
 }

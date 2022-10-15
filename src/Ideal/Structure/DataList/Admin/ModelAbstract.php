@@ -20,14 +20,15 @@ class ModelAbstract extends \Ideal\Structure\Roster\Admin\ModelAbstract
      * @param $parentUrl
      * @return array
      */
-    public function getByParentUrl($parentUrl)
+    public function getByParentUrl($parentUrl): array
     {
         $db = Db::getInstance();
-        $_sql = "SELECT * FROM {$this->_table} WHERE parent_url='{$parentUrl}'";
+        $_sql = "SELECT * FROM $this->_table WHERE parent_url='$parentUrl'";
         $arr = $db->select($_sql);
         if (!isset($arr[0]['ID'])) {
-            $arr[0] = array();
+            $arr[0] = [];
         }
+
         return $arr[0];
     }
 }

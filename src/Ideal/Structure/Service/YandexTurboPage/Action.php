@@ -4,9 +4,13 @@ namespace Ideal\Structure\Service\YandexTurboPage;
 
 use Ideal\Core\Config;
 use Ideal\Structure\Service\SiteData\ConfigPhp;
+use JsonException;
 
 class Action
 {
+    /**
+     * @throws JsonException
+     */
     public function render(): string
     {
         $result = <<< HTML
@@ -93,7 +97,7 @@ HTML;
 <div class="tab-content">
     <div class="tab-pane active" id="settings">
         <form action="" method=post enctype="multipart/form-data">
-            {$showEdit}
+            $showEdit
             <br/>
             <input type="submit" class="btn btn-info" name="edit" value="Сохранить настройки"/>
         </form>

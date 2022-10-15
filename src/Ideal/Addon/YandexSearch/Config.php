@@ -34,11 +34,6 @@ class Config
             'sql' => 'varchar(255)',
             'type' => 'Ideal_Text',
         ],
-        'proxyUrl' => [
-            'label' => 'Адрес прокси скрипта',
-            'sql' => 'varchar(255)',
-            'type' => 'Ideal_Text',
-        ],
         'elements_site' => [
             'label' => 'Количество элементов в выдаче',
             'sql' => 'int(8)',

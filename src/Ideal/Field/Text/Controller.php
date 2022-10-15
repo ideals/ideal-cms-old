@@ -9,6 +9,7 @@
 
 namespace Ideal\Field\Text;
 
+use Exception;
 use Ideal\Field\AbstractController;
 
 /**
@@ -29,8 +30,9 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $value = htmlspecialchars($this->getValue());
         return

@@ -9,6 +9,7 @@
 
 namespace Ideal\Field\RichEdit;
 
+use Exception;
 use Ideal\Core\Config;
 use Ideal\Field\AbstractController;
 
@@ -30,26 +31,27 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function showEdit()
+    public function showEdit(): string
     {
-        $html = '<div id="' . $this->htmlName . '-control-group">'
+        return '<div id="' . $this->htmlName . '-control-group">'
             . $this->getLabelText() . '<br />' . $this->getInputText() . '</div>';
-        return $html;
     }
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $config = Config::getInstance();
         $value = htmlspecialchars($this->getValue());
-        $html = <<<HTML
-            <textarea name="{$this->htmlName}"
-                id="{$this->htmlName}">{$value}</textarea>
+        return <<<HTML
+            <textarea name="$this->htmlName"
+                id="$this->htmlName">$value</textarea>
             <script>
-                CKFinder.setupCKEditor( null, "/{$config->cmsFolder}/js/ckfinder/" );
+                CKFinder.setupCKEditor( null, "/$config->cmsFolder/js/ckfinder/" );
                 // Закрываем от авто модификации и wysiwig-редактирования содержимое тега script
                 CKEDITOR.config.protectedSource.push(/<script[\\s\\S]*?script>/ig);
                 // Код в блоке <div class="protectedSource"></div> не будет редактироваться во WYSIWIG,
@@ -57,9 +59,8 @@ class Controller extends AbstractController
                 CKEDITOR.config.protectedSource.push(/<div[\\s\\S]*?class="protected"[\\s\\S]*?<\\/div>/g);
                 // Разрешаем использовать для всех тегов — атрибуты style и class
                 CKEDITOR.config.extraAllowedContent = '*(*)[style]{*}; *(*)[class]{*}; span(*); style; *(*)[data-*]{*}';
-                CKEDITOR.replace("{$this->htmlName}");
+                CKEDITOR.replace("$this->htmlName");
             </script>
 HTML;
-        return $html;
     }
 }

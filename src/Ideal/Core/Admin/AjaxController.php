@@ -10,9 +10,7 @@
 namespace Ideal\Core\Admin;
 
 use Ideal\Core\Config;
-use Ideal\Core\Model;
 use Ideal\Core\View;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 
@@ -39,6 +37,8 @@ class AjaxController
      */
     public function run(Router $router): Response
     {
+        $this->model = $router->getModel();
+
         // Определяем и вызываем требуемый action у контроллера
         $request = $router->getRequest();
         $actionName = $request->get('action', 'index') . 'Action';
@@ -85,7 +85,7 @@ class AjaxController
      *
      * @param string $tplName
      */
-    public function templateInit($tplName = '')
+    public function templateInit(string $tplName = ''): void
     {
         if (!stream_resolve_include_path($tplName)) {
             echo 'Нет файла шаблона ' . $tplName;
@@ -94,11 +94,11 @@ class AjaxController
         $tplRoot = dirname(stream_resolve_include_path($tplName));
         $tplName = basename($tplName);
 
-        // Определяем корневую папку системы для подключение шаблонов из любой вложенной папки через их путь
+        // Определяем корневую папку системы для подключения шаблонов из любой вложенной папки через их путь
         $config = Config::getInstance();
         $cmsFolder = DOCUMENT_ROOT . '/' . $config->cmsFolder;
 
-        $folders = array_merge(array($tplRoot, $cmsFolder));
+        $folders = [$tplRoot, $cmsFolder];
         $this->view = new View($folders, $config->cache['templateSite']);
         $this->view->loadTemplate($tplName);
     }

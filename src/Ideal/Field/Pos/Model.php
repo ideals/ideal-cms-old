@@ -22,14 +22,15 @@ class Model
      * @param \Ideal\Core\Model $model
      * @return int
      */
-    public function getNewPos($model)
+    public function getNewPos($model): int
     {
         $db = Db::getInstance();
 
         $table = $model->getTableName();
         $prevStructure = $model->getPrevStructure();
 
-        $_sql = "SELECT pos FROM {$table} WHERE prev_structure='{$prevStructure}' ORDER BY pos DESC LIMIT 1";
+        /** @noinspection SqlResolve */
+        $_sql = "SELECT pos FROM $table WHERE prev_structure='$prevStructure' ORDER BY pos DESC LIMIT 1";
         $posArr = $db->select($_sql);
 
         $pos = 0;
@@ -45,14 +46,14 @@ class Model
     /**
      * Изменение позиции $oldPos на новую $newPos
      *
-     * @param int    $oldPos        Старое значение позиции
-     * @param int    $newPos        Новое значение позиции
+     * @param int $oldPos        Старое значение позиции
+     * @param int $newPos        Новое значение позиции
      * @param string $prevStructure Путь к структуре в которой меняются позиции
      * @return string Sql-запрос изменения позиции
      */
-    public function movePos($oldPos, $newPos, $prevStructure)
+    public function movePos(int $oldPos, int $newPos, string $prevStructure): string
     {
-        $update = array($oldPos => $newPos);
+        $update = [$oldPos => $newPos];
 
         // Определяем реальное значение сегмента в новом cid
         // если cid становится больше, то новое значение уменьшается на единицу,
@@ -67,14 +68,16 @@ class Model
             }
         }
 
-        $_sql = 'UPDATE {{ table }} SET pos = CASE';
-        $where = $or = '';
+        $_sql = /** @lang text */
+            'UPDATE {{ table }} SET pos = CASE';
+        $or = '';
+        $where = '';
         foreach ($update as $old => $new) {
-            $_sql .= "\nWHEN pos = {$old} THEN {$new}";
-            $where .= $or . " pos = {$old}";
+            $_sql .= "\nWHEN pos = $old THEN $new";
+            $where .= $or . " pos = $old";
             $or = ' OR';
         }
-        $_sql .= "\n ELSE pos END WHERE prev_structure='{$prevStructure}' AND ({$where})";
+        $_sql .= "\n ELSE pos END WHERE prev_structure='$prevStructure' AND ($where)";
         // На основании массива $update составляем список запросов для обновления cid'ов
         return $_sql;
     }

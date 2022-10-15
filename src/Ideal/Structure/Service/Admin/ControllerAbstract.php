@@ -9,7 +9,9 @@
 
 namespace Ideal\Structure\Service\Admin;
 
+use Exception;
 use Ideal\Core\Request;
+use RuntimeException;
 
 class ControllerAbstract extends \Ideal\Core\Admin\Controller
 {
@@ -21,46 +23,50 @@ class ControllerAbstract extends \Ideal\Core\Admin\Controller
      * Магический метод, перехватывающий ajax-запросы и подключающий соответствующие файлы
      *
      * @param string $name      Название вызываемого метода
-     * @param array  $arguments Аргументы, передаваемые методу
-     * @throws \Exception Исключение, если для вызываемого метода нет соответствующего файла
+     * @param array $arguments Аргументы, передаваемые методу
+     * @throws Exception Исключение, если для вызываемого метода нет соответствующего файла
      */
-    public function __call($name, $arguments)
+    public function __call(string $name, array $arguments)
     {
         $item = $this->model->getPageData();
 
-        list($module, $structure) = explode('_', $item['ID']);
-        $module = ($module == 'Ideal') ? '' : $module . '/';
+        [$module, $structure] = explode('_', $item['ID']);
+        $module = ($module === 'Ideal') ? '' : $module . '/';
         $file = $module . 'Structure/Service/' . $structure . '/' . $name . '.php';
 
         if (!stream_resolve_include_path($file)) {
-            throw new \Exception("Файл $file не существует");
+            throw new RuntimeException("Файл $file не существует");
         }
 
         include($file);
     }
 
-    public function indexAction()
+    /**
+     * @throws Exception
+     */
+    public function indexAction(): void
     {
         $this->templateInit('Structure/Service/Admin/index.twig');
 
         // Инициализируем объект запроса
         $request = new Request();
-        $sepPar = strpos($request->par, '-');
-        if ($sepPar === false) {
-            $this->view->par = $request->par;
+        $par = $request->get('par');
+        $sepPar = strpos($par, '-');
+        if ($sepPar !== false) {
+            $this->view->set('par', substr($par, 0, $sepPar));
         } else {
-            $this->view->par = substr($request->par, 0, $sepPar);
+            $this->view->set('par', $par);
         }
 
-        $this->view->items = $this->model->getMenu(); // $structure['items'];
+        $this->view->set('items', $this->model->getMenu()); // $structure['items']);
 
         $item = $this->model->getPageData();
-        $this->view->ID = $item['ID'];
+        $this->view->set('ID', $item['ID']);
 
         [$module, $structure] = explode('_', $item['ID']);
         $className = $module . '\\Structure\\Service\\' . $structure . '\\Action';
         $action = new $className();
 
-        $this->view->text = $action->render();
+        $this->view->set('text', $action->render());
     }
 }

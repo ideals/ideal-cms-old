@@ -9,34 +9,21 @@
 
 namespace Ideal\Addon;
 
-use Ideal\Core\Db;
+use Ideal\Core\Site\Model;
 
 /**
  * Абстрактный класс, реализующий основные методы для семейства классов Addon во внешней части сайта
  *
  * Аддоны обеспечивают прикрепление к структуре дополнительного содержимого различных типов.
  */
-class AbstractSiteModel extends \Ideal\Core\Site\Model
+class AbstractSiteModel extends Model
 {
+    use TraitModel;
+
     /**
      * {@inheritdoc}
      */
-    public function detectPageByUrl($path, $url)
+    public function detectPageByUrl(array $path, array $url)
     {
-    }
-
-    public function setPageDataByPrevStructure($prevStructure)
-    {
-        $db = Db::getInstance();
-
-        // Получаем идентификатор таба из группы
-        list(, $tabID) = explode('-', $this->fieldsGroup, 2);
-        $_sql = "SELECT * FROM {$this->_table} WHERE prev_structure=:ps AND tab_ID=:tid";
-        $pageData = $db->select($_sql, array('ps' => $prevStructure, 'tid' => $tabID));
-        if (isset($pageData[0]['ID'])) {
-            // TODO сделать обработку ошибки, когда по prevStructure ничего не нашлось
-            /** @noinspection PhpUndefinedMethodInspection */
-            $this->setPageData($pageData[0]);
-        }
     }
 }

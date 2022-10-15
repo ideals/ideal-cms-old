@@ -136,7 +136,7 @@ return [
         [
             'ID' => 3,
             'structure' => 'Ideal_TagList',
-            'name' => 'Связи для тэгов',
+            'name' => 'Связи для тегов',
             'hasTable' => true,
         ],
         [

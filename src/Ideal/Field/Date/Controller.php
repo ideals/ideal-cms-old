@@ -9,13 +9,13 @@
 
 namespace Ideal\Field\Date;
 
+use Exception;
 use Ideal\Core\Request;
 use Ideal\Field\AbstractController;
 
 /**
  * Поле, содержащее дату в формате MySQL DataTime
  *
- * Для редактирования подключается jQuery-плагин datetimepicker.js, который использует библиотеку Moment.
  * Пример объявления в конфигурационном файле структуры:
  *     'date_create' => array(
  *         'label' => 'Дата создания',
@@ -31,37 +31,36 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $value = $this->getValue();
         $date = empty($value) ? '' : date('Y-m-d\TH:i', $value);
         $htmlName = $this->htmlName;
-        $html = <<<HTML
-
-<div id="picker_{$htmlName}" class="input-group date">
+        return <<<HTML
+<div id="picker_$htmlName" class="input-group date">
     <span class="input-group-addon">
         <span class="glyphicon glyphicon-calendar" ></span>
     </span>
-    <input type="datetime-local" class="form-control" name="{$htmlName}" value="{$date}" >
+    <input type="datetime-local" class="form-control" name="$htmlName" value="$date" >
 </div>
 HTML;
-
-        return $html;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getValueForList($values, $fieldName)
+    public function getValueForList(array $values, string $fieldName): string
     {
         return date('d.m.Y &\nb\sp; H:i', $values[$fieldName]);
     }
 
     /**
      * {@inheritdoc}
+     * @noinspection MultipleReturnStatementsInspection
      */
-    public function pickupNewValue()
+    public function pickupNewValue(): string
     {
         $request = new Request();
 

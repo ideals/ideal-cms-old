@@ -11,12 +11,11 @@ function delta()
 {
 	document.cookie="click=yes; path=/;";
 	form1.target="_self";
-	return;
 }
 
-function myShowImgPicker(mname)
+function myShowImgPicker(mName)
 {
-	window.open('get_file.php?mname='+mname, '_blank', 
+	window.open('get_file.php?mname='+mName, '_blank',
   'height=420,width=420,toolbars=no,resizable=no,status=no');
 }
 
@@ -38,7 +37,7 @@ function rel_naf ()
 	opener.location.reload();
 }
 
-// Сохраниение положения каретки в поле формы
+// Сохранение положения каретки в поле формы
 function storeCaret ( textEl )
 {
 	if (textEl.createTextRange) 
@@ -48,12 +47,12 @@ function storeCaret ( textEl )
 // Вставка заданного текста в поле формы в область местоположения каретки
 function ins (textEl, text)
 {
-	if ( navigator.userAgent.indexOf("MSIE") != -1  )
+	if ( navigator.userAgent.indexOf("MSIE") !== -1  )
 	{
 		if ( textEl.createTextRange && textEl.caretPos )
 		{
-			var caretPos = textEl.caretPos;
-			caretPos.text =	caretPos.text.charAt ( caretPos.text.length - 1 ) == ' ' ?	text + ' ' : text;
+			const caretPos = textEl.caretPos;
+			caretPos.text =	caretPos.text.charAt ( caretPos.text.length - 1 ) === ' ' ?	text + ' ' : text;
 		}
 		else
 		textEl.value  = text;
@@ -64,7 +63,7 @@ function ins (textEl, text)
 
 function init()
 {
-	if (navigator.appName == "Netscape") 
+	if (navigator.appName === "Netscape")
 		{
 			layerRef="document.layers"; 
 			styleSwitch=""; 
@@ -94,34 +93,28 @@ function h(layerName)
 // переключатель сокрытия открытия двух слоев
 function sh( layer1 )
 {
-     if (eval(layerRef+'["'+layer1+'"]'+styleSwitch+'.display == visibleVar')){ 
-     h (layer1)
-     layer1=0; 
-     }else{ 
-     s (layer1)
-     layer1=1;
-     }
+	if (eval(layerRef + '["' + layer1 + '"]' + styleSwitch + '.display == visibleVar')) {
+		h(layer1);
+	} else {
+		s(layer1);
+	}
 }
 
 // переключатель сокрытия открытия двух слоев
 function sh2( layer1 )
 {
-     if (eval(layerRef+'["'+layer1+'"]'+styleSwitch+'.display == visibleVar2')){ 
-     h (layer1)
-     layer1=0; 
-     }else{ 
-     eval(layerRef+'["'+layer1+'"]'+styleSwitch+'.display="inline"');
-     layer1=1;
-     }
+	if (eval(layerRef + '["' + layer1 + '"]' + styleSwitch + '.display == visibleVar2')) {
+		h(layer1);
+	} else {
+		eval(layerRef + '["' + layer1 + '"]' + styleSwitch + '.display="inline"');
+	}
 }
-
-var fileInput;
 
 function BrowseServer(obj)
 {
-	fileInput = obj;
+	document.fileInput = obj;
 	// You can use the "CKFinder" class to render CKFinder in a page:
-	var finder = new CKFinder() ;
+	const finder = new CKFinder() ;
 	finder.BasePath = '../_gpl/ckfinder/' ;	// The path for the installation of CKFinder (default = "/ckfinder/").
 	finder.SelectFunction = SetFileField ;
 	finder.Popup() ;
@@ -137,5 +130,5 @@ function BrowseServer(obj)
 // This is a sample function which is called when a file is selected in CKFinder.
 function SetFileField( fileUrl )
 {
-	document.getElementById( fileInput ).value = fileUrl ;
+	document.getElementById( document.fileInput ).value = fileUrl ;
 }

@@ -68,11 +68,16 @@ class Request
      *
      * @param string $name Название GET-параметра
      *
-     * @return string Если параметр не задан, вернёт пустую строку
+     * @return mixed Если параметр не задан, вернёт пустую строку
      */
-    public function get(string $name, string $default = ''): string
+    public function get(string $name, string $default = '')
     {
         return $_GET[$name] ?? $default;
+    }
+
+    public function set(string $name, string $value): void
+    {
+        $_GET[$name] = $value;
     }
 
     /**

@@ -19,12 +19,13 @@ class Model extends AbstractModel
     /**
      * {@inheritdoc}
      */
-    public function getList()
+    public function getList(): array
     {
         $addons = $this->obj->fields[$this->fieldName]['available'];
         $list = [];
         foreach ($addons as $addon) {
             $class = Util::getClassName($addon, 'Addon') . '\\Config';
+            /** @noinspection PhpUndefinedVariableInspection */
             $list[$addon] = $class::$params['name'];
         }
         return $list;

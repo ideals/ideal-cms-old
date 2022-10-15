@@ -9,6 +9,7 @@
 
 namespace Ideal\Field\Referer;
 
+use Exception;
 use Ideal\Field\AbstractController;
 
 /**
@@ -29,8 +30,9 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $value = htmlspecialchars($this->getValue());
         return
@@ -42,11 +44,11 @@ class Controller extends AbstractController
     /**
      * {@inheritdoc}
      */
-    public function getValueForList($values, $fieldName)
+    public function getValueForList(array $values, string $fieldName): string
     {
         $value = parent::getValueForList($values, $fieldName);
         // Отлавливаем прямой переход
-        if ($value == 'null') {
+        if ($value === 'null') {
             $value = 'Прямой переход';
         } elseif (strripos($value, 'yandex') !== false) { // Отлавливаем яндекс
             $value = 'Яндекс';

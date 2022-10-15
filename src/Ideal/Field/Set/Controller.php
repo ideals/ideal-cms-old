@@ -9,8 +9,10 @@
 
 namespace Ideal\Field\Set;
 
+use Exception;
 use Ideal\Core\Request;
 use Ideal\Field\AbstractController;
+use Ideal\Medium\AbstractModel;
 
 /**
  * Визуальный вывод и сохранение данных MySQL типа SET
@@ -37,20 +39,21 @@ class Controller extends AbstractController
     protected static $instance;
 
     /** @var array Список вариантов выбора для select */
-    protected $list;
+    protected array $list;
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $html = '<div class="col-xs-12"'
             . ' style="max-height:120px; overflow-y: scroll; border: 1px solid #C0C0C0; border-radius: 5px;"'
             . ' name="' . $this->htmlName . '" id="' . $this->htmlName . '">';
-        $value = $this->getValue();
+        $value = explode(',', $this->getValue());
         foreach ($this->list as $v) {
             $checked = '';
-            if (array_search($v, $value) !== false) {
+            if (in_array($v, $value, true)) {
                 $checked = ' checked="checked"';
             }
             $html .= '<label class="checkbox"><input type="checkbox" value="' . $v . '" '
@@ -63,31 +66,20 @@ class Controller extends AbstractController
     /**
      * {@inheritdoc}
      */
-    public function getValue()
-    {
-        $value = parent::getValue();
-        $value = explode(',', $value);
-        return $value;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function pickupNewValue()
+    public function pickupNewValue(): string
     {
         $request = new Request();
         $fieldName = $this->groupName . '_' . $this->name;
-        $this->newValue = $request->$fieldName;
-        if (is_array($this->newValue)) {
-            $this->newValue = implode(',', $this->newValue);
-        }
+        $newValue = $request->$fieldName;
+        $this->newValue = is_array($newValue) ? implode(',', $newValue) : $newValue;
+
         return $this->newValue;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function setModel($model, $fieldName, $groupName = 'general')
+    public function setModel($model, string $fieldName, string $groupName = 'general'): void
     {
         parent::setModel($model, $fieldName, $groupName);
 
@@ -99,8 +91,8 @@ class Controller extends AbstractController
 
         // Загоняем в $this->list список значений select
         $className = $this->field['medium'];
-        /** @var \Ideal\Medium\AbstractModel $medium */
+        /** @var AbstractModel $medium */
         $medium = new $className();
-        $this->list = $medium->getList($this->model, $fieldName);
+        $this->list = $medium->getList();
     }
 }

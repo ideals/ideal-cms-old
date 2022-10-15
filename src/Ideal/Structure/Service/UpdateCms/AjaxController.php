@@ -9,7 +9,9 @@
 
 namespace Ideal\Structure\Service\UpdateCms;
 
+use Exception;
 use Ideal\Core\Config;
+use JsonException;
 
 /**
  * Обновление IdealCMS или одного модуля
@@ -18,11 +20,14 @@ use Ideal\Core\Config;
 class AjaxController extends \Ideal\Core\Admin\AjaxController
 {
     /** @var string Сервер обновлений */
-    protected $srv = 'http://idealcms.ru/update';
+    protected string $srv = 'https://idealcms.ru/update';
 
     /** @var Model  */
-    protected $updateModel;
+    protected Model $updateModel;
 
+    /**
+     * @throws Exception
+     */
     public function __construct()
     {
         $config = Config::getInstance();
@@ -31,67 +36,64 @@ class AjaxController extends \Ideal\Core\Admin\AjaxController
         $getFileScript = $this->srv . '/getNext.php';
 
 
-        if (is_null($config->cms['tmpFolder']) || ($config->cms['tmpFolder'] == '')) {
+        if ($config->cms['tmpFolder'] === null || ($config->cms['tmpFolder'] === '')) {
             $this->updateModel->addAnswer('В настройках не указана папка для хранения временных файлов', 'error');
             exit;
         }
 
         // Папка для хранения загруженных файлов обновлений
         $uploadDir = DOCUMENT_ROOT . $config->cms['tmpFolder'] . '/update';
-        if (!file_exists($uploadDir)) {
-            if (!mkdir($uploadDir, 0755, true)) {
-                $this->updateModel->addAnswer('Не удалось создать папку' . $uploadDir, 'error');
-                exit;
-            }
+        if (!file_exists($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+            $this->updateModel->addAnswer('Не удалось создать папку' . $uploadDir, 'error');
+            exit;
         }
 
         // Папка для разархивации файлов новой CMS
         // Пример /www/example.com/tmp/setup/Update
         define('SETUP_DIR', $uploadDir . '/setup');
-        if (!file_exists(SETUP_DIR)) {
-            if (!mkdir(SETUP_DIR, 0755, true)) {
-                $this->updateModel->addAnswer('Не удалось создать папку' . SETUP_DIR, 'error');
-                exit;
-            }
+        if (!file_exists(SETUP_DIR)
+            && !mkdir($concurrentDirectory = SETUP_DIR, 0755, true)
+            && !is_dir($concurrentDirectory)
+        ) {
+            $this->updateModel->addAnswer('Не удалось создать папку' . SETUP_DIR, 'error');
+            exit;
         }
 
         $this->updateModel->setUpdateFolders(
-            array(
-                'getFileScript' => $getFileScript,
-                'uploadDir' => $uploadDir
-            )
+            compact('getFileScript', 'uploadDir')
         );
 
         // Создаём сессию для хранения данных между ajax запросами
-        if (session_id() == '') {
+        if (session_id() === '') {
             session_start();
         }
 
-        if (!isset($_POST['version']) || !isset($_POST['name'])) {
+        if (!isset($_POST['version'], $_POST['name'])) {
             $this->updateModel->addAnswer('Непонятно, что обновлять. Не указаны version и name', 'error');
             exit;
-        } else {
-            $this->updateModel->setUpdate($_POST['name'], $_POST['version'], $_POST['currentVersion']);
         }
 
+        $this->updateModel->setUpdate($_POST['name'], $_POST['version'], $_POST['currentVersion']);
+
         if (isset($_SESSION['update'])) {
-            if ($_SESSION['update']['name'] != $this->updateModel->updateName ||
-                $_SESSION['update']['version'] != $this->updateModel->updateVersion) {
+            if ($_SESSION['update']['name'] !== $this->updateModel->updateName ||
+                $_SESSION['update']['version'] !== $this->updateModel->updateVersion) {
                 unset($_SESSION['update']);
             }
         }
         if (!isset($_SESSION['update'])) {
-            $_SESSION['update'] = array(
+            $_SESSION['update'] = [
                 'name' => $this->updateModel->updateName,
                 'version' => $this->updateModel->updateVersion,
-            );
+            ];
         }
     }
 
     /**
      * Загрузка архива с обновлениями
+     * @throws Exception
      */
-    public function ajaxDownloadAction()
+    public function ajaxDownloadAction(): void
     {
         // Скачиваем архив с обновлениями
         $_SESSION['update']['archive'] = $this->updateModel->downloadUpdate();
@@ -99,11 +101,15 @@ class AjaxController extends \Ideal\Core\Admin\AjaxController
     }
 
     // Распаковка архива с обновлением
-    public function ajaxUnpackAction()
+
+    /**
+     * @throws Exception
+     */
+    public function ajaxUnpackAction(): void
     {
-        $archive = isset($_SESSION['update']['archive']) ? $_SESSION['update']['archive'] : null;
+        $archive = $_SESSION['update']['archive'] ?? null;
         if (!$archive) {
-            $this->updateModel->addAnswer('Неполучен путь к файлу архива', 'error');
+            $this->updateModel->addAnswer('Не получен путь к файлу архива', 'error');
             exit;
         }
         $this->updateModel->unpackUpdate($archive);
@@ -112,8 +118,9 @@ class AjaxController extends \Ideal\Core\Admin\AjaxController
 
     /**
      * Получение скриптов, которые необходимо выполнить для перехода на новую версию
+     * @throws Exception
      */
-    public function ajaxGetUpdateScriptAction()
+    public function ajaxGetUpdateScriptAction(): void
     {
         // Запускаем выполнение скриптов и запросов
         $_SESSION['update']['scripts'] = $this->updateModel->getUpdateScripts();
@@ -122,8 +129,9 @@ class AjaxController extends \Ideal\Core\Admin\AjaxController
 
     /**
      * Замена старого каталога на новый
+     * @throws Exception
      */
-    public function ajaxSwapAction()
+    public function ajaxSwapAction(): void
     {
         $_SESSION['update']['oldFolder'] = $this->updateModel->swapUpdate();
         exit;
@@ -131,8 +139,9 @@ class AjaxController extends \Ideal\Core\Admin\AjaxController
 
     /**
      * Выполнение одного скрипта из списка полученных скриптов
+     * @throws Exception
      */
-    public function ajaxRunScriptAction()
+    public function ajaxRunScriptAction(): void
     {
         if (!isset($_SESSION['update']['scripts'])) {
             exit;
@@ -158,8 +167,9 @@ class AjaxController extends \Ideal\Core\Admin\AjaxController
 
     /**
      *
+     * @throws Exception
      */
-    public function ajaxEndVersionAction()
+    public function ajaxEndVersionAction(): void
     {
         // Записываем текущую версию в сессию
         $_SESSION['update']['currentVersion'] = $_SESSION['update']['archive']['version'];
@@ -169,15 +179,15 @@ class AjaxController extends \Ideal\Core\Admin\AjaxController
         );
 
         // Получаем раздел со старой версией
-        $oldFolder = isset($_SESSION['update']['oldFolder']) ? $_SESSION['update']['oldFolder'] : null;
+        $oldFolder = $_SESSION['update']['oldFolder'] ?? null;
         if (!$oldFolder) {
             $this->updateModel->addAnswer('Не удалось удалить раздел со старой версией.', 'warning');
         }
         // Удаляем старую папку
         $this->updateModel->removeDirectory($oldFolder);
         $data = null;
-        if ($_SESSION['update']['archive']['version'] != $this->updateModel->updateVersion) {
-            $data = array('next' => 'true', 'currentVersion' => $_SESSION['update']['currentVersion']);
+        if ($_SESSION['update']['archive']['version'] !== $this->updateModel->updateVersion) {
+            $data = ['next' => 'true', 'currentVersion' => $_SESSION['update']['currentVersion']];
         }
         $this->updateModel->addAnswer(
             'Обновление на версию ' . $_SESSION['update']['currentVersion'] . ' произведено успешно',
@@ -189,16 +199,20 @@ class AjaxController extends \Ideal\Core\Admin\AjaxController
 
     /**
      * Последний этап выполнения обновления
+     * @throws Exception
      */
-    public function ajaxFinishAction()
+    public function ajaxFinishAction(): void
     {
         $this->updateModel->addAnswer('Обновление завершено успешно', 'success');
         exit;
     }
 
+    /**
+     * @throws JsonException
+     */
     public function __destruct()
     {
         $result = $this->updateModel->getAnswer();
-        echo json_encode($result);
+        echo json_encode($result, JSON_THROW_ON_ERROR);
     }
 }

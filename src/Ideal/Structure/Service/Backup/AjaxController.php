@@ -27,7 +27,7 @@ class AjaxController extends CoreAjaxController
      * Создаём дамп базы данных
      * @throws Exception
      */
-    public function createDumpAction()
+    public function createDumpAction(): void
     {
         if (isset($_POST['createMysqlDump'])) {
             $config = Config::getInstance();
@@ -90,7 +90,7 @@ class AjaxController extends CoreAjaxController
     /**
      * Удаление файла
      */
-    public function deleteAction()
+    public function deleteAction(): void
     {
         if (!isset($_POST['name'])) {
             echo 'Ошибка: нет имени файла для удаления';
@@ -108,7 +108,7 @@ class AjaxController extends CoreAjaxController
     /**
      * Скачивание файла
      */
-    public function downloadAction()
+    public function downloadAction(): void
     {
         header('Content-Description: File Transfer');
         header('Content-Type: application/force-download');
@@ -145,7 +145,7 @@ class AjaxController extends CoreAjaxController
     /**
      * Импортирование БД
      */
-    public function importAction()
+    public function importAction(): void
     {
         // Инициализируем доступ к БД
         $db = Db::getInstance();
@@ -181,12 +181,13 @@ class AjaxController extends CoreAjaxController
 
     /**
      * Загружаем сторонний файл дампа БД
+     * @throws Exception
      */
-    public function uploadFileAction()
+    public function uploadFileAction(): void
     {
         // Функция для выхода из скрипта
-        $exitScript = function ($html, $error) {
-            echo json_encode(array('html' => $html, 'error' => $error));
+        $exitScript = static function ($html, $error) {
+            echo json_encode(compact('html', 'error'), JSON_THROW_ON_ERROR);
             exit;
         };
 
@@ -195,7 +196,7 @@ class AjaxController extends CoreAjaxController
         }
 
         $time = time();
-        $isOverride = false; // перезаписан ли файл
+//        $isOverride = false; // перезаписан ли файл
 
         // Папка сохранения дампов
         $backupPart = stream_resolve_include_path($_GET['bf']);
@@ -213,7 +214,7 @@ class AjaxController extends CoreAjaxController
         $ext = substr($srcName, strrpos($srcName, '.') + 1);
 
         // Проверяем соответствие имени загружаемого файла шаблону имени для дампа
-        preg_match("/dump_([0-9]{4}\.[0-9]{2}\.[0-9]{2}_[0-9]{2}\.[0-9]{2}\.[0-9]{2}_v[0-9a-z\.]{3,})[\._]/Usmi", $srcName, $m);
+        preg_match('/dump_(\d{4}\.\d{2}\.\d{2}_\d{2}\.\d{2}\.\d{2}_v[0-9a-z\.]{3,})[\._]/Umi', $srcName, $m);
 
         // Имя файла дампа
         $timeName = (!empty($m[1])) ? $m[1] : date('Y.m.d_H.i.s', $time) . '_' . $version;
@@ -225,7 +226,7 @@ class AjaxController extends CoreAjaxController
         // Полный путь до архива .gz
         $dumpNameGz = $dumpNameFull . '.gz';
 
-        if (!in_array($ext, array('gz', 'zip', 'sql'))) {
+        if (!in_array($ext, ['gz', 'zip', 'sql'])) {
             $exitScript('', 'Ошибка: расширение файла должно быть .gz, .sql или .zip');
         }
 
@@ -257,30 +258,30 @@ class AjaxController extends CoreAjaxController
                 // Получаем список файлов в архиве
                 $file_list = $archive->listContent();
 
-                if ($file_list == 0 || count($file_list) != 1) {
+                if ($file_list === 0 || count($file_list) !== 1) {
                     unlink($dumpNameFull);  // удаляем загруженный файл
                     $exitScript('', 'Ошибка: в архиве должен быть один .sql файл');
                 }
 
                 $file = $file_list[0];
-                if (!($file['status'] == 'ok' && $file['size'] > 0)) {
+                if (!($file['status'] === 'ok' && $file['size'] > 0)) {
                     unlink($dumpNameFull);  // удаляем загруженный файл
                     $exitScript('', 'Ошибка: .sql файл в архиве поврежден или пустой');
                 }
 
                 $ext = substr($file['filename'], strrpos($file['filename'], '.') + 1);
-                if ($ext != 'sql') {
+                if ($ext !== 'sql') {
                     unlink($dumpNameFull);  // удаляем загруженный файл
                     $exitScript('', 'Ошибка: расширение файла должно быть .sql');
                 }
 
                 // Меняем обратные слэши на прямые
-                $rBackupPart = str_replace("\\", "/", $backupPart);
+                $rBackupPart = str_replace("\\", '/', $backupPart);
 
                 // Распаковываем архив в папку с бэкапами
                 $files = $archive->extract($rBackupPart);
 
-                if ($files == 0) {
+                if ($files === 0) {
                     $exitScript('', 'Ошибка: не удалось распаковать ZIP-архив');
                 }
 
@@ -313,7 +314,7 @@ class AjaxController extends CoreAjaxController
 
             . '</td></tr>';
 
-        echo json_encode(array('html' => $html, 'error' => false));
+        echo json_encode(['html' => $html, 'error' => false], JSON_THROW_ON_ERROR);
 
         exit;
     }

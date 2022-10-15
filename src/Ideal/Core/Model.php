@@ -10,7 +10,10 @@
 // @codingStandardsIgnoreFile
 namespace Ideal\Core;
 
+use Exception;
 use Ideal\Field\Url;
+use JsonException;
+use RuntimeException;
 
 abstract class Model
 {
@@ -18,30 +21,36 @@ abstract class Model
     public $fields;
 
     /** @var bool Флаг 404-ошибки */
-    public $is404 = false;
+    public bool $is404 = false;
 
-    public $params;
+    public array $params;
 
-    protected $_table;
+    protected string $_table;
 
     protected $module;
 
-    protected $pageData;
+    protected array $pageData;
 
-    protected $pageNum;
+    protected int $pageNum = 1;
 
-    protected $pageNumTitle = ' | Страница [N]';
+    protected string $pageNumTitle = ' | Страница [N]';
 
-    protected $parentUrl;
+    protected string $parentUrl = '';
 
-    protected $path = array();
+    protected array $path = [];
 
-    protected $prevStructure;
+    protected string $prevStructure;
 
     /** @var Model Используется только в Addon для обозначения модели-владельца аддона */
     protected $parentModel;
-    protected $fieldsGroup = 'general';
 
+    protected string $fieldsGroup = 'general';
+
+    /**
+     * @param $prevStructure
+     * @throws Exception
+     * @noinspection MultiAssignmentUsageInspection
+     */
     public function __construct($prevStructure)
     {
         $this->prevStructure = $prevStructure;
@@ -50,6 +59,7 @@ abstract class Model
 
         $parts = preg_split('/[_\\\\]+/', get_class($this));
         $this->module = $parts[0];
+
         $type = $parts[1]; // Structure или Addon
         $structureName = $parts[2];
         $structureFullName = $this->module . '_' . $structureName;
@@ -80,8 +90,7 @@ abstract class Model
                 $cfg = new $className();
                 break;
             default:
-                throw new \Exception('Неизвестный тип: ' . $type);
-                break;
+                throw new RuntimeException('Неизвестный тип: ' . $type);
         }
 
         $this->params = $cfg::$params;
@@ -95,19 +104,16 @@ abstract class Model
      *
      * @return string Сокращённое имя структуры, используемое в БД
      */
-    public static function getStructureName()
+    public function getStructureName(): string
     {
-        $parts = explode('\\', get_called_class());
+        $parts = explode('\\', static::class);
+
         return $parts[0] . '_' . $parts[2];
     }
 
-    public function __get($name)
-    {
-        if ($name == 'object') {
-            throw new \Exception('Свойство object упразднено.');
-        }
-    }
-
+    /**
+     * @noinspection MultipleReturnStatementsInspection
+     */
     public function detectActualModel()
     {
         $config = Config::getInstance();
@@ -115,7 +121,7 @@ abstract class Model
         $count = count($this->path);
 
         $class = get_class($this);
-        if ($class == 'Ideal\\Structure\\Home\\Site\\Model') {
+        if ($class === \Ideal\Structure\Home\Site\Model::class) {
             // В случае если у нас открыта главная страница, не нужно переопределять модель как обычной страницы
             return $model;
         }
@@ -157,12 +163,13 @@ abstract class Model
      *
      * @param object $model Массив переменных объекта
      * @return $this Либо ссылка на самого себя, либо новый объект модели
+     * @noinspection PhpMissingReturnTypeInspection
      */
-    public function setVars($model)
+    public function setVars(object $model)
     {
         $vars = get_object_vars($model);
         foreach ($vars as $k => $v) {
-            if (in_array($k, array('_table', 'module', 'params', 'fields', 'prevStructure'))) {
+            if (in_array($k, ['_table', 'module', 'params', 'fields', 'prevStructure'])) {
                 continue;
             }
             $this->$k = $v;
@@ -176,25 +183,26 @@ abstract class Model
      * Определение пути с помощью prev_structure по инициализированному $pageData
      *
      * @return array Массив, содержащий элементы пути к $pageData
+     * @throws Exception
      */
-    public function detectPath()
+    public function detectPath(): array
     {
         $config = Config::getInstance();
 
         // Определяем локальный путь в этой структуре
         $localPath = $this->getLocalPath();
 
-        // По первому элементу в локальном пути, опеределяем, какую структуру нужно вызвать
+        // По первому элементу в локальном пути, определяем, какую структуру нужно вызвать
         if (isset($localPath[0])) {
             $first = $localPath[0];
         } else {
             $first['prev_structure'] = $this->prevStructure;
         }
 
-        list($prevStructureId, $prevElementId) = explode('-', $first['prev_structure']);
+        [$prevStructureId, $prevElementId] = explode('-', $first['prev_structure']);
         $structure = $config->getStructureByPrev($first['prev_structure']);
 
-        if ($prevStructureId == 0) {
+        if ((int)$prevStructureId === 0) {
             // Если предыдущая структура стартовая — заканчиваем
             array_unshift($localPath, $structure);
             return $localPath;
@@ -208,9 +216,7 @@ abstract class Model
         $structure->setPageDataById($prevElementId);
 
         $path = $structure->detectPath();
-        $path = array_merge($path, $localPath);
-
-        return $path;
+        return array_merge($path, $localPath);
     }
 
     // Устанавливаем информацию о странице
@@ -220,48 +226,46 @@ abstract class Model
      * Этот метод обязательно должен быть переопределён перед использованием.
      * Если он не будет переопределён, то будет вызвано исключение.
      *
-     * @throws \Exception
+     * @throws Exception
      */
-    protected function getLocalPath()
+    protected function getLocalPath(): array
     {
-        throw new \Exception('Вызов не переопределённого метода getLocalPath');
+        throw new RuntimeException('Вызов не переопределённого метода getLocalPath');
     }
 
     /**
-     * @param int $page Номер отображаемой страницы
+     * @param int|null $page Номер отображаемой страницы
      * @return array Полученный список элементов
      */
-    public function getList($page = null)
+    public function getList(?int $page = null): array
     {
         $db = Db::getInstance();
 
         if (!empty($this->filter)) {
             $_sql = $this->filter->getSql();
         } else {
-            $where = ($this->prevStructure !== '') ? "e.prev_structure='{$this->prevStructure}'" : '';
+            $where = ($this->prevStructure !== '') ? "e.prev_structure='$this->prevStructure'" : '';
             $where = $this->getWhere($where);
             $order = $this->getOrder();
-            $_sql = "SELECT e.* FROM {$this->_table} AS e {$where} {$order}";
+            $_sql = "SELECT e.* FROM $this->_table AS e $where $order";
         }
 
-        if (is_null($page)) {
+        if ($page === null) {
             $this->setPageNum($page);
         } else {
             // Определяем кол-во отображаемых элементов на основании названия класса
             $class = strtolower(get_class($this));
             $class = explode('\\', trim($class, '\\'));
-            $nameParam = ($class[3] == 'admin') ? 'elements_cms' : 'elements_site';
+            $nameParam = ($class[3] === 'admin') ? 'elements_cms' : 'elements_site';
             $onPage = $this->params[$nameParam];
 
             $page = $this->setPageNum($page);
             $start = ($page - 1) * $onPage;
 
-            $_sql .= " LIMIT {$start}, {$onPage}";
+            $_sql .= " LIMIT $start, $onPage";
         }
 
-        $list = $db->select($_sql);
-
-        return $list;
+        return $db->select($_sql);
     }
 
     /**
@@ -270,14 +274,15 @@ abstract class Model
      * @param string $where Исходная WHERE-часть
      * @return string Модифицированная WHERE-часть, с расширенным запросом, если установлена GET-переменная category
      */
-    protected function getWhere($where)
+    protected function getWhere(string $where): string
     {
-        if ($where != '') {
+        if ($where !== '') {
             // Убираем из строки начальные команды AND или OR
             $where = trim($where);
             $where = preg_replace('/(^AND)|(^OR)/i', '', $where);
             $where = 'WHERE ' . $where;
         }
+
         return $where;
     }
 
@@ -286,35 +291,37 @@ abstract class Model
      *
      * @return string Сформированная ORDER-часть
      */
-    protected function getOrder()
+    protected function getOrder(): string
     {
         $request = new Request();
         $order = 'ORDER BY e.';
-        if ($request->asc) {
-            $order .= $request->asc;
-        } elseif ($request->desc) {
-            $order .= $request->desc . ' DESC';
+        if ($request->get('asc')) {
+            $order .= $request->get('asc');
+        } elseif ($request->get('desc')) {
+            $order .= $request->get('desc') . ' DESC';
         } else {
             $order .= $this->params['field_sort'];
         }
+
         return $order;
     }
 
     /**
      * Получение из БД данных открытой страницы (в том числе и подключённых аддонов)
      *
-     * @return mixed
-     * @throws \Exception
+     * @return array
+     * @throws Exception
+     * @noinspection PhpConditionAlreadyCheckedInspection
      */
-    public function getPageData()
+    public function getPageData(): array
     {
-        if (is_null($this->pageData)) {
+        if ($this->pageData === null) {
             $this->initPageData();
         }
         return $this->pageData;
     }
 
-    public function setPageData($pageData)
+    public function setPageData($pageData): void
     {
         $this->pageData = $pageData;
     }
@@ -323,22 +330,24 @@ abstract class Model
      * Установка pageData по ID элемента
      *
      * @param int $id ID элемента
-     * @throws \Exception В случае, если нет элемента с указанным ID
+     * @throws RuntimeException В случае, если нет элемента с указанным ID
+     * @throws JsonException
      */
-    public function initPageDataById($id)
+    public function initPageDataById(int $id): void
     {
-        $id = (int)$id;
-
         $db = Db::getInstance();
-        $result = $db->select('SELECT * FROM ' . $this->_table . ' WHERE ID=:id', array('id' => $id));
+        $result = $db->select('SELECT * FROM ' . $this->_table . ' WHERE ID=:id', ['id' => $id]);
         if (empty($result[0])) {
-            throw new \Exception('Элемент не найден');
+            throw new RuntimeException('Элемент не найден');
         }
 
         $this->initPageData($result[0]);
     }
 
-    public function initPageData($pageData = null)
+    /**
+     * @throws JsonException
+     */
+    public function initPageData($pageData = null): void
     {
         if ($pageData === null) {
             $this->pageData = end($this->path);
@@ -362,7 +371,7 @@ abstract class Model
             // Определяем структуру на основании названия класса
             $structure = $config->getStructureByClass(get_class($this));
 
-            if ($structure === false) {
+            if ($structure === null) {
                 // Не удалось определить структуру из конфига (Home)
                 // Определяем структуру, к которой принадлежит последний элемент пути
                 $prev = count($this->path) - 2;
@@ -370,25 +379,25 @@ abstract class Model
                     $prev = $this->path[$prev];
                     $structure = $config->getStructureByName($prev['structure']);
                 } else {
-                    throw new \Exception('Не могу определить структуру для шаблона');
+                    throw new RuntimeException('Не могу определить структуру для шаблона');
                 }
             }
 
             // Обходим все аддоны, подключенные к странице
-            $addonsInfo = json_decode($this->pageData[$k]);
+            $addonsInfo = json_decode($this->pageData[$k], true, 512, JSON_THROW_ON_ERROR);
 
             if (is_array($addonsInfo)) {
                 foreach ($addonsInfo as $addonInfo) {
                     // Инициализируем модель аддона
                     $class = strtolower(get_class($this));
                     $class = explode('\\', trim($class, '\\'));
-                    $modelName = ($class[3] == 'admin') ? '\\AdminModel' : '\\SiteModel';
+                    $modelName = ($class[3] === 'admin') ? '\\AdminModel' : '\\SiteModel';
                     $className = Util::getClassName($addonInfo[1], 'Addon') . $modelName;
                     $prevStructure = $structure['ID'] . '-' . $this->pageData['ID'];
                     $addon = new $className($prevStructure);
                     $addon->setParentModel($this);
-                    list(, $fildsGroup) = explode('_', $addonInfo[1]);
-                    $addon->setFieldsGroup(strtolower($fildsGroup) . '-' . $addonInfo[0]);
+                    [, $fieldsGroup] = explode('_', $addonInfo[1]);
+                    $addon->setFieldsGroup(strtolower($fieldsGroup) . '-' . $addonInfo[0]);
                     $pageData = $addon->getPageData();
                     if (!empty($pageData)) {
                         $this->pageData['addons'][] = $pageData;
@@ -402,13 +411,14 @@ abstract class Model
      * Получение листалки для шаблона и стрелок вправо/влево
      *
      * @param string $pageName Название get-параметра, содержащего страницу
-     * @return mixed
+     * @return null|array
+     * @noinspection DuplicatedCode
      */
-    public function getPager($pageName)
+    public function getPager(string $pageName): ?array
     {
         // По заданному названию параметра страницы определяем номер активной страницы
         $request = new Request();
-        $page = $this->setPageNum($request->{$pageName});
+        $page = $this->setPageNum((int)$request->get($pageName));
 
         // Строка запроса без нашего параметра номера страницы
         $query = $request->getQueryWithout($pageName);
@@ -416,7 +426,7 @@ abstract class Model
         // Определяем кол-во отображаемых элементов на основании названия класса
         $class = strtolower(get_class($this));
         $class = explode('\\', trim($class, '\\'));
-        $nameParam = ($class[3] == 'admin') ? 'elements_cms' : 'elements_site';
+        $nameParam = ($class[3] === 'admin') ? 'elements_cms' : 'elements_site';
         $onPage = $this->params[$nameParam];
 
         $countList = $this->getListCount();
@@ -424,14 +434,14 @@ abstract class Model
         if (($countList > 0) && (ceil($countList / $onPage) < $page)) {
             // Если для запрошенного номера страницы нет элементов - выдать 404
             $this->is404 = true;
-            return false;
+            return null;
         }
 
         $pagination = new Pagination();
         // Номера и ссылки на доступные страницы
         $pager['pages'] = $pagination->getPages($countList, $onPage, $page, $query, $pageName);
-        $pager['prev'] = $pagination->getPrev(); // ссылка на предыдущю страницу
-        $pager['next'] = $pagination->getNext(); // cсылка на следующую страницу
+        $pager['prev'] = $pagination->getPrev(); // ссылка на предыдущую страницу
+        $pager['next'] = $pagination->getNext(); // ссылка на следующую страницу
         $pager['total'] = $countList; // общее количество элементов в списке
         $pager['num'] = $onPage; // количество элементов на странице
 
@@ -443,18 +453,18 @@ abstract class Model
      *
      * @return int Количество элементов в списке
      */
-    public function getListCount()
+    public function getListCount(): int
     {
         $db = Db::getInstance();
 
         if (!empty($this->filter)) {
             $_sql = $this->filter->getSqlCount();
         } else {
-            $where = ($this->prevStructure !== '') ? "e.prev_structure='{$this->prevStructure}'" : '';
+            $where = ($this->prevStructure !== '') ? "e.prev_structure='$this->prevStructure'" : '';
             $where = $this->getWhere($where);
 
             // Считываем все элементы первого уровня
-            $_sql = "SELECT COUNT(e.ID) FROM {$this->_table} AS e {$where}";
+            $_sql = "SELECT COUNT(e.ID) FROM $this->_table AS e $where";
         }
         $list = $db->select($_sql);
 
@@ -466,14 +476,14 @@ abstract class Model
      *
      * @return int Номер отображаемой страницы
      */
-    public function getPageNum()
+    public function getPageNum(): int
     {
-        return isset($this->pageNum) ? $this->pageNum : 1;
+        return $this->pageNum ?? 1;
     }
 
-    public function getParentUrl()
+    public function getParentUrl(): string
     {
-        if ($this->parentUrl != '') {
+        if ($this->parentUrl !== '') {
             return $this->parentUrl;
         }
 
@@ -483,7 +493,7 @@ abstract class Model
         return $this->parentUrl;
     }
 
-    public function getPath()
+    public function getPath(): array
     {
         return $this->path;
     }
@@ -493,43 +503,42 @@ abstract class Model
      *
      * @return string
      */
-    public function getTableName()
+    public function getTableName(): string
     {
         return $this->_table;
     }
 
-    public function setPath($path)
+    public function setPath($path): void
     {
         $this->path = $path;
         $end = end($path);
         if (empty($end['prev_structure'])) {
-            if (empty($end['ID'])) {
-                // это 404-ая страница, prev_structure устанавливать не надо
-            } else {
+            // это 404-ая страница, prev_structure устанавливать не надо
+            if (!empty($end['ID'])) {
                 // непонятно, когда такой случай может быть, скорее всего это ошибка
-                throw new \Exception('prev_structure don`t set');
+                throw new RuntimeException('prev_structure don`t set');
             }
         } else {
             $this->prevStructure = $end['prev_structure'];
         }
     }
 
-    public function getPrevStructure()
+    public function getPrevStructure(): string
     {
         return $this->prevStructure;
     }
 
-    public function setPrevStructure($prevStructure)
+    public function setPrevStructure($prevStructure): void
     {
         $this->prevStructure = $prevStructure;
     }
 
-    public function setPageDataById($id)
+    public function setPageDataById($id): void
     {
         $db = Db::getInstance();
 
-        $_sql = "SELECT * FROM {$this->_table} WHERE ID=:id";
-        $pageData = $db->select($_sql, array('id' => $id));
+        $_sql = "SELECT * FROM $this->_table WHERE ID=:id";
+        $pageData = $db->select($_sql, ['id' => $id]);
         if (isset($pageData[0]['ID'])) {
             // TODO сделать обработку ошибки, когда по ID ничего не нашлось
             $this->setPageData($pageData[0]);
@@ -540,30 +549,30 @@ abstract class Model
      * Установка номера отображаемой страницы
      *
      * С номером страницы всё понятно, а вот $pageNumTitle позволяет изменить стандартный шаблон
-     * суффикса для листалки " | Страница [N]" на любой другой суффикс, где
+     * суффикса для листалки ` | Страница [N]` на любой другой суффикс, где
      * вместе [N] будет подставляться номер страницы.
      *
-     * @param int $pageNum Номер отображаемой страницы
-     * @param null $pageNumTitle Строка для замены стандартного суффикса листалки в тайтле
+     * @param null|int $pageNum Номер отображаемой страницы
+     * @param null|string $pageNumTitle Строка для замены стандартного суффикса листалки в title
      * @return int Безопасный номер страницы
      */
-    public function setPageNum($pageNum, $pageNumTitle = null)
+    public function setPageNum(?int $pageNum, ?string $pageNumTitle = null): int
     {
         if (isset($this->pageNum)) {
             return $this->pageNum;
         }
         $this->pageNum = 0;
         if ($pageNum !== null) {
-            $page = intval(substr($pageNum, 0, 10)); // отсекаем всякую ерунду и слишком большие числа в листалке
+            $page = (int)substr($pageNum, 0, 10); // отсекаем всякую ерунду и слишком большие числа в листалке
             // Если номер страницы отрицательный или ноль, то устанавливаем первую страницу
             $this->pageNum = ($page <= 0) ? 1 : $page;
-            if ($pageNum != 0 && $this->pageNum != $pageNum) {
+            if ($pageNum !== 0 && $this->pageNum !== $pageNum) {
                 // Если корректный номер страницы не совпадает с переданным - 404 ошибка
                 $this->is404 = true;
             }
         }
 
-        if (!is_null($pageNumTitle)) {
+        if ($pageNumTitle !== null) {
             $this->pageNumTitle = $pageNumTitle;
         }
 
@@ -575,7 +584,7 @@ abstract class Model
      *
      * @param $model
      */
-    public function setParentModel($model)
+    public function setParentModel($model): void
     {
         $this->parentModel = $model;
     }
@@ -590,7 +599,7 @@ abstract class Model
         return $this->parentModel;
     }
 
-    public function setFieldsGroup($name)
+    public function setFieldsGroup($name): void
     {
         $this->fieldsGroup = $name;
     }
@@ -613,9 +622,9 @@ abstract class Model
      * Формирование prev_structure из текущего элемента
      *
      * @return string Строка prev_structure
-     * @throws \Exception
+     * @throws Exception
      */
-    public function getSelfStructure()
+    public function getSelfStructure(): string
     {
         $data = $this->getPageData();
         if (isset($data['prev_structure'])) {
@@ -623,7 +632,7 @@ abstract class Model
             $structure = $config->getStructureByClass(get_class($this));
             $prevStructure = $structure['ID'] . '-' . $data['ID'];
         } else {
-            throw new \Exception('No prev_structure in data');
+            throw new RuntimeException('No prev_structure in data');
         }
         return $prevStructure;
     }

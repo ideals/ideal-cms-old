@@ -210,8 +210,7 @@ class ConfigEdit
             }
 
             // Экранируем переводы строки для сохранения в файле
-            $param['value'] = str_replace("\r", '', $param['value']);
-            $param['value'] = str_replace("\n", '\n', $param['value']);
+            $param['value'] = str_replace(["\r", "\n"], ['', '\n'], $param['value']);
 
             $file .= str_repeat(' ', $pad) . "'" . $field . "' => " . '"' . $param['value'] . '", '
                 . '// ' . $param['label'] . ' | ' . $param['type'] . $values . "\n";

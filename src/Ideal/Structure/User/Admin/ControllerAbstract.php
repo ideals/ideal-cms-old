@@ -9,7 +9,6 @@
 
 namespace Ideal\Structure\User\Admin;
 
-use Exception;
 use Ideal\Core\Admin\Controller as AdminController;
 use Ideal\Core\Request;
 use Ideal\Core\View;
@@ -30,20 +29,20 @@ class ControllerAbstract extends AdminController
     /**
      * {@inheritdoc}
      */
-    public function finishMod($actionName)
+    public function finishMod(string $actionName): void
     {
         if ($actionName === 'loginAction') {
-            $this->view->header = '';
-            $this->view->title = 'Вход в систему администрирования';
-            $this->view->structures = [];
-            $this->view->breadCrumbs = '';
+            $this->view->set('header', '');
+            $this->view->set('title', 'Вход в систему администрирования');
+            $this->view->set('structures', []);
+            $this->view->set('breadCrumbs', '');
         }
     }
 
     /**
      * Отображение списка пользователей
      */
-    public function indexAction()
+    public function indexAction(): void
     {
         $this->templateInit();
 
@@ -56,7 +55,7 @@ class ControllerAbstract extends AdminController
 
         $this->parseList($headers, $listing);
 
-        $this->view->pager = $this->model->getPager('page');
+        $this->view->set('pager', $this->model->getPager('page'));
     }
 
     /**
@@ -114,7 +113,7 @@ class ControllerAbstract extends AdminController
         }
 
         $this->templateInit('login.twig');
-        $this->view->message = $user->errorMessage;
+        $this->view->set('message', $user->errorMessage);
 
         if ($this->model === null) {
             $this->model = new Model('');
@@ -127,9 +126,9 @@ class ControllerAbstract extends AdminController
     /**
      * Экшен для вывода уведомления о запрещённом доступе к странице
      */
-    public function accessDeniedAction()
+    public function accessDeniedAction(): void
     {
         $this->templateInit('access-denied.twig');
-        $this->view->header = 'Доступ запрещён';
+        $this->view->set('header', 'Доступ запрещён');
     }
 }

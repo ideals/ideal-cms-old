@@ -7,15 +7,15 @@
  * @license   http://idealcms.ru/license.html LGPL v3
  */
 
-namespace Ideal\Field\Date;
+namespace Ideal\Field\DateStr;
 
+use Exception;
 use Ideal\Core\Request;
 use Ideal\Field\AbstractController;
 
 /**
  * Поле, содержащее дату в формате MySQL Timestamp
  *
- * Для редактирования подключается jQuery-плагин datetimepicker.js, который использует библиотеку Moment.
  * Пример объявления в конфигурационном файле структуры:
  *     'date_create' => array(
  *         'label' => 'Дата создания',
@@ -31,50 +31,36 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $value = $this->getValue();
         $date = empty($value) ? '' : date('d.m.Y H:i:s', strtotime($value));
         $htmlName = $this->htmlName;
-        $html = <<<HTML
-<link href="Ideal/Library/datetimepicker/build/css/bootstrap-datetimepicker.min.css" rel="stylesheet" type="text/css" >
-<script type="text/javascript" src="Ideal/Library/moment/moment.js"></script>
-<script type="text/javascript" src="Ideal/Library/moment/locale/ru.js"></script>
-<script type="text/javascript" src="Ideal/Library/datetimepicker/src/js/bootstrap-datetimepicker.js"></script>
-
-<div id="picker_{$htmlName}" class="input-group date">
+        return <<<HTML
+<div id="picker_$htmlName" class="input-group date">
     <span class="input-group-addon">
         <span class="glyphicon glyphicon-calendar" ></span>
     </span>
-    <input type="text" class="form-control" name="{$htmlName}" value="{$date}" >
+    <input type="datetime-local" class="form-control" name="$htmlName" value="$date" >
 </div>
-
-<script type="text/javascript">
-    $(function () {
-        $('#picker_{$htmlName}').datetimepicker({
-            format: 'DD.MM.YYYY HH:mm:ss',
-            locale: 'ru'
-        });
-    });
-</script>
 HTML;
-
-        return $html;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getValueForList($values, $fieldName)
+    public function getValueForList(array $values, string $fieldName): string
     {
         return date('d.m.Y &\nb\sp; H:i', strtotime($values[$fieldName]));
     }
 
     /**
      * {@inheritdoc}
+     * @noinspection MultipleReturnStatementsInspection
      */
-    public function pickupNewValue()
+    public function pickupNewValue(): string
     {
         $request = new Request();
 

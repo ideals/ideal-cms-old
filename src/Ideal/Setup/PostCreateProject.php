@@ -131,7 +131,7 @@ class PostCreateProject
 
         $this->createTables($adminLogin, $adminPass);
 
-        $update = new PostUpdate($this->vendorDir, $this->event);
+        $update = new PostUpdate($this->vendorDir);
         $update->run();
     }
 

@@ -9,6 +9,7 @@
 
 namespace Ideal\Field\Hidden;
 
+use Exception;
 use Ideal\Field\AbstractController;
 
 /**
@@ -31,18 +32,19 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function showEdit()
+    public function showEdit(): string
     {
         $this->htmlName = $this->groupName . '_' . $this->name;
-        $input = $this->getInputText();
-        return $input;
+        return $this->getInputText();
     }
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         return '<input type="hidden" id="' . $this->htmlName
         . '" name="' . $this->htmlName

@@ -26,22 +26,26 @@
  * 4. В цикле по папкам читаем их содержимое, сортируем
  * 5. Выполняем скрипты в этих папках начиная со следующего после установленного скрипта
  */
-?>
 
-<p id="message">
-    Внимание! Обновление в рамках одинакового первого номера происходит автоматически.<br/>
-    Обновление на другой первый номер версии требует ручного вмешательства.<br/>
-<hr/>
-</p>
+use Ideal\Core\Config;
+use Ideal\Structure\Service\UpdateCms\Versions;
 
-<?php
+print <<<HTML
+    <p id="message">
+        Внимание! Обновление в рамках одинакового первого номера происходит автоматически.<br/>
+        Обновление на другой первый номер версии требует ручного вмешательства.<br/>
+    <hr/>
+    </p>
+HTML;
+
 // Сервер обновлений
 $getVersionScript = 'https://idealcms.ru/update/version.php';
 
-$config = \Ideal\Core\Config::getInstance();
-$versions = new \Ideal\Structure\Service\UpdateCms\Versions();
+$config = Config::getInstance();
+$versions = new Versions();
 
 // Получаем установленные версии CMS и модулей
+/** @noinspection PhpUnhandledExceptionInspection */
 $nowVersions = $versions->getVersions();
 
 $domain = urlencode($config->domain);
@@ -50,9 +54,11 @@ $domain = urlencode($config->domain);
 $url = $getVersionScript . '?domain=' . $domain . '&ver=' . urlencode(serialize($nowVersions));
 
 // Переводим информацию о версиях в формат json для передачи в JS
-$nowVersions = json_encode($nowVersions);
+/** @noinspection PhpUnhandledExceptionInspection */
+$nowVersions = json_encode($nowVersions, JSON_THROW_ON_ERROR);
 
 // Подключаем диалоговое окно
+/** @noinspection UntrustedInclusionInspection */
 include('modalUpdate.html');
 
 $msg = $versions->getAnswer();
@@ -74,7 +80,7 @@ if (count($msg['message'])) {
             default:
                 $classBlock = 'alert alert-info fade in';
         }
-        echo "<div class=\"{$classBlock}\">{$m[0]}</div>\n";
+        echo "<div class=\"$classBlock\">$m[0]</div>\n";
     }
 }
 ?>
@@ -86,9 +92,9 @@ if (count($msg['message'])) {
 
 <!-- Передаём в JS необходимые переменные -->
 <script type="text/javascript">
-    var urlSrv = '<?php echo $url; ?>';
-    var nowVersions = '<?php echo  $nowVersions ?>';
-    var url = '<?php echo $_GET['par']; ?>';
+    let urlSrv = '<?= $url ?>';
+    let nowVersions = '<?= $nowVersions ?>';
+    let url = '<?= $_GET['par'] ?>';
 </script>
 
 <!-- Подключаем ajax скрипты -->

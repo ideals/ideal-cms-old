@@ -9,6 +9,7 @@
 
 namespace Ideal\Field\Checkbox;
 
+use Exception;
 use Ideal\Core\Request;
 use Ideal\Field\AbstractController;
 
@@ -32,28 +33,28 @@ class Controller extends AbstractController
      * Отображение html-элементов для редактирования этого поля
      *
      * @return string HTML-код группы редактирования для этого поля
+     * @throws Exception
      */
-    public function showEdit()
+    public function showEdit(): string
     {
         $input = $this->getInputText();
-        $html = <<<HTML
-        <div id="{$this->htmlName}-control-group" class="form-group checkbox">
-            <div class="{$this->inputClass} {$this->htmlName}-controls">
-                {$input}
-                <div id="{$this->htmlName}-help"></div>
+        return <<<HTML
+        <div id="$this->htmlName-control-group" class="form-group checkbox">
+            <div class="$this->inputClass $this->htmlName-controls">
+                $input
+                <div id="$this->htmlName-help"></div>
             </div>
         </div>
 HTML;
-
-        return $html;
     }
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
-        $checked = ($this->getValue() == 1) ? 'checked="checked"' : '';
+        $checked = ((int)$this->getValue() === 1) ? 'checked="checked"' : '';
         return '<label class="checkbox"><input type="checkbox" name="' . $this->htmlName
         . '" id="' . $this->htmlName . '" '
         . $checked . '> ' . $this->field['label'] . '</label>';
@@ -62,19 +63,19 @@ HTML;
     /**
      * {@inheritdoc}
      */
-    public function getValueForList($values, $fieldName)
+    public function getValueForList(array $values, string $fieldName): string
     {
-        return ($values[$fieldName] == 1) ? 'Да' : 'Нет';
+        return ((int)$values[$fieldName] === 1) ? 'Да' : 'Нет';
     }
 
     /**
      * {@inheritdoc}
      */
-    public function pickupNewValue()
+    public function pickupNewValue(): string
     {
         $request = new Request();
         $fieldName = $this->groupName . '_' . $this->name;
-        $this->newValue = ($request->$fieldName == '') ? 0 : 1;
+        $this->newValue = ($request->$fieldName === '') ? 0 : 1;
         return $this->newValue;
     }
 }

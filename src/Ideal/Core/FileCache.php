@@ -9,6 +9,13 @@
 
 namespace Ideal\Core;
 
+use FilesystemIterator;
+use Ideal\Structure\Service\SiteData\ConfigPhp;
+use JsonException;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use RuntimeException;
+
 /**
  * Класс обеспечивает работу с файловым кэшем
  *
@@ -25,13 +32,13 @@ class FileCache
      * @param string $uri Путь, используется в построении иерархии директорий и имени самого файла.
      * @param int $modifyTime Timestamp представление даты последнего изменения информации о странице
      */
-    public static function saveCache($content, $uri, $modifyTime)
+    public static function saveCache(string $content, string $uri, int $modifyTime): void
     {
         $config = Config::getInstance();
         $configCache = $config->cache;
 
         // Получаем чистый $uri без GET параметров
-        list($uri) = explode('?', $uri, 2);
+        [$uri] = explode('?', $uri, 2);
 
         // Удаляем первый слэш, для использования пути в проверке на исключения
         $stringToCheck = preg_replace('/\//', '', $uri, 1);
@@ -75,14 +82,14 @@ class FileCache
     /**
      * Очищает весь файловый кэш
      */
-    public static function clearFileCache()
+    public static function clearFileCache(): void
     {
         $config = Config::getInstance();
         $ds = DIRECTORY_SEPARATOR;
         $dir = DOCUMENT_ROOT . $config->cms['tmpFolder'] . $ds . 'cache' . $ds . 'fileCache';
         if (is_dir($dir)) {
-            $it = new \RecursiveDirectoryIterator($dir, \RecursiveDirectoryIterator::SKIP_DOTS);
-            $files = new \RecursiveIteratorIterator($it, \RecursiveIteratorIterator::CHILD_FIRST);
+            $it = new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS);
+            $files = new RecursiveIteratorIterator($it, RecursiveIteratorIterator::CHILD_FIRST);
             foreach ($files as $file) {
                 if ($file->isDir()) {
                     rmdir($file->getRealPath());
@@ -95,13 +102,14 @@ class FileCache
     }
 
     /**
-     * Добовляет значение исключения файлового кэша
+     * Добавляет значение исключения файлового кэша
      *
      * @param string $string Адрес для исключения из кэширования
      *
      * @return bool Флаг, отражающий успешность добавления адреса в исключения
+     * @throws JsonException
      */
-    public static function addExcludeFileCache($string)
+    public static function addExcludeFileCache(string $string): bool
     {
         $config = Config::getInstance();
 
@@ -121,29 +129,26 @@ class FileCache
         }
 
         $config = Config::getInstance();
-        $configSD = new \Ideal\Structure\Service\SiteData\ConfigPhp();
+        $configSD = new ConfigPhp();
         $file = DOCUMENT_ROOT . '/' . $config->cmsFolder . '/site_data.php';
         $configSD->loadFile($file);
         $params = $configSD->getParams();
         $excludeCacheFileValue = explode("\n", $params['cache']['arr']['excludeFileCache']['value']);
-        if (array_search($string, $excludeCacheFileValue) === false) {
+
+        $res = true;
+        if (!in_array($string, $excludeCacheFileValue, true)) {
             $excludeCacheFileValue[] = $string;
             $params['cache']['arr']['excludeFileCache']['value'] = implode("\n", $excludeCacheFileValue);
             $configSD->setParams($params);
             $file = DOCUMENT_ROOT . '/' . $config->cmsFolder . '/site_data.php';
-            if ($configSD->saveFile($file) === false) {
-                return false;
-            } else {
-                return true;
-            }
-        } else {
-            return true;
+            $res = (bool)$configSD->saveFile($file);
         }
+
+        return $res;
     }
 
-    public static function getModifyUri(&$uri)
+    public static function getModifyUri(&$uri): array
     {
-
         $config = Config::getInstance();
         $configCache = $config->cache;
 
@@ -153,12 +158,12 @@ class FileCache
         reset($uriArray);
 
         // Если это главная страница или каталог
-        if (!$pageName || !preg_match('/.*\..*$/', $pageName)) {
-            if (!preg_match('/.*\/$/', $uri)) {
+        if (!$pageName || !preg_match('/\..*$/', $pageName)) {
+            if (!preg_match('/\/$/', $uri)) {
                 $uri .= '/';
             }
             $uri .= $configCache['indexFile'];
-            array_push($uriArray, $configCache['indexFile']);
+            $uriArray[] = $configCache['indexFile'];
         }
 
         return $uriArray;
@@ -167,37 +172,40 @@ class FileCache
     /**
      * Проверяет на существование нужную директорию, если таковая отсутствует, то создаёт её
      *
-     * @param string $path путь к папке
+     * @param string $path Путь к папке
      */
-    private static function checkDir($path)
+    private static function checkDir(string $path): void
     {
-        if (!is_dir($path)) {
-            mkdir($path, 0777, true);
+        if (!mkdir($path, 0777, true) && !is_dir($path)) {
+            throw new RuntimeException(sprintf('Directory "%s" was not created', $path));
         }
     }
 
     /**
      * Удаляет файл кэша и директории его нахождения, если они пустые
      *
-     * @param string $path путь до удаляемого файла
+     * @param string $path Путь до удаляемого файла
      * @return bool
      */
-    public static function delCacheFileDir($path)
+    public static function delCacheFileDir(string $path): bool
     {
 
         self::getModifyUri($path);
+
+        $res = false;
 
         // Удаляем сам файл
         if (file_exists(DOCUMENT_ROOT . $path)) {
             unlink(DOCUMENT_ROOT . $path);
 
-            // Последовательная проверка каджого каталога из всей иерархии на возможность удаления
+            // Последовательная проверка каждого каталога из всей иерархии на возможность удаления
             $dirArray = array_values(array_filter(explode('/', $path)));
             array_pop($dirArray);
             if (!empty($dirArray)) {
                 // Получаем массив с полными путями до каждого каталога в иерархии
-                $implodeDirArrayElement = array();
-                for ($i = 0; $i < count($dirArray); $i++) {
+                $implodeDirArrayElement = [];
+                $count = count($dirArray);
+                for ($i = 0; $i < $count; $i++) {
                     // TODO продумать вариант получения пути по красивее
                     $dirPath = implode('/', explode('/', implode('/', $dirArray), 0 - $i));
                     $implodeDirArrayElement[] = DOCUMENT_ROOT . '/' . $dirPath;
@@ -211,9 +219,9 @@ class FileCache
                     rmdir($dirPath);
                 }
             }
-            return true;
-        } else {
-            return false;
+            $res = true;
         }
+
+        return $res;
     }
 }

@@ -11,23 +11,25 @@ namespace Ideal\Structure\Service\Cache;
 
 use Ideal\Core\FileCache;
 use Ideal\Core\View;
+use Ideal\Structure\Service\SiteData\ConfigPhp;
+use JsonException;
 
 /**
- * Класс для обработки реакции на изменения настроек файлового кэширования
- * , кэширования twig-шаблонов и кэширования запросов к бд
+ * Класс для обработки кэша
  *
+ * Реакция на изменения настроек файлового кэширования, кэширование twig-шаблонов и кэширование запросов к бд
  */
 class Model
 {
 
-    protected $configFileClass;
+    protected ConfigPhp $configFileClass;
 
     /**
      * При инициализации модели сохраняем класс ConfigPhp в отдельную переменную
      *
-     * @param \Ideal\Structure\Service\SiteData\ConfigPhp $configFileClass Экземпляр клаксса "ConfigPhp"
+     * @param ConfigPhp $configFileClass Экземпляр класса "ConfigPhp"
      */
-    public function __construct($configFileClass)
+    public function __construct(ConfigPhp $configFileClass)
     {
         $this->configFileClass = $configFileClass;
     }
@@ -38,17 +40,14 @@ class Model
      *
      * @return array Массив содержащий флаг успешности проверки настроек,
      *               а так же текст и набор классов в случае обнаружения ошибок
+     * @throws JsonException
      */
-    public function checkSettings()
+    public function checkSettings(): array
     {
-        $response = array('res' => true, 'text' => '', 'class' => '');
+        $response = ['res' => true, 'text' => '', 'class' => ''];
         $oldParams = $this->configFileClass->getParams();
         $responseGV = $this->configFileClass->pickupValues();
-        if ($responseGV['res'] === false) {
-            $response['res'] = false;
-            $response['text'] = $responseGV['text'];
-            $response['class'] = 'alert alert-danger';
-        } else {
+        if ($responseGV['res'] !== false) {
             $params = $this->configFileClass->getParams();
             // Запускаем очистку кэша если он отключен
             if (!$params['cache']['arr']['fileCache']['value']) {
@@ -57,6 +56,7 @@ class Model
 
             // Перезаписываем данные в исключениях кэша
             $responseCEP = self::cacheExcludeProcessing($params['cache']['arr']['excludeFileCache']['value']);
+            /** @noinspection PhpStrictComparisonWithOperandsOfDifferentTypesInspection */
             if ($responseCEP['res'] === false) {
                 $response['res'] = false;
                 $response['text'] = $responseCEP['text'];
@@ -68,8 +68,8 @@ class Model
             $siteTwigCacheOld = $oldParams['cache']['arr']['templateSite']['value'];
             $adminTwigCache = $params['cache']['arr']['templateAdmin']['value'];
             $adminTwigCacheOld = $oldParams['cache']['arr']['templateAdmin']['value'];
-            if ((($siteTwigCache != $siteTwigCacheOld) && !$siteTwigCache)
-                || (($adminTwigCache != $adminTwigCacheOld) && !$adminTwigCache)) {
+            if ((($siteTwigCache !== $siteTwigCacheOld) && !$siteTwigCache)
+                || (($adminTwigCache !== $adminTwigCacheOld) && !$adminTwigCache)) {
                 View::clearTwigCache();
             }
 
@@ -84,13 +84,15 @@ class Model
             }
 
             // Перед включением "кэширования запросов к БД" проверяем доступность класса "Memcache"
-            if ($params['cache']['arr']['memcache']['value']) {
-                if (!class_exists('Memcache')) {
-                    $response['res'] = false;
-                    $response['text'] = 'Класс "Memcache" не доступен. Кэширование запросов к БД не может быть включено!';
-                    $response['class'] = 'alert alert-danger';
-                }
+            if ($params['cache']['arr']['memcache']['value'] && !class_exists('Memcache')) {
+                $response['res'] = false;
+                $response['text'] = 'Класс "Memcache" не доступен. Кэширование запросов к БД не может быть включено!';
+                $response['class'] = 'alert alert-danger';
             }
+        } else {
+            $response['res'] = false;
+            $response['text'] = $responseGV['text'];
+            $response['class'] = 'alert alert-danger';
         }
 
         return $response;
@@ -102,10 +104,11 @@ class Model
      * @param string $string Значение поля "Адреса для исключения из кэша"
      *
      * @return array Массив содержащий флаг успешности проверки настроек, а так же текст в случае обнаружения ошибок
+     * @throws JsonException
      */
-    private static function cacheExcludeProcessing($string)
+    private static function cacheExcludeProcessing(string $string): array
     {
-        $response = array('res' => true);
+        $response = ['res' => true];
 
         // Экранируем переводы строки для обработки каждой строки
         $string = str_replace("\r", '', $string);

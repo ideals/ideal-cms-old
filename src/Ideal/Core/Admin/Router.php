@@ -47,7 +47,7 @@ class Router
         $pluginBroker = PluginBroker::getInstance();
         $pluginBroker->makeEvent('onPreAdminDispatch', $this);
 
-        if ($this->model === null && $request->get('mode') !== 'ajax') {
+        if ($this->model === null) {
             $this->model = $this->routeByPar($request->get('par', ''));
         }
 
@@ -82,7 +82,7 @@ class Router
         // Запускаем в работу контроллер структуры
         try {
             $response = $controller->run($this);
-        } catch (ResourceNotFoundException $exception) {
+        } /** @noinspection BadExceptionsProcessingInspection */ catch (ResourceNotFoundException $exception) {
             // todo логирование $exception при включённом флаге отладки
             $response = new Response('', Response::HTTP_NOT_FOUND);
         }
@@ -197,7 +197,7 @@ class Router
      */
     public function is404(): bool
     {
-        return (bool)$this->model->is404;
+        return $this->model->is404;
     }
 
     /**

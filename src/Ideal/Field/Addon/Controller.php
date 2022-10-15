@@ -11,13 +11,14 @@ namespace Ideal\Field\Addon;
 
 use Ideal\Core\Util;
 use Ideal\Field\AbstractController;
+use JsonException;
 
 /**
  * Подключение addon'ов к элементу структуры сайта
  *
- * Отображается в виде скрытого поля ввода <input type="hidden" />, в котором содержится список подключённых
+ * Отображается в виде скрытого поля ввода <input type="hidden" />. В нём содержится список подключённых
  * к этому элементу addon'ов, кнопки редактирования списка подключённых addon'ов (рядом со списком вкладок)
- * и окна редактирования списка addon'ов, которое появляется при нажатии на эту кнопку.
+ * и окна редактирования списка addon'ов (которое появляется при нажатии на эту кнопку).
  *
  * Список addon'ов хранится в json-массиве.
  *
@@ -38,18 +39,19 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws JsonException
      */
-    public function showEdit()
+    public function showEdit(): string
     {
         $this->htmlName = $this->groupName . '_' . $this->name;
-        $input = $this->getInputText();
-        return $input;
+        return $this->getInputText();
     }
 
     /**
      * {@inheritdoc}
+     * @throws JsonException
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $value = $this->getValue();
 
@@ -61,26 +63,28 @@ class Controller extends AbstractController
             . $addonModel->getAvailableAddonsList()
             . '<button class="btn btn-link" onclick="$(\'#tabsModal\').toggle()">Закрыть</button>';
 
-        $editHtml = strtr($editHtml, array("\n" => ''));
+        $editHtml = strtr($editHtml, ["\n" => '']);
         $editHtml = addcslashes($editHtml, "'");
 
         // Получаем список доступных аддонов
-        $availableAddons = htmlspecialchars(json_encode($this->field['available']));
+        $availableAddons = htmlspecialchars(
+            json_encode($this->field['available'], JSON_THROW_ON_ERROR)
+        );
 
         $tabs = $addonModel->getTabs($value);
 
         $valueHtml = htmlspecialchars($value);
 
-        $html = <<<HTML
-            <input type="hidden" id="{$this->htmlName}" name="{$this->htmlName}" value="{$valueHtml}">
-            <input type="hidden" id="available_addons" name="available_addons" value="{$availableAddons}">
+        return <<<HTML
+            <input type="hidden" id="$this->htmlName" name="$this->htmlName" value="$valueHtml">
+            <input type="hidden" id="available_addons" name="available_addons" value="$availableAddons">
             <script type="text/javascript">
             function getAddonFieldName() {
-                return "{$this->htmlName}";
+                return "$this->htmlName";
             }
             $(document).ready(function() {
                 // Добавляем контент во всплывающее окно редактирования вкладок
-                $('#tabsModal').html('{$editHtml}');
+                $('#tabsModal').html('$editHtml');
 
                 // Включаем кнопку редактирования вкладок
                 $('#modalTabsEdit').removeClass('hide');
@@ -94,52 +98,51 @@ class Controller extends AbstractController
             </script>
             <script type="text/javascript" src="?mode=ajax&action=script&controller=\Ideal\Field\Addon"></script>
 HTML;
-        return $html;
     }
 
     /**
      * {@inheritdoc}
+     * @throws JsonException
      */
-    public function getValue()
+    public function getValue(): string
     {
         $value = parent::getValue();
-        if (empty($value) || $value == 'null') {
-            return json_encode(array());
+        if (empty($value) || $value === 'null') {
+            return json_encode([], JSON_THROW_ON_ERROR);
         }
 
         // Восстановление названия подключённых аддонов, т.к. по умолчанию текстовое название
         // аддона не указывается.
 
-        $arr = json_decode($value);
+        $arr = json_decode($value, true, 512, JSON_THROW_ON_ERROR);
 
         foreach ($arr as $k => $v) {
             $addonVar = $v[1];
-            $addonName = isset($v[2]) ? $v[2] : '';
+            $addonName = $v[2] ?? '';
 
             $class = Util::getClassName($addonVar, 'Addon') . '\\AdminModel';
 
             /** @var \Ideal\Core\Admin\Model $model */
             $model = new $class('');
-            $arr[$k][2] = $addonName == '' ? $model->params['name'] : $addonName; // если почему-то в БД сбросится
+            $arr[$k][2] = $addonName === '' ? $model->params['name'] : $addonName; // если почему-то в БД сбросится
         }
 
         $options = (defined('JSON_UNESCAPED_UNICODE')) ? JSON_UNESCAPED_UNICODE : 0;
-        $value = json_encode($arr, $options);
-
-        return $value;
+        return json_encode($arr, JSON_THROW_ON_ERROR | $options);
     }
 
     /**
      * {@inheritdoc}
+     * @throws JsonException
      */
-    public function parseInputValue($isCreate)
+    public function parseInputValue(bool $isCreate): array
     {
         $item = parent::parseInputValue($isCreate);
 
         // TODO Дли типа данных аддон - нужно распарсить его элементы
-        $addonsData = json_decode($item['value']);
+        $addonsData = json_decode($item['value'], true, 512, JSON_THROW_ON_ERROR);
         foreach ($addonsData as $addonData) {
-            list($tabID, $addonType) = $addonData;
+            [$tabID, $addonType] = $addonData;
             $addonName = Util::getClassName($addonType, 'Addon') . '\\AdminModel';
             $addon = new $addonName('не имеет значения, т.к. только парсим ввод пользователя');
             $explodeAddonType = explode('_', $addonType);

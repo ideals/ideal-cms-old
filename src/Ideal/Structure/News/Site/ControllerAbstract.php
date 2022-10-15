@@ -11,6 +11,7 @@ namespace Ideal\Structure\News\Site;
 
 use Ideal\Core\Config;
 use Ideal\Core\Request;
+use JsonException;
 
 class ControllerAbstract extends \Ideal\Core\Site\Controller
 {
@@ -18,26 +19,32 @@ class ControllerAbstract extends \Ideal\Core\Site\Controller
     /** @var $model Model */
     protected $model;
 
-    public function detailAction()
+    /**
+     * @throws JsonException
+     */
+    public function detailAction(): void
     {
         $this->templateInit('Structure/News/Site/detail.twig');
 
-        $this->view->text = $this->model->getText();
-        $this->view->header = $this->model->getHeader();
+        $this->view->set('text', $this->model->getText());
+        $this->view->set('header', $this->model->getHeader());
 
         $config = Config::getInstance();
         $parentUrl = $this->model->getParentUrl();
-        $this->view->allNewsUrl = substr($parentUrl, 0, strrpos($parentUrl, '/')) . $config->urlSuffix;
+        $this->view->set(
+            'allNewsUrl',
+            substr($parentUrl, 0, strrpos($parentUrl, '/')) . $config->urlSuffix
+        );
     }
 
-    public function indexAction()
+    public function indexAction(): void
     {
         parent::indexAction();
 
         $request = new Request();
         $page = (int)$request->{$this->pageName};
 
-        $this->view->parts = $this->model->getList($page);
-        $this->view->pager = $this->model->getPager($this->pageName);
+        $this->view->set('parts', $this->model->getList($page));
+        $this->view->set('pager', $this->model->getPager($this->pageName));
     }
 }

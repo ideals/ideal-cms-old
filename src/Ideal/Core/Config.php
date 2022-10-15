@@ -9,6 +9,7 @@
 namespace Ideal\Core;
 
 use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * Класс конфигурации, в котором хранятся все конфигурационные данные CMS
@@ -25,6 +26,7 @@ use InvalidArgumentException;
  * @property array structures Список всех подключённых к проекту структур
  * @property array mediums Список подключённых связей
  * @property array addons Список подключённых аддонов
+ * @property array memcache Настройки подключения к memcache
  */
 class Config
 {
@@ -44,6 +46,9 @@ class Config
 
     /** @var string Путь к файлам cms в папке vendor */
     public string $cmsDir;
+
+    /** @var string Протокол, по которому работает сайт */
+    public string $protocol = '';
 
     /**
      * Статический метод, возвращающий находящийся в нём динамический объект
@@ -65,14 +70,11 @@ class Config
      *
      * @param string $name Название запрашиваемой переменной
      *
-     * @return string Значение запрашиваемой переменной
+     * @return mixed Значение запрашиваемой переменной
      */
     public function __get(string $name)
     {
-        if (isset($this->array[$name])) {
-            return $this->array[$name];
-        }
-        return '';
+        return $this->array[$name] ?? '';
     }
 
     /**
@@ -152,9 +154,9 @@ class Config
      *
      * @param string $prevStructure
      *
-     * @return array|bool Массив структуры с указанным ID, или FALSE, если структуру не удалось обнаружить
+     * @return null|array Массив структуры с указанным ID, или FALSE, если структуру не удалось обнаружить
      */
-    public function getStructureByPrev(string $prevStructure)
+    public function getStructureByPrev(string $prevStructure): ?array
     {
         $prev = (array)explode('-', $prevStructure);
         $structureId = $prev[0] === '0' ? $prev[1] : $prev[0];
@@ -167,9 +169,9 @@ class Config
      *
      * @param int $structureId ID искомой структуры
      *
-     * @return array|bool Массив структуры с указанным ID, или FALSE, если структуру не удалось обнаружить
+     * @return null|array Массив структуры с указанным ID, или FALSE, если структуру не удалось обнаружить
      */
-    public function getStructureById(int $structureId)
+    public function getStructureById(int $structureId): ?array
     {
         // TODO сделать уведомление об ошибке, если такой структуры нет
         foreach ($this->structures as $structure) {
@@ -178,7 +180,7 @@ class Config
             }
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -194,7 +196,7 @@ class Config
         $name = strtolower($name);
         $nameParts = (array)explode('_', $name);
         if (!isset($nameParts[1])) {
-            throw new \RuntimeException('Передано неправильное значение названия структуры: ' . $name);
+            throw new RuntimeException('Передано неправильное значение названия структуры: ' . $name);
         }
 
         return $this->db['prefix'] . $nameParts[0] . '_' . strtolower($type) . '_' . $nameParts[1];
@@ -204,15 +206,14 @@ class Config
      * Получение имени таблицы на основе названия класса
      *
      * @param string $name Название класса
-     * @param string $type Тип класса (Structure или Addon)
      *
      * @return string Название таблицы
      */
-    public function getTableByClass(string $name, string $type = 'Structure'): string
+    public function getTableByClass(string $name): string
     {
         $parts = explode('\\', $name);
         if (!$parts || !isset($parts[3])) {
-            throw new \RuntimeException('Передано неправильное значение названия структуры: ' . $name);
+            throw new RuntimeException('Передано неправильное значение названия структуры: ' . $name);
         }
 
         return strtolower($this->db['prefix'] . $parts[0] . '_' . $parts[1] . '_' . $parts[2]);
@@ -230,7 +231,7 @@ class Config
     {
         $nameParts = (array)explode('\\', $name);
         if (!isset($nameParts[3])) {
-            throw new \RuntimeException('Передано неправильное значение названия класса: ' . $name);
+            throw new RuntimeException('Передано неправильное значение названия класса: ' . $name);
         }
         $nameParts[3] = $type;
 
@@ -277,24 +278,25 @@ class Config
      * Получаем протокол, по которому работает сайт
      *
      * @return string Протокол сайта (http:// или https://)
+     * @noinspection UsingInclusionReturnValueInspection
+     * @noinspection MultipleReturnStatementsInspection
      */
-    public function getProtocol()
+    public function getProtocol(): string
     {
-        if (!empty($this->protocol)) {
+        if ($this->protocol !== '') {
             return $this->protocol;
         }
 
-        if ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) {
+        if ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || $_SERVER['SERVER_PORT'] === 443
+            || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] === 80)
+        ) {
             $this->protocol = 'https://';
             return $this->protocol;
         }
 
-        if (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 80) {
-            $this->protocol = 'http://';
-            return $this->protocol;
-        }
-
         // В консольных запросах единственный способ ориентировки - по настройкам карты сайта
+        $this->protocol = 'http://';
         $config = self::getInstance();
         $sitemapFile = $config->cmsFolder . '/site_map.php';
         if (file_exists($sitemapFile)) {
@@ -303,12 +305,10 @@ class Config
                 $isHttps = stripos($siteMap['website'], 'https');
                 if ($isHttps === 0) {
                     $this->protocol = 'https://';
-                    return $this->protocol;
                 }
             }
         }
 
-        $this->protocol = 'http://';
         return $this->protocol;
     }
 

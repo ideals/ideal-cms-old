@@ -21,13 +21,14 @@ class Model extends AbstractModel
     /**
      * {@inheritdoc}
      */
-    public function getList()
+    public function getList(): array
     {
-        $list = array(0 => '---');
+        $list = [0 => '---'];
         $db = Db::getInstance();
         $config = Config::getInstance();
         $table = $config->db['prefix'] . 'ideal_structure_user';
-        $sql = 'SELECT ID, email FROM ' . $table . ' ORDER BY email ASC';
+        /** @noinspection SqlResolve */
+        $sql = 'SELECT ID, email FROM ' . $table . ' ORDER BY email';
         $arr = $db->select($sql);
         foreach ($arr as $item) {
             $list[$item['ID']] = $item['email'];

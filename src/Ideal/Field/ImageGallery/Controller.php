@@ -9,6 +9,7 @@
 
 namespace Ideal\Field\ImageGallery;
 
+use Exception;
 use Ideal\Field\AbstractController;
 
 /**
@@ -32,33 +33,33 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function showEdit()
+    public function showEdit(): string
     {
         $value = htmlspecialchars($this->getValue());
-        $html = <<<HTML
+        return <<<HTML
             <script type="text/javascript" src="?mode=ajax&action=script&controller=\\Ideal\\Field\\ImageGallery"></script>
-            <input class="images-values" type="hidden" id="{$this->htmlName}" name="{$this->htmlName}"
-            value="{$value}">
-            <div id="{$this->htmlName}-control-group">
+            <input class="images-values" type="hidden" id="$this->htmlName" name="$this->htmlName"
+            value="$value">
+            <div id="$this->htmlName-control-group">
                 <div class="text-center"><strong>{$this->getLabelText()}</strong></div><br />
                 <div class="text-center">
                     <span class="input-group-btn">
-                        <button class="btn" onclick="imageGalleryShowFinder('{$this->htmlName}'); return false;">
+                        <button class="btn" onclick="imageGalleryShowFinder('$this->htmlName'); return false;">
                             Выбрать
                         </button>
                     </span>
                 </div>
-                <div id="{$this->htmlName}-list" class="input-group col-lg-12"></div>
+                <div id="$this->htmlName-list" class="input-group col-lg-12"></div>
             </div>
 HTML;
-        return $html;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         return '';
     }

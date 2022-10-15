@@ -9,8 +9,9 @@
 
 namespace Ideal\Structure\Service\UpdateCms;
 
+use Exception;
 use Ideal\Core\Config;
-use Ideal\Core\Util;
+use RuntimeException;
 
 /**
  * Класс для работы с версиями Ideal CMS
@@ -21,13 +22,15 @@ use Ideal\Core\Util;
 class Versions
 {
     /** @var array Ответ, возвращаемый при ajax-вызове */
-    protected $answer = array('message' => array(), 'error' => false, 'data' => null);
+    protected array $answer = ['message' => [], 'error' => false, 'data' => null];
 
     /** @var string Путь к файлу с логом обновлений */
     protected $log = '';
 
     /**
      * Инициализация файла лога обновлений
+     * @throws Exception
+     * @noinspection MultipleReturnStatementsInspection
      */
     public function __construct()
     {
@@ -42,7 +45,7 @@ class Versions
             if (!is_writable($path) && !chmod($path, intval($config->cms['dirMode'], 8))) {
                 $this->addAnswer('Нет удалось получить права на запись в папку ' . $path, 'error');
                 $this->log = false;
-                return false;
+                return;
             }
             // Пытаемся создать файл
             if (file_put_contents($log, '') !== false) {
@@ -50,15 +53,13 @@ class Versions
             } else {
                 $this->addAnswer('Не удалось создать файл лога обновлений ' . $log, 'error');
                 $this->log = false;
-                return false;
+                return;
             }
-        } else {
-            // Если нет прав на запись в файл лога обновлений и получить их не удалось
-            if (!is_writable($log) && !chmod($log, intval($config->cms['fileMode'], 8))) {
+        } elseif (!is_writable($log) && !chmod($log, intval($config->cms['fileMode'], 8))) {
+                // Если нет прав на запись в файл лога обновлений и получить их не удалось
                 $this->addAnswer('Файл ' . $log . ' недоступен для записи', 'error');
                 $this->log = false;
-                return false;
-            }
+                return;
         }
         $this->log = $log;
     }
@@ -67,8 +68,9 @@ class Versions
      * Получение версии админки, а также наименований модулей и их версий
      *
      * @return array Массив с номерами установленных версий
+     * @throws Exception
      */
-    public function getVersions()
+    public function getVersions(): array
     {
         $config = Config::getInstance();
         // Путь к файлу README.md для cms
@@ -78,10 +80,10 @@ class Versions
         $modDirName = DOCUMENT_ROOT . '/' . $config->cmsFolder . '/Mods';
         if (file_exists($modDirName)) {
             // Получаем папки
-            $modDirs = array_diff(scandir($modDirName), array('.', '..')); // получаем массив папок модулей
+            $modDirs = array_diff(scandir($modDirName), ['.', '..']); // получаем массив папок модулей
             foreach ($modDirs as $dir) {
                 // Исключаем папки, явно не содержащие модули
-                if ((stripos($dir, '.') === 0) || (is_file($modDirName . '/' . $dir))) {
+                if ((strncasecmp($dir, '.', 1) === 0) || (is_file($modDirName . '/' . $dir))) {
                     unset($mods[$dir]);
                     continue;
                 }
@@ -96,18 +98,19 @@ class Versions
      * Получение версии из файла
      *
      * @param array $mods Папки с модулями и CMS
-     * @return array Версия CMS  и модулей
+     * @return array Версия CMS и модулей
+     * @throws Exception
      */
-    protected function getVersionFromFile($mods)
+    protected function getVersionFromFile(array $mods): array
     {
         // Получаем версии из файлов README
         $version = $this->getVersionFromReadme($mods);
 
-        if ($version === false) {
-            throw new \RuntimeException('Произошла ошибка в определении версий модулей');
+        if ($version === null) {
+            throw new RuntimeException('Произошла ошибка в определении версий модулей');
         }
 
-        if (filesize($this->log) == 0) {
+        if (filesize($this->log) === 0) {
             // Если update.log нет, создаём его
             $this->putVersionLog($version, $this->log);
         } else {
@@ -131,46 +134,49 @@ class Versions
      * Получение версий из Readme.md
      *
      * @param array $mods Массив состоящий из названий модулей и полных путей к ним
-     * @return array Версии модулей или false в случае ошибки
+     * @return null|array Версии модулей или false в случае ошибки
+     * @throws Exception
+     * @noinspection MultipleReturnStatementsInspection
      */
-    public function getVersionFromReadme($mods)
+    public function getVersionFromReadme(array $mods): ?array
     {
         // Получаем файл README.md для cms
         $mdFile = 'README.md';
-        $version = array();
+        $version = [];
         foreach ($mods as $k => $v) {
             if (!file_exists($v . '/' . $mdFile)) {
                 $this->addAnswer('Отсутствует файл ' . $v . '/' . $mdFile, 'error');
-                return false;
+                return null;
             }
             $lines = file($v . '/' . $mdFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            if (($lines == false) || (count($lines) == 0)) {
+            if ($lines === false || count($lines) === 0) {
                 $this->addAnswer('Не удалось получить версию из ' . $v . '/' . $mdFile, 'error');
-                return false;
+                return null;
             }
             // Получаем номер версии из первой строки
             // Формат номера: пробел+v.+пробел+номер-версии+пробел-или-конец-строки
             preg_match_all('/\sv\.(\s*)(.*)(\s*)/i', $lines[0], $ver);
             // Если номер версии не удалось определить — выходим
-            if (!isset($ver[2][0]) || ($ver[2][0] == '')) {
+            if (!isset($ver[2][0]) || ($ver[2][0] === '')) {
                 $this->addAnswer('Ошибка при разборе строки с версией файла', 'error');
-                return false;
+                return null;
             }
 
             $version[$k] = $ver[2][0];
         }
+
         return $version;
     }
 
     /**
      * Запись версий в update.log
      *
-     * @param array  $version Версии полученные из Readme.ms
+     * @param array $version Версии полученные из Readme.ms
      * @param string $log     Файл с логом обновлений
      */
-    protected function putVersionLog($version, $log)
+    protected function putVersionLog(array $version, string $log): void
     {
-        $lines = array();
+        $lines = [];
         foreach ($version as $k => $v) {
             $lines[] = 'Installed ' . $k . ' v.' . $v;
         }
@@ -181,26 +187,27 @@ class Versions
      * Получение версий из файла update.log
      *
      * @param string $log Файл с логом обновлений
-     * @return array Версии модулей и обновлений
+     * @return null|array Версии модулей и обновлений
+     * @throws Exception
      */
-    protected function getVersionFromLog($log)
+    protected function getVersionFromLog(string $log): ?array
     {
         $linesLog = file($log);
-        $versions = array();
+        $versions = [];
 
         foreach ($linesLog as $v) {
             // Удаление спец символов конца строки (если пролез символ \r)
             $v = rtrim($v);
-            if (strpos($v, 'Installed ') === 0) {
+            if (strncmp($v, 'Installed ', 10) === 0) {
                 // Строка содержит сведения об установленном модуле
                 $v = substr($v, 10);
                 $name = substr($v, 0, strpos($v, ' '));
                 // Формат номера: пробел+v.+пробел+номер-версии+пробел-или-конец-строки
                 preg_match_all('/\sv\.(\s*)(.*)(\s*)/i', $v, $ver);
                 // Если номер версии не удалось определить — выходим
-                if (!isset($ver[2][0]) || ($ver[2][0] == '')) {
+                if (!isset($ver[2][0]) || ($ver[2][0] === '')) {
                     $this->addAnswer('Ошибка при разборе строки с версией файла', 'error');
-                    return false;
+                    return null;
                 }
 
                 $versions[$name] = $ver[2][0];
@@ -213,24 +220,24 @@ class Versions
     /**
      * Добавление сообщения, возвращаемого в ответ на ajax запрос
      *
-     * @param array $message Сообщения возвращаемые в ответ на ajax запрос
+     * @param string|array $message Сообщения возвращаемые в ответ на ajax запрос
      * @param string $type Статус сообщения, характеризующий так же наличие ошибки
      * @param mixed $data Данные передаваемые в ответ на ajax запрос
-     * @throws \Exception
+     * @throws Exception
      */
-    public function addAnswer($message, $type, $data = null)
+    public function addAnswer($message, string $type, $data = null): void
     {
-        if (!is_string($message) || !is_string($type)) {
-            throw new \Exception("Необходим аргумент типа строка");
+        if (!is_string($message)) {
+            throw new RuntimeException('Необходим аргумент типа строка');
         }
-        if (!in_array($type, array('error', 'info', 'warning', 'success'))) {
-            throw new \Exception("Недопустимое значение типа сообщения");
+        if (!in_array($type, ['error', 'info', 'warning', 'success'])) {
+            throw new RuntimeException('Недопустимое значение типа сообщения');
         }
-        $this->answer['message'][] = array($message, $type);
-        if ($type == 'error') {
+        $this->answer['message'][] = [$message, $type];
+        if ($type === 'error') {
             $this->answer['error'] = true;
         }
-        if ($data != null) {
+        if ($data !== null) {
             $this->answer['data'] = $data;
         }
     }
@@ -240,7 +247,7 @@ class Versions
      *
      * @return array
      */
-    public function getAnswer()
+    public function getAnswer(): array
     {
         return $this->answer;
     }
@@ -260,7 +267,7 @@ class Versions
      *
      * @param string $msg Строка для записи в log
      */
-    public function writeLog($msg)
+    public function writeLog(string $msg): void
     {
         $msg = rtrim($msg) . "\n";
         file_put_contents($this->log, $msg, FILE_APPEND);

@@ -10,6 +10,7 @@
 namespace Ideal\Structure\Service\SiteData;
 
 use Ideal\Core\Util;
+use Ideal\Field\AbstractController;
 use JsonException;
 
 /**
@@ -20,13 +21,13 @@ class ConfigPhp
 {
 
     /** @var array Массив для хранения считанных данных из php-файла */
-    protected $params = array();
+    protected array $params = [];
 
     /**
      * Геттер для защищённого поля $params
      * @return array Набор считанных из файла параметров
      */
-    public function getParams()
+    public function getParams(): array
     {
         return $this->params;
     }
@@ -34,10 +35,10 @@ class ConfigPhp
     /**
      * Замена значений настроек в $this->params на данные, введённые пользователем
      */
-    public function pickupValues()
+    public function pickupValues(): array
     {
-        $response = array('res' => true, 'text' => '');
-        $pageData = array();
+        $response = ['res' => true, 'text' => ''];
+        $pageData = [];
         $applyChange = new ApplyChange();
         foreach ($this->params as $tabId => $tab) {
             foreach ($tab['arr'] as $field => $param) {
@@ -49,16 +50,16 @@ class ConfigPhp
 
                 $fieldClass = Util::getClassName($param['type'], 'Field') . '\\Controller';
                 /** @noinspection PhpUndefinedMethodInspection */
-                /** @var $fieldModel \Ideal\Field\AbstractController */
+                /** @var $fieldModel AbstractController */
                 $fieldModel = $fieldClass::getInstance();
-                $fieldModel->setModel($model, $fieldName, 'general');
+                $fieldModel->setModel($model, $fieldName);
 
                 // Получаем данные от пользователя
                 $value = $fieldModel->pickupNewValue();
 
                 // Если нужно сделать ещё какие-нибудь действия после изменения данного поля,
                 // то вызываем соответствующий метод
-                if (method_exists($applyChange, $field . 'Change') && $param["value"] != $value) {
+                if ($param['value'] !== $value && method_exists($applyChange, $field . 'Change')) {
                     $methodName = $field . 'Change';
                     $applyChange->setValue($value);
                     $applyChange->$methodName();
@@ -68,8 +69,7 @@ class ConfigPhp
                 $item = $fieldModel->parseInputValue(false);
 
                 if (!empty($item['message'])) {
-                    $response = array('res' => false, 'text' => $item['message']);
-                    return $response;
+                    return ['res' => false, 'text' => $item['message']];
                 }
                 $this->params[$tabId]['arr'][$field]['value'] = $value;
             }
@@ -91,7 +91,7 @@ class ConfigPhp
         foreach ($this->params as $tabId => $tab) {
             $pad = 4;
             if ($tabId !== 'default') {
-                $file .= "    '{$tabId}' => [ // {$tab['name']}\n";
+                $file .= "    '$tabId' => [ // {$tab['name']}\n";
                 $pad = 8;
             }
             foreach ($tab['arr'] as $field => $param) {
@@ -149,9 +149,9 @@ class ConfigPhp
         }
 
         return <<<DONE
-        <div class="{$class} fade in">
+        <div class="$class fade in">
         <button type="button" class="close" data-dismiss="alert">&times;</button>
-        <span class="alert-heading">{$text}</span></div>
+        <span class="alert-heading">$text</span></div>
 DONE;
     }
 
@@ -160,8 +160,9 @@ DONE;
      *
      * @param string $fileName Имя php-файла из которого читается конфигурация
      * @return bool Флаг успешного считывания данных из файла
+     * @throws JsonException
      */
-    public function loadFile($fileName)
+    public function loadFile(string $fileName): bool
     {
         if (!stream_resolve_include_path($fileName)) {
             return false;
@@ -172,7 +173,7 @@ DONE;
         // Убираем служебные символы (пробелы, табуляцию) из начала и из конца строк
         array_walk(
             $cfg,
-            function (&$value) {
+            static function (&$value) {
                 $value = trim($value);
             }
         );
@@ -185,16 +186,17 @@ DONE;
             '];'
         ];
 
-        $params['default'] = array(
-            'arr' => array(),
+        $params['default'] = [
+            'arr' => [],
             'name' => 'Основное'
-        );
+        ];
 
         $c = count($cfg);
         // Проходимся по всем строчкам php-файла и заполняем массив $params
+        /** @noinspection ForeachInvariantsInspection */
         for ($i = 0; $i < $c; $i++) {
             $v = $cfg[$i];
-            if (in_array($v, $skip)) {
+            if (in_array($v, $skip, true)) {
                 continue;
             }
             if (strpos($v, "', // ")) {
@@ -203,25 +205,25 @@ DONE;
                 $cols = explode('", // ', $v);
             }
             $other = $cols[0];
-            $label = isset($cols[1]) ? $cols[1] : null;
-            if (is_null($label)) {
+            $label = $cols[1] ?? null;
+            if ($label === null) {
                 // Комментария в нужном формате нет, значит это массив
-                preg_match('/\'(.*)\'\s*=>\s*\[\s*\/\/\s*(.*)/i', $other, $match);
-                if (!isset($match[1]) || !isset($match[2])) {
-                    echo "Ошибка парсинга файла {$fileName} в строке $i<br />";
+                preg_match('/\'(.*)\'\s*=>\s*\[\s*\/\/\s*(.*)/', $other, $match);
+                if (!isset($match[1], $match[2])) {
+                    echo "Ошибка парсинга файла $fileName в строке $i<br />";
                     exit;
                 }
-                $array = array();
-                while ($cfg[++$i] != '],') {
+                $array = [];
+                while ($cfg[++$i] !== '],') {
                     $v = $cfg[$i];
                     $param = $this->parseStr($v);
-                    $array = array_merge($array, $param);
+                    $array[key($param)] = reset($param);
                 }
                 // Записываем массив данных в соответствующем формате
-                $params[$match[1]] = array(
+                $params[$match[1]] = [
                     'arr' => $array,
                     'name' => $match[2]
-                );
+                ];
             } else {
                 // Считываем и записываем переменную первого уровня
                 $param = $this->parseStr($v);
@@ -238,34 +240,34 @@ DONE;
      * @param string $str Строка конфига
      *
      * @return array
+     * @throws JsonException
      */
-    protected function parseStr($str)
+    protected function parseStr(string $str): array
     {
         if (strpos($str, "', // ")) {
-            list ($other, $label) = explode("', // ", $str);
+            [$other, $label] = explode("', // ", $str);
         } else {
-            list ($other, $label) = explode('", // ', $str);
+            [$other, $label] = explode('", // ', $str);
         }
-        $label = chop($label);
+        $label = rtrim($label);
         $fields = explode(' | ', $label);
-        $label = $fields[0];
-        $type = $fields[1];
-        if ($type == '') {
-            $type = 'Ideal_Text';
-        }
+        [$label, $type] = $fields;
+
+        $type = $type === '' ? 'Ideal_Text' : $type;
+
         if (strpos($other, " => '")) {
-            list ($name, $value) = explode(" => '", $other);
+            [$name, $value] = explode(" => '", $other);
         } else {
-            list ($name, $value) = explode(' => "', $other);
+            [$name, $value] = explode(' => "', $other);
         }
         $value = str_replace('\n', "\n", $value); // заменяем переводы строки на правильные символы
         $fieldName = trim($name, ' \''); // убираем стартовые пробелы и кавычку у названия поля
-        $param[$fieldName] = array(
+        $param[$fieldName] = [
             'label' => $label,
             'value' => $value,
             'type' => $type,
             'sql' => '',
-        );
+        ];
         if ($type === 'Ideal_Select') {
             $param[$fieldName]['values'] = json_decode($fields[2], true, 512, JSON_THROW_ON_ERROR);
         }
@@ -276,7 +278,7 @@ DONE;
      * Сеттер для защищённого поля $this->params
      * @param array $params Модифицированный набор полей для сохранения в конфигурационном файле
      */
-    public function setParams($params)
+    public function setParams(array $params): void
     {
         $this->params = $params;
     }
@@ -286,7 +288,7 @@ DONE;
      *
      * @return string Сгенерированный HTML-код
      */
-    public function showEdit()
+    public function showEdit(): string
     {
         $tabs = '<ul class="nav nav-tabs">';
         $tabsContent = '<div class="tab-content">';
@@ -303,7 +305,7 @@ DONE;
                     . '<a href="#' . $tabId . '" data-toggle="tab">' . $tab['name'] . '</a>'
                     . '</li>';
                 $tabsContent .= '<div class="tab-pane well ' . $active . '" id="' . $tabId . '">';
-                $pageData = array();
+                $pageData = [];
                 foreach ($tab['arr'] as $field => $param) {
                     $fieldName = $tabId . '_' . $field;
                     $model = new MockModel('');
@@ -313,9 +315,9 @@ DONE;
 
                     $fieldClass = Util::getClassName($param['type'], 'Field') . '\\Controller';
                     /** @noinspection PhpUndefinedMethodInspection */
-                    /** @var $fieldModel \Ideal\Field\AbstractController */
+                    /** @var $fieldModel AbstractController */
                     $fieldModel = $fieldClass::getInstance();
-                    $fieldModel->setModel($model, $fieldName, 'general');
+                    $fieldModel->setModel($model, $fieldName);
                     $fieldModel->labelClass = '';
                     $fieldModel->inputClass = '';
                     $tabsContent .= $fieldModel->showEdit();
@@ -325,7 +327,7 @@ DONE;
         }
         $tabs .= '</ul>';
         $tabsContent .= '</div>';
-        if (count($this->params) == 1) {
+        if (count($this->params) === 1) {
             // Если вкладка только одна, то вкладки не надо отображать
             $tabs = '';
         }

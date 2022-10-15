@@ -87,7 +87,7 @@ class Action
     </p>
     <pre><code>crontab -e</code></pre>
     <p>Далее в открывшемся редакторе запишите такую строку:</p>
-    <pre><code>* * * * * /usr/bin/php {$config->rootDir}/bin/console app:cron<
+    <pre><code>* * * * * /usr/bin/php $config->rootDir/bin/console app:cron<
     /code></pre>
     <p>
         Эта инструкция означает запуск скрипта каждую минуту.

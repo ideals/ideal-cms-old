@@ -9,6 +9,7 @@
 
 namespace Ideal\Field\Cid;
 
+use Exception;
 use Ideal\Core\Request;
 use Ideal\Field\AbstractController;
 
@@ -34,8 +35,9 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $value = $this->getValue();
 
@@ -43,26 +45,25 @@ class Controller extends AbstractController
         $pageData = $this->model->getPageData();
         $value = $cid->getBlock($value, $pageData['lvl']);
 
-        $input = '<input type="text" class="form-control" name="' . $this->htmlName
+        return '<input type="text" class="form-control" name="' . $this->htmlName
             . '" id="' . $this->htmlName
             . '" value="' . $value . '">';
-
-        return $input;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getValueForList($values, $fieldName)
+    public function getValueForList(array $values, string $fieldName): string
     {
-        $cid = new Model($this->model->params['levels'], $this->model->params['digits']);
-        return $cid->getBlock($values['cid'], $values['lvl']);
+        return (new Model($this->model->params['levels'], $this->model->params['digits']))
+            ->getBlock($values['cid'], $values['lvl']);
     }
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function pickupNewValue()
+    public function pickupNewValue(): string
     {
         $request = new Request();
         $fieldName = $this->groupName . '_' . $this->name;
@@ -70,12 +71,12 @@ class Controller extends AbstractController
         /** @var \Ideal\Structure\Part\Admin\Model $model */
         $model = $this->model;
 
-        if ($this->newValue == '') {
+        if ($this->newValue === '') {
             // Вычисляем новый ID
             $path = $model->getPath();
             $c = count($path);
             $end = $path[$c - 1];
-            if ($c < 2 || ($path[$c - 2]['structure'] != $end['structure'])) {
+            if ($c < 2 || ($path[$c - 2]['structure'] !== $end['structure'])) {
                 $end['cid'] = '';
                 $end['lvl'] = 0;
             }
@@ -84,11 +85,11 @@ class Controller extends AbstractController
             $cid = new Model($model->params['levels'], $model->params['digits']);
             $pageData = $this->model->getPageData();
             $obj = $pageData;
-            if ($obj['cid'] != $request->$fieldName) {
+            if ($obj['cid'] !== $request->$fieldName) {
                 // Инициируем изменение cid, только если он действительно изменился
                 $this->sqlAdd = $cid->moveCid($obj['cid'], $request->$fieldName, $obj['lvl']);
             }
-            $this->newValue = $obj['cid']; // cid не меняем, т.к. все изменения будут через доп. запрос
+            $this->newValue = $obj['cid']; // Cid не меняем, т.к. все изменения будут через доп. запрос
         }
 
         return $this->newValue;
@@ -96,12 +97,13 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function showEdit()
+    public function showEdit(): string
     {
         $value = $this->getValue();
 
-        if ($value == '') {
+        if ($value === '') {
             // При создании элемента cid нельзя указать, он прописывается автоматически в конец списка
             $html = '<input type="hidden" id="' . $this->htmlName
                 . '" name="' . $this->htmlName

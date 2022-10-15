@@ -37,7 +37,7 @@ class Install implements InstallStructureInterface
                 'structure' => 'Ideal_UserGroup',
                 'pos' => $newPos,
                 'name' => 'Группы пользователей',
-                'url' => 'gruppy-polzovatelej',
+                'url' => 'user-groups',
                 'parent_url' => '---',
                 'annot' => ''
             ]

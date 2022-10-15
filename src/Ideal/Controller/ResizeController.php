@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ResizeController
 {
+    /** @noinspection BadExceptionsProcessingInspection */
     public function indexAction(Request $request): Response
     {
         $response = new Response();
@@ -31,5 +32,10 @@ class ResizeController
         }
 
         return $response->setContent($rImage)->setStatusCode($statusCode);
+    }
+
+    public function getResizedFolder(): string
+    {
+        return '/images/resized';
     }
 }

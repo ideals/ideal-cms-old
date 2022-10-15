@@ -9,10 +9,12 @@
 
 namespace Ideal\Structure\Service\UpdateCms;
 
+use Exception;
 use Ideal\Core\Config;
 use Ideal\Core\Db;
 use Ideal\Core\Util;
-use Ideal\Structure\Service\UpdateCms\Versions;
+use RuntimeException;
+use ZipArchive;
 
 /**
  * Получение номеров версий установленной CMS и модулей
@@ -22,25 +24,25 @@ class Model
 {
 
     /** @var array Ответ, возвращаемый при ajax-вызове */
-    protected $answer = array('message' => array(), 'error' => false, 'data' => null);
+    protected array $answer = ['message' => [], 'error' => false, 'data' => null];
 
     /** @var string Путь к файлу с логом обновлений */
     protected $log = '';
 
     /** @var bool Признак тестового режима */
-    protected $testMode = false;
+    protected bool $testMode = false;
 
     /** @var array Массив папок для обновления */
-    protected $updateFolders = array();
+    protected array $updateFolders = [];
 
     /** @var string Название модуля */
-    public $updateName = '';
+    public string $updateName = '';
 
     /** @var string Версия, на которую производится обновление */
-    public $updateVersion = '';
+    public string $updateVersion = '';
 
     /** @var string Текущая версия */
-    public $currentVersion = '';
+    public string $currentVersion = '';
 
     /**
      * Инициализация файла лога обновлений
@@ -62,7 +64,7 @@ class Model
      *
      * @param bool $testMode Признак тестового режима
      */
-    public function setTestMode($testMode)
+    public function setTestMode(bool $testMode): void
     {
         $this->testMode = $testMode;
     }
@@ -74,7 +76,7 @@ class Model
      * @param string $updateVersion Номер версии, на которую обновляемся
      * @param string $currentVersion Номер текущей версии
      */
-    public function setUpdate($updateName, $updateVersion, $currentVersion)
+    public function setUpdate(string $updateName, string $updateVersion, string $currentVersion): void
     {
         // todo Сделать защиту от хакеров на POST-переменные
         $this->updateName = $updateName;
@@ -84,7 +86,7 @@ class Model
 
     /**
      * Загрузка архива с обновлениями
-     * @throws \Exception
+     * @throws Exception
      */
     public function downloadUpdate()
     {
@@ -92,10 +94,10 @@ class Model
             . '?name=' . urlencode(serialize($this->updateName))
             . '&cVer=' . $this->currentVersion
             . '&ver=' . $this->updateVersion;
-        $info = json_decode(file_get_contents($updateUrl), true);
+        $info = json_decode(file_get_contents($updateUrl), true, 512, JSON_THROW_ON_ERROR);
 
         // Проверка на получение данных о получаемом обновлении
-        if ($info === false || !isset($info['file']) || !isset($info['md5']) ||  !isset($info['version'])) {
+        if (!isset($info['file'], $info['md5'], $info['version']) || $info === false) {
             $this->addAnswer(
                 'Не удалось получить данные о получаемом обновлении',
                 'error'
@@ -106,7 +108,7 @@ class Model
         // Название файла для сохранения
         $path = $this->updateFolders['uploadDir'] . '/' . $this->updateName;
 
-        $fp = fopen($path, 'w');
+        $fp = fopen($path, 'wb');
 
         $updateUrl = $this->updateFolders['getFileScript']
             . '?file=' . $info['file'];
@@ -134,26 +136,26 @@ class Model
             exit;
         }
 
-        if (md5_file($path) != $info['md5']) {
+        if (md5_file($path) !== $info['md5']) {
             $this->addAnswer('Полученный файл повреждён (хеш не совпадает)', 'error');
             exit;
         }
 
         $this->addAnswer('Загружен архив с обновлениями', 'success');
         // Возвращаем название загруженного архива
-        return array('path' => $path, 'version' => $info['version']);
+        return ['path' => $path, 'version' => $info['version']];
     }
 
     /**
      * Распаковка архива
      *
-     * @param string $archive Полный путь к файлу архива с новой версии
-     * @return bool
-     * @throws \Exception
+     * @param array $archive Полный путь к файлу архива с новой версии
+     * @return void
+     * @throws Exception
      */
-    public function unpackUpdate($archive)
+    public function unpackUpdate(array $archive): void
     {
-        $zip = new \ZipArchive;
+        $zip = new ZipArchive();
         $res = $zip->open($archive['path']);
 
         if ($res !== true) {
@@ -176,18 +178,18 @@ class Model
      * Замена каталога со старой версией на каталог с новой версией
      *
      * @return string Путь к старому разделу
-     * @throws \Exception
+     * @throws Exception
      */
-    public function swapUpdate()
+    public function swapUpdate(): string
     {
         // Определяем путь к тому что мы обновляем, cms или модули
         $config = Config::getInstance();
-        if ($this->updateName == "Ideal-CMS") {
+        if ($this->updateName === 'Ideal-CMS') {
             // Путь к cms
-            $updateCore = DOCUMENT_ROOT . '/' . $config->cmsFolder . '/' . "Ideal";
+            $updateCore = DOCUMENT_ROOT . '/' . $config->cmsFolder . '/' . 'Ideal';
         } else {
             // Путь к модулям
-            $updateCore = DOCUMENT_ROOT . '/' . $config->cmsFolder . '/' . "Mods" . '/' . $this->updateName;
+            $updateCore = DOCUMENT_ROOT . '/' . $config->cmsFolder . '/' . 'Mods' . '/' . $this->updateName;
         }
         // Переименовываем папку, которую собираемся заменить
         if (!rename($updateCore, $updateCore . '_old')) {
@@ -202,15 +204,18 @@ class Model
 
         $result = Util::chmod($updateCore, $config->cms['dirMode'], $config->cms['fileMode']);
 
-        if (count($result) != 0) {
+        if (count($result) !== 0) {
             // Объединяем все пути, для которых не удалось изменить права в одну строку
             $paths = array_reduce(
                 $result,
-                function (&$result, $item) {
-                    $result = $result . "<br />\n" . $item['path'];
+                static function (&$result, $item) {
+                    $result .= "<br />\n" . $item['path'];
                 }
             );
-            $this->addAnswer("Не удалось изменить права для следующих файлов/папок: <br />\n{$paths}", 'warning');
+            $this->addAnswer(
+                "Не удалось изменить права для следующих файлов/папок: <br />\n$paths",
+                'warning'
+            );
         }
         $this->addAnswer('Заменены файлы', 'success');
         return $updateCore . '_old';
@@ -219,24 +224,24 @@ class Model
     /**
      * Добавление сообщения, возвращаемого в ответ на ajax запрос
      *
-     * @param array $message Сообщения возвращаемые в ответ на ajax запрос
+     * @param string|array $message Сообщения возвращаемые в ответ на ajax запрос
      * @param string $type Статус сообщения, характеризующий так же наличие ошибки
      * @param mixed $data Данные передаваемые в ответ на ajax запрос
-     * @throws \Exception
+     * @throws Exception
      */
-    public function addAnswer($message, $type, $data = null)
+    public function addAnswer($message, string $type, $data = null): void
     {
-        if (!is_string($message) || !is_string($type)) {
-            throw new \Exception("Необходим аргумент типа строка");
+        if (!is_string($message)) {
+            throw new RuntimeException('Необходим аргумент типа строка');
         }
-        if (!in_array($type, array('error', 'info', 'warning', 'success'))) {
-            throw new \Exception("Недопустимое значение типа сообщения");
+        if (!in_array($type, ['error', 'info', 'warning', 'success'])) {
+            throw new RuntimeException('Недопустимое значение типа сообщения');
         }
-        $this->answer['message'][] = array($message, $type);
-        if ($type == 'error') {
+        $this->answer['message'][] = [$message, $type];
+        if ($type === 'error') {
             $this->answer['error'] = true;
         }
-        if ($data != null) {
+        if ($data !== null) {
             $this->answer['data'] = $data;
         }
     }
@@ -246,7 +251,7 @@ class Model
      *
      * @return array
      */
-    public function getAnswer()
+    public function getAnswer(): array
     {
         return $this->answer;
     }
@@ -256,17 +261,18 @@ class Model
      * Удаление папки или её очистка
      *
      * @param string $dir   Папка которую необходимо удалить или очистить
-     * @param bool   $clear Если значение ложь, то удаляем папку, если истина, очищаем
+     * @param bool $clear Если значение ложь, то удаляем папку, если истина, очищаем
      * @return bool
+     * @noinspection MultipleReturnStatementsInspection
      */
-    public function removeDirectory($dir, $clear = false)
+    public function removeDirectory(string $dir, bool $clear = false): bool
     {
         $res = true;
         if (!file_exists($dir)) {
             // Если папки нет, то и удалять её не надо, а если требовалось очистить - возвращаем ошибку
             return !$clear;
         }
-        $files = array_diff(scandir($dir), array('.', '..'));
+        $files = array_diff(scandir($dir), ['.', '..']);
         foreach ($files as $file) {
             $res = (is_dir("$dir/$file")) ? $this->removeDirectory("$dir/$file") : unlink("$dir/$file");
         }
@@ -281,20 +287,21 @@ class Model
      *
      * @param $array
      */
-    public function setUpdateFolders($array)
+    public function setUpdateFolders($array): void
     {
-        $this->updateFolders = array(
+        $this->updateFolders = [
             'getFileScript' => $array['getFileScript'],
             'uploadDir' => $array['uploadDir']
-        );
+        ];
     }
 
     /**
      * Получение списка скриптов
      *
      * @return array
+     * @throws Exception
      */
-    public function getUpdateScripts()
+    public function getUpdateScripts(): array
     {
         // Находим путь к последнему установленному скрипту модуля
         $logFile = file($this->log);
@@ -307,7 +314,7 @@ class Model
             }
         }
 
-        if ($lastScript != '') {
+        if ($lastScript !== '') {
             // Находим номер версии и название файла последнего установленного скрипта
             $currentVersion = basename(dirname($lastScript));
         } else {
@@ -317,7 +324,7 @@ class Model
         }
 
         // Считываем названия папок со скриптами обновления
-        $updates = array_diff(scandir($updateFolder), array('.', '..'));
+        $updates = array_diff(scandir($updateFolder), ['.', '..']);
 
         // Убираем из списка файлы
         foreach ($updates as $k => $v) {
@@ -329,7 +336,7 @@ class Model
         // Сортируем папки по номерам версий
         usort(
             $updates,
-            function ($a, $b) {
+            static function ($a, $b) {
                 return version_compare($a, $b);
             }
         );
@@ -342,21 +349,21 @@ class Model
         }
 
         // Составление списка скриптов для обновления
-        $scripts = array('pre' => array(), 'after' => array());
+        $scripts = ['pre' => [], 'after' => []];
         foreach ($updates as $folder) {
             $scriptFolder = $updateFolder . '/' . $folder;
-            $files = array_diff(scandir($scriptFolder), array('.', '..'));
+            $files = array_diff(scandir($scriptFolder), ['.', '..']);
             foreach ($files as $file) {
                 $fileScript = '/' . $folder . '/' . $file;
                 if (is_dir($scriptFolder . '/' . $file)) {
                     continue;
                 }
-                if ($lastScript == $fileScript) {
+                if ($lastScript === $fileScript) {
                     // Нашли последний установленный скрипт, значит отсекаем все предыдущие скрипты
-                    $scripts = array('pre' => array(), 'after' => array());
+                    $scripts = ['pre' => [], 'after' => []];
                     continue;
                 }
-                if (preg_match("(\/new_\.*)", $fileScript) && version_compare($folder, $currentVersion) > 0) {
+                if (preg_match('(\/new_\)', $fileScript) && version_compare($folder, $currentVersion) > 0) {
                     $scripts['after'][] = $fileScript;
                 } else {
                     $scripts['pre'][] = $fileScript;
@@ -365,9 +372,9 @@ class Model
         }
 
         $this->addAnswer(
-            'Получен список скриптов в количестве: ' . ((int)count($scripts['pre']) + (int)count($scripts['after'])),
+            'Получен список скриптов в количестве: ' . (count($scripts['pre']) + count($scripts['after'])),
             'success',
-            array('scripts' => json_encode($scripts))
+            ['scripts' => json_encode($scripts, JSON_THROW_ON_ERROR)]
         );
 
         return $scripts;
@@ -377,14 +384,15 @@ class Model
      * Запуск скрипта обновления
      *
      * @param string $script
+     * @throws Exception
      */
-    public function runScript($script)
+    public function runScript(string $script): void
     {
         // Производим запуск скриптов обновления
         $db = Db::getInstance();
         $ext = substr($script, strrpos($script, '.'));
 
-        if (strpos(basename($script), 'new') === 0) {
+        if (strncmp(basename($script), 'new', 3) === 0) {
             $file = 'setup/update' .  $script;
             if ($this->updateName !== 'Ideal-CMS') {
                 $file = $this->updateName . '/' . $file;
@@ -399,9 +407,8 @@ class Model
             case '.php':
                 ob_start();
                 include $file;
-                $text = ob_get_contents();
-                ob_end_clean();
-                $text = ($text != '') ? "\n<br />Скрипт выдал: " . $text : '';
+                $text = ob_get_clean();
+                $text = ($text !== '') ? "\n<br />Скрипт выдал: " . $text : '';
                 break;
             case '.sql':
                 $query = file_get_contents($file . $script);
@@ -410,8 +417,8 @@ class Model
                 }
                 break;
             default:
-                continue;
-        };
+                return;
+        }
         if (!$this->testMode) {
             $this->writeLog($fileForLog);
         }
@@ -423,7 +430,7 @@ class Model
      *
      * @param string $msg Строка для записи в log
      */
-    public function writeLog($msg)
+    public function writeLog(string $msg): void
     {
         $msg = rtrim($msg) . "\n";
         file_put_contents($this->log, $msg, FILE_APPEND);

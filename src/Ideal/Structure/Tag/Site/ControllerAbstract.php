@@ -8,7 +8,7 @@
 
 namespace Ideal\Structure\Tag\Site;
 
-use Ideal\Core\Config;
+use Exception;
 use Ideal\Core\Request;
 
 /**
@@ -19,26 +19,29 @@ class ControllerAbstract extends \Ideal\Core\Site\Controller
     /** @var Model */
     protected $model;
 
-    public function indexAction()
+    public function indexAction(): void
     {
         parent::indexAction();
 
         // Получаем полный список тегов
-        $this->view->tags = $this->model->getList();
+        $this->view->set('tags', $this->model->getList());
     }
 
-    public function detailAction()
+    /**
+     * @throws Exception
+     */
+    public function detailAction(): void
     {
         $this->templateInit('Structure/Tag/Site/detail.twig');
 
         parent::indexAction();
 
         // Получаем полный список тегов
-        $this->view->tags = $this->model->getList();
+        $this->view->set('tags', $this->model->getList());
 
         $request = new Request();
         $page = (int)$request->page;
-        $this->view->elements = $this->model->getElements($page);
-        $this->view->pager = $this->model->getElementsPager('page');
+        $this->view->set('elements', $this->model->getElements($page));
+        $this->view->set('pager', $this->model->getElementsPager('page'));
     }
 }

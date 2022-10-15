@@ -19,13 +19,13 @@ abstract class Widget
     protected $model;
     
     /** @var string Префикс url для списка ссылок, генерируемых виджетом */
-    protected $prefix;
+    protected string $prefix;
 
-    /** @var string prev_structure для получения элементов в виджете */
-    protected $prevStructure;
+    /** @var string Это prev_structure для получения элементов в виджете */
+    protected string $prevStructure;
 
     /** @var string GET-параметры url для списка ссылок, генерируемых виджетом */
-    protected $query;
+    protected string $query;
 
     /**
      * При инициализации виджета необходимо передать модель страницы с данными
@@ -37,20 +37,20 @@ abstract class Widget
     }
 
     /**
-     * Основной метод получения даных из виджета
+     * Основной метод получения данных из виджета
      *
      * Возвращает массив с данными, которые напрямую передаются в twig-шаблон под именами ключей
      *
      * @return array
      */
-    abstract public function getData();
+    abstract public function getData(): array;
 
     /**
      * Установка префикса для ссылок, генерируемых виджетом
      *
      * @param string $prefix
      */
-    public function setPrefix($prefix)
+    public function setPrefix(string $prefix): void
     {
         $this->prefix = $prefix;
     }
@@ -60,7 +60,7 @@ abstract class Widget
      *
      * @param string $prevStructure
      */
-    public function setPrevStructure($prevStructure)
+    public function setPrevStructure(string $prevStructure): void
     {
         $this->prevStructure = $prevStructure;
     }
@@ -70,7 +70,7 @@ abstract class Widget
      *
      * @param string $query GET-параметры, в формате QUERY_STRING
      */
-    public function setQuery($query)
+    public function setQuery(string $query): void
     {
         $this->query = $query;
     }

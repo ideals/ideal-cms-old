@@ -22,15 +22,15 @@ class ApplyChange
     /**
      * @param mixed $value
      */
-    public function setValue($value)
+    public function setValue($value): void
     {
         $this->value = $value;
     }
 
     /**
-     *  Добаляет/убирает строки в .htaccess отвечающие за браузерное кэширование
+     *  Добавляет/убирает строки в `.htaccess` отвечающие за браузерное кэширование
      */
-    public function browserCacheChange()
+    public function browserCacheChange(): void
     {
         $filePath = DOCUMENT_ROOT . '/.htaccess';
         if (file_exists($filePath)) {

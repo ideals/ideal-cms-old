@@ -9,6 +9,7 @@
 
 namespace Ideal\Field\Template;
 
+use Exception;
 use Ideal\Field\Select;
 use Ideal\Core\Request;
 
@@ -34,8 +35,9 @@ class Controller extends Select\Controller
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $html = '';
 
@@ -65,7 +67,7 @@ class Controller extends Select\Controller
             $defaultValue = $this->getValue();
             foreach ($value as $k => $v) {
                 $selected = '';
-                if ($k == $defaultValue) {
+                if ($k === $defaultValue) {
                     $selected = ' selected="selected"';
                 }
                 $html .= '<option value="' . $k . '"' . $selected . '>' . $v . '</option>';
@@ -91,10 +93,10 @@ class Controller extends Select\Controller
                                 .insertAfter( this.element )
                                 .val( value )
                                 .attr( "title", "" )
-                                .attr( "name", "{$nameId}" )
+                                .attr( "name", "$nameId" )
                                 .addClass( "custom-combobox-input ui-widget ui-widget-content ui-state-default "
-                                    + "ui-corner-left general_template_{$key} form-control")
-                                .css("display", "{$display}")
+                                    + "ui-corner-left general_template_$key form-control")
+                                .css("display", "$display")
 
                                 .autocomplete({
                                     delay: 0,
@@ -131,8 +133,8 @@ class Controller extends Select\Controller
                                     text: false
                                 })
                                 .removeClass( "ui-corner-all" )
-                                .addClass( "custom-combobox-toggle ui-corner-right general_template_{$key}" )
-                                .css("display", "{$display}")
+                                .addClass( "custom-combobox-toggle ui-corner-right general_template_$key" )
+                                .css("display", "$display")
                                 .css("background", "none")
                                 .css("border", "0")
                                 .html("<span class=\"arrow-down\"></span>")
@@ -165,8 +167,8 @@ class Controller extends Select\Controller
                     });
                 })( jQuery );
                 $(function() {
-                    $("#{$nameId}").combobox();
-                    $("#{$nameId}").siblings('input.{$nameId}').click(function(){
+                    $("#$nameId").combobox();
+                    $("#$nameId").siblings('input.$nameId').click(function(){
                         if ($(this).autocomplete( "widget" ).is(":visible")) {
                             $(this).autocomplete( "close" );
                         } else {
@@ -186,7 +188,7 @@ HTML;
      *
      * @return string
      */
-    public function pickupNewValue()
+    public function pickupNewValue(): string
     {
         $request = new Request();
 

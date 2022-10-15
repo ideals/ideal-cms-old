@@ -14,13 +14,17 @@ use Ideal\Core\Db;
 use Ideal\Core\Request;
 use Ideal\Core\Util;
 use Ideal\Structure\User;
+use JsonException;
 
 class ModelAbstract extends \Ideal\Core\Site\Model
 {
-
-    public $cid;
-
-    public function detectPageByUrl($path, $url)
+    /**
+     * @param array $path
+     * @param array $url
+     * @return $this
+     * @noinspection MultipleReturnStatementsInspection
+     */
+    public function detectPageByUrl(array $path, array $url)
     {
         if (count($url) > 1) {
             // URL новостей не может содержать вложенных элементов
@@ -35,8 +39,8 @@ class ModelAbstract extends \Ideal\Core\Site\Model
         $user = new User\Model();
         $checkActive = ($user->checkLogin()) ? '' : ' AND is_active=1';
 
-        $_sql = "SELECT * FROM {$this->_table} WHERE BINARY url=:url {$checkActive} AND date_create < :time";
-        $par = array('url' => $url[0], 'time' => time());
+        $_sql = "SELECT * FROM $this->_table WHERE BINARY url=:url $checkActive AND date_create < :time";
+        $par = ['url' => $url[0], 'time' => time()];
 
         $news = $db->select($_sql, $par); // запрос на получение всех страниц, соответствующих частям url
 
@@ -49,8 +53,8 @@ class ModelAbstract extends \Ideal\Core\Site\Model
 
         if (count($news) > 1) {
             $c = count($news);
-            Util::addError("В базе несколько ({$c}) новостей с одинаковым url: " . implode('/', $url));
-            $news = array($news[0]); // оставляем для отображения первую новость
+            Util::addError("В базе несколько ($c) новостей с одинаковым url: " . implode('/', $url));
+            $news = [$news[0]]; // оставляем для отображения первую новость
         }
 
         $news[0]['structure'] = 'Ideal_News';
@@ -65,30 +69,30 @@ class ModelAbstract extends \Ideal\Core\Site\Model
     }
 
     /**
-     * Возвращающет список всех новостей
+     * Возвращает список всех новостей
      *
      * Этот метод используется в построении html-карты сайта на основе БД
      *
      * @return array Список вложенных элементов
      */
-    public function getStructureElements()
+    public function getStructureElements(): array
     {
-        $list = $this->getList();
-        return $list;
+        return $this->getList();
     }
 
     /**
-     * @param int $page Номер отображаемой страницы
+     * @param int|null $page Номер отображаемой страницы
+     *
      * @return array Полученный список элементов
      */
-    public function getList($page = null)
+    public function getList(int $page = null): array
     {
         $config = Config::getInstance();
         $news = parent::getList($page);
 
         $parentUrl = $this->getParentUrl();
         foreach ($news as $k => $v) {
-            if (!isset($v['content']) || ($v['content'] == '')) {
+            if (!isset($v['content']) || ($v['content'] === '')) {
                 $news[$k]['link'] = '';
             } else {
                 $news[$k]['link'] = $parentUrl . '/' . $v['url'] . $config->urlSuffix;
@@ -99,7 +103,11 @@ class ModelAbstract extends \Ideal\Core\Site\Model
         return $news;
     }
 
-    public function getText()
+    /**
+     * @return string
+     * @throws JsonException
+     */
+    public function getText(): string
     {
         $config = Config::getInstance();
         $db = Db::getInstance();
@@ -107,19 +115,22 @@ class ModelAbstract extends \Ideal\Core\Site\Model
 
         if (isset($end['content']) && !empty($end['content'])) {
             $text = $end['content'];
-        } elseif (empty($end['content']) && !empty($end['addon'])) {
+        } elseif (!empty($end['addon'])) {
             $text = '';
-            $addons = json_decode($end['addon']);
-            foreach ($config->structures as $key => $value) {
-                if ($value['structure'] == $end['structure']) {
+            $addons = json_decode($end['addon'], true, 512, JSON_THROW_ON_ERROR);
+            $prevStructure = '';
+            // todo логирование случая, если не удалось определить prev_structure
+            foreach ($config->structures as $value) {
+                if ($value['structure'] === $end['structure']) {
                     $prevStructure = $value['ID'] . '-' . $end['ID'];
                 }
             }
             foreach ($addons as $addon) {
-                $addonGroupName = strtolower(end(explode('_', $addon[1])));
+                $addons = explode('_', $addon[1]);
+                $addonGroupName = strtolower(end($addons));
                 $table = $config->db['prefix'] . 'ideal_addon_' . $addonGroupName;
-                $_sql = "SELECT * FROM {$table} WHERE prev_structure=:ps AND tab_ID=:ti";
-                $result = $db->select($_sql, array('ps' => $prevStructure, 'ti' => $addon[0]));
+                $_sql = "SELECT * FROM $table WHERE prev_structure=:ps AND tab_ID=:ti";
+                $result = $db->select($_sql, ['ps' => $prevStructure, 'ti' => $addon[0]]);
                 $text .= $result[0]['content'];
             }
         } else {
@@ -129,17 +140,22 @@ class ModelAbstract extends \Ideal\Core\Site\Model
         $header = '';
         if (preg_match('/<h1.*>(.*)<\/h1>/isU', $text, $header)) {
             $text = preg_replace('/<h1>(.*)<\/h1>/isU', '', $text, 1);
-            $this->header = $header[1];
+            $header = $header[1];
         }
-        if (count($header) > 1) {
+        if (is_array($header)) {
             $text = str_replace($header[0], '', $text);
         }
+
         return $text;
     }
 
-    public function getWhere($where)
+    /**
+     * @param string $where
+     *
+     * @return string
+     */
+    public function getWhere(string $where): string
     {
-        $where = 'WHERE ' . $where . ' AND is_active=1 AND date_create < ' . time();
-        return $where;
+        return 'WHERE ' . $where . ' AND is_active=1 AND date_create < ' . time();
     }
 }

@@ -9,8 +9,8 @@
 
 namespace Ideal\Field\Url;
 
+use Exception;
 use Ideal\Field\AbstractController;
-use Ideal\Core\Site;
 use Ideal\Core\Config;
 
 /**
@@ -32,16 +32,17 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $url = new Model();
-        $value = array('url' => htmlspecialchars($this->getValue()));
-        $link = $url->getUrlWithPrefix($value, $this->model->getParentUrl());
+        $value = ['url' => htmlspecialchars($this->getValue())];
+        $link = Model::getUrlWithPrefix($value, $this->model->getParentUrl());
         $link = $url->cutSuffix($link);
         // Проверяем, является ли url этого объекта частью пути
         $addOn = '';
-        if (($link[0] === '/') && ($value !== $link)) {
+        if (($link[0] === '/') && ($value['url'] !== $link)) {
             // Выделяем из ссылки путь до этого объекта и выводим его перед полем input
             $path = substr($link, 0, strrpos($link, '/'));
             $addOn = '<span class="input-group-addon">' . $path . '/</span>';
@@ -56,11 +57,10 @@ class Controller extends AbstractController
     /**
      * {@inheritdoc}
      */
-    public function getValueForList($values, $fieldName)
+    public function getValueForList(array $values, string $fieldName): string
     {
-        $url = new Model($fieldName);
-        $link = $url->getUrlWithPrefix($values, $this->model->getParentUrl());
-        if ($link == '---') {
+        $link = Model::getUrlWithPrefix($values, $this->model->getParentUrl());
+        if ($link === '---') {
             // Если это страница внутри главной, то просто возвращаем поле url
             $link = $values[$fieldName];
         } else {
@@ -70,7 +70,13 @@ class Controller extends AbstractController
         return $link;
     }
 
-    public function parseInputValue($isCreate)
+    /**
+     * @param bool $isCreate
+     * @return array
+     * @noinspection MultipleReturnStatementsInspection
+     * @throws Exception
+     */
+    public function parseInputValue(bool $isCreate): array
     {
         $item = parent::parseInputValue($isCreate);
 
@@ -83,9 +89,8 @@ class Controller extends AbstractController
         // проверяем нет используется ли уже такой URL
 
         // Получаем SEO ссылку на создаваемый/редактируемый материал
-        $url = new Model();
         $value = htmlspecialchars($this->newValue);
-        $link = $url->getUrlWithPrefix(['url' => $value], $this->model->getParentUrl());
+        $link = Model::getUrlWithPrefix(['url' => $value], $this->model->getParentUrl());
 
         if (empty($value)) {
             $item['message'] = 'Поле url должно быть заполнено!';
@@ -113,7 +118,7 @@ class Controller extends AbstractController
     /**
      * {@inheritdoc}
      */
-    public function pickupNewValue()
+    public function pickupNewValue(): string
     {
         // В url не нужны пробелы ни спереди, ни сзади
         return trim(parent::pickupNewValue());
@@ -126,7 +131,7 @@ class Controller extends AbstractController
      * @param string $url SEO ссылка на создаваемый/редактируемый материал
      * @return mixed HTTP-код ответа сервера
      */
-    private static function checkUrl($url)
+    private static function checkUrl(string $url)
     {
         // Выстраиваем ссылку к создаваемой странице
         $config = Config::getInstance();
@@ -138,7 +143,7 @@ class Controller extends AbstractController
         curl_setopt(
             $ch,
             CURLOPT_USERAGENT,
-            "Mozilla/4.0 (Windows; U; Windows NT 5.0; En; rv:1.8.0.2) Gecko/20070306 Firefox/1.0.0.4"
+            'Mozilla/4.0 (Windows; U; Windows NT 5.0; En; rv:1.8.0.2) Gecko/20070306 Firefox/1.0.0.4'
         );
 
         // Устанавливаем значение url для проверки

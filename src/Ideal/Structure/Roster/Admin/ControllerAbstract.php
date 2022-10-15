@@ -9,27 +9,28 @@
 
 namespace Ideal\Structure\Roster\Admin;
 
+use Ideal\Core\Admin\Controller;
 use Ideal\Core\Request;
 
-class ControllerAbstract extends \Ideal\Core\Admin\Controller
+class ControllerAbstract extends Controller
 {
 
     /* @var $model ModelAbstract */
     protected $model;
 
-    public function indexAction()
+    public function indexAction(): void
     {
         $this->templateInit();
 
         $request = new Request();
 
         // Считываем список элементов
-        $page = intval($request->page);
+        $page = (int)$request->page;
         $listing = $this->model->getListAcl($page);
         $headers = $this->model->getHeaderNames();
 
         $this->parseList($headers, $listing);
 
-        $this->view->pager = $this->model->getPager('page');
+        $this->view->set('pager', $this->model->getPager('page'));
     }
 }

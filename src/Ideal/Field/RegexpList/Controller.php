@@ -9,6 +9,7 @@
 
 namespace Ideal\Field\RegexpList;
 
+use Exception;
 use Ideal\Field\AbstractController;
 
 /**
@@ -29,8 +30,9 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         return
             '<textarea class="form-control" name="' . $this->htmlName
@@ -41,7 +43,7 @@ class Controller extends AbstractController
     /**
      * {@inheritdoc}
      */
-    public function parseInputValue($isCreate)
+    public function parseInputValue(bool $isCreate): array
     {
         $item = parent::parseInputValue($isCreate);
 
@@ -51,8 +53,8 @@ class Controller extends AbstractController
 
         foreach ($lines as $line) {
             // Проверка на соответствие формату регулярного выражения, если нет, то уведомляем об этом
-            if (!preg_match("/^\/.*\/[imsxADSUXJu]{0,11}$/", $line)) {
-                $item['message'] = "Строка $line не удовлятворяет формату регулярных выражений.";
+            if (!preg_match('/^\/.*\/[imsxADSUXJu]{0,11}$/', $line)) {
+                $item['message'] = "Строка $line не удовлетворяет формату регулярных выражений.";
             }
         }
 
@@ -62,11 +64,10 @@ class Controller extends AbstractController
     /**
      * {@inheritdoc}
      */
-    public function pickupNewValue()
+    public function pickupNewValue(): string
     {
         // В исключениях не нужны пустые строки
         $string = str_replace("\r", '', parent::pickupNewValue());
-        $value = implode("\n", array_filter(explode("\n", $string)));
-        return $value;
+        return implode("\n", array_filter(explode("\n", $string)));
     }
 }

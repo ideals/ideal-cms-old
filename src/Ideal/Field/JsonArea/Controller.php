@@ -10,6 +10,7 @@
 namespace Ideal\Field\JsonArea;
 
 use Ideal\Field\AbstractController;
+use JsonException;
 
 /**
  * Отображение редактирования поля в админке в виде textarea.
@@ -30,8 +31,9 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws JsonException
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $value = $this->getValue();
         return
@@ -42,10 +44,11 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws JsonException
      */
-    public function getValue()
+    public function getValue(): string
     {
-        $value = json_decode(parent::getValue(), true);
+        $value = json_decode(parent::getValue(), true, 512, JSON_THROW_ON_ERROR);
         if (!empty($value) && is_array($value)) {
             $value = implode("\n", $value);
         }
@@ -54,14 +57,14 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws JsonException
      */
-    public function pickupNewValue()
+    public function pickupNewValue(): string
     {
         $value = parent::pickupNewValue();
         if (!empty($value)) {
-            $value = preg_split('/\s/', $value);
-            $value = array_filter($value);
-            $value = json_encode(array_values($value));
+            $valueArr = array_filter(preg_split('/\s/', $value));
+            $value = json_encode(array_values($valueArr), JSON_THROW_ON_ERROR);
         }
         return $value;
     }

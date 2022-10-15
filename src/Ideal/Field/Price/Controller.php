@@ -9,19 +9,22 @@
 
 namespace Ideal\Field\Price;
 
+use Exception;
 use Ideal\Core\Request;
+use Ideal\Field\AbstractController;
 
 /**
  * Class Controller
  */
-class Controller extends \Ideal\Field\AbstractController
+class Controller extends AbstractController
 {
     protected static $instance;
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $value = str_replace(',', '.', htmlspecialchars($this->getValue()));
         return '<input type="number" step="0.01" class="form-control '
@@ -33,16 +36,15 @@ class Controller extends \Ideal\Field\AbstractController
     /**
      * {@inheritdoc}
      */
-    public function getValue()
+    public function getValue(): string
     {
-        $value = intval(parent::getValue()) / 100;
-        return $value;
+        return (int)parent::getValue() / 100;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getValueForList($values, $fieldName)
+    public function getValueForList(array $values, string $fieldName): string
     {
         return number_format($values[$fieldName] / 100, 2, ',', ' ');
     }
@@ -50,7 +52,7 @@ class Controller extends \Ideal\Field\AbstractController
     /**
      * {@inheritdoc}
      */
-    public function pickupNewValue()
+    public function pickupNewValue(): string
     {
         $request = new Request();
         $fieldName = $this->groupName . '_' . $this->name;

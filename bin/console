@@ -1,14 +1,16 @@
 #!/usr/bin/env php
 <?php
 
+use Ideal\Core\Config;
 use Symfony\Component\Console\Input\ArrayInput;
 
+/** @noinspection PhpIncludeInspection */
 require_once __DIR__ . '/../vendor/autoload.php';
 
 // Создание приложения
 $application = new Symfony\Component\Console\Application();
 
-$config = \Ideal\Core\Config::getInstance();
+$config = Config::getInstance();
 $config->loadSettings(dirname(__DIR__));
 
 // Регистрируем команды системы
@@ -20,4 +22,5 @@ $application->add(new Ideal\Command\CronCommand());
 $input = isset($params) ? new ArrayInput($params) : null;
 
 // Запускаем команду
+/** @noinspection PhpUnhandledExceptionInspection */
 $application->run($input);

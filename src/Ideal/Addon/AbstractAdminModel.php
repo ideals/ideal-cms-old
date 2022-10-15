@@ -20,34 +20,24 @@ use Ideal\Core\Db;
  */
 class AbstractAdminModel extends Admin\Model
 {
+    use TraitModel;
+
     /**
      * {@inheritdoc}
      */
-    public function delete()
+    public function delete(): bool
     {
         $db = Db::getInstance();
-        $db->delete($this->_table)->where('ID=:id', array('id' => $this->pageData['ID']));
+        $db->delete($this->_table)->where('ID=:id', ['id' => $this->pageData['ID']]);
         $db->exec();
+
+        return true;
     }
 
-    public function getPageData()
+    public function getPageData(): array
     {
         $this->setPageDataByPrevStructure($this->prevStructure);
-        return $this->pageData;
-    }
 
-    public function setPageDataByPrevStructure($prevStructure)
-    {
-        $db = Db::getInstance();
-
-        // Получаем идентификатор таба из группы
-        list(, $tabID) = explode('-', $this->fieldsGroup, 2);
-        $_sql = "SELECT * FROM {$this->_table} WHERE prev_structure=:ps AND tab_ID=:tid";
-        $pageData = $db->select($_sql, array('ps' => $prevStructure, 'tid' => $tabID));
-        if (isset($pageData[0]['ID'])) {
-            // TODO сделать обработку ошибки, когда по prevStructure ничего не нашлось
-            /** @noinspection PhpUndefinedMethodInspection */
-            $this->setPageData($pageData[0]);
-        }
+        return $this->pageData ?? [];
     }
 }

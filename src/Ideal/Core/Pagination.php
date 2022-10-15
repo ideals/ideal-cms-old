@@ -12,20 +12,20 @@ namespace Ideal\Core;
 class Pagination
 {
 
-    protected $next;
+    protected string $next = '';
 
-    protected $prev;
+    protected string $prev = '';
 
-    protected $visiblePages = 4;
+    protected int $visiblePages = 4;
 
-    public function getNext()
+    public function getNext(): string
     {
         return $this->next;
     }
 
-    public function getPages($itemsCount, $itemsOnPage, $page, $urlString, $urlParam)
+    public function getPages($itemsCount, $itemsOnPage, int $page, $urlString, $urlParam): array
     {
-        $page = ($page == 0) ? 1 : $page;
+        $page = ($page === 0) ? 1 : $page;
         $pagesCount = ceil($itemsCount / $itemsOnPage); // кол-во страниц
 
         // Далее список всех страниц разбивается на блоки по $this->visiblePages страниц в каждом
@@ -35,7 +35,7 @@ class Pagination
         // Номер первой отображаемой страницы
         $startPage = floor($actualBlock * $this->visiblePages) + 1;
         // Номер последней отображаемой страницы
-        $endPage = ($actualBlock == $endBlock) ? $pagesCount : $startPage + $this->visiblePages - 1;
+        $endPage = ($actualBlock === $endBlock) ? $pagesCount : $startPage + $this->visiblePages - 1;
 
         // Если переменные в GET-запросе уже есть добавляем с амперсандом, иначе с вопросом
         if (strpos($urlString, '?') !== false) {
@@ -44,36 +44,36 @@ class Pagination
             $urlParam = '?' . $urlParam . '=';
         }
 
-        $pages = array();
+        $pages = [];
 
         // Если блок не первый, то ставим ссылку на последний элемент предыдущего блока
         if ($startPage > 1) {
-            $pages[] = array(
+            $pages[] = [
                 'url' => $urlString . $urlParam . ($startPage - 1),
                 'num' => '…',
                 'current' => 0
-            );
+            ];
         }
 
         // Составляем основной список листалки
         for ($n = $startPage; $n <= $endPage; $n++) {
-            $pages[] = array(
-                'url' => ($n == 1) ? $urlString : $urlString . $urlParam . $n,
+            $pages[] = [
+                'url' => ($n === 1) ? $urlString : $urlString . $urlParam . $n,
                 'num' => $n,
-                'current' => ($n == $page) ? 1 : 0
-            );
+                'current' => ($n === $page) ? 1 : 0
+            ];
         }
 
         // Если последняя видимая цифра листалки не последняя, то ставим ссылку на следующий блок
         if ($endPage < $pagesCount) {
-            $pages[] = array(
+            $pages[] = [
                 'url' => $urlString . $urlParam . ($endPage + 1),
                 'num' => '…',
                 'current' => 0
-            );
+            ];
         }
 
-        if ($page == 2) {
+        if ($page === 2) {
             $this->prev = $urlString;
         }
 
@@ -88,12 +88,12 @@ class Pagination
         return $pages;
     }
 
-    public function getPrev()
+    public function getPrev(): string
     {
         return $this->prev;
     }
 
-    public function setVisiblePages($countPages)
+    public function setVisiblePages($countPages): void
     {
         $this->visiblePages = $countPages;
     }

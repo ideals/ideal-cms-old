@@ -23,7 +23,7 @@ class AjaxController extends CoreAjaxController
      * Действие срабатывающее при нажатии на кнопку "Проверка целостности файлов"
      * @throws JsonException
      */
-    public function checkCmsFilesAction()
+    public function checkCmsFilesAction(): void
     {
         $config = Config::getInstance();
         $cmsFolder = $config->cmsDir;

@@ -20,20 +20,23 @@ class Model extends AbstractModel
     /**
      * {@inheritdoc}
      */
-    public function getList()
+    public function getList(): array
     {
         // Получаем список структур, которые можно создавать в этой структуре
-        $modelStructures = $this->obj->params['structures'];
+        $modelStructures = $this->obj->params['structures'] ?? [];
         $config = Config::getInstance();
         $list = [];
-        foreach ($config->structures as $structure) {
-            if (in_array($structure['structure'], $modelStructures, true)) {
-                // Удаляем из списка структур на создание те, что нельзя создавать этому пользователю
-                // TODO сделать проверку есть ли доступ у пользователя к этой структуре
-                // $user->enableStructure($structure['structure']);
-                $list[$structure['structure']] = $structure['name'];
+        if ($modelStructures !== []) {
+            foreach ($config->structures as $structure) {
+                if (in_array($structure['structure'], $modelStructures, true)) {
+                    // Удаляем из списка структур на создание те, что нельзя создавать этому пользователю
+                    // TODO сделать проверку есть ли доступ у пользователя к этой структуре
+                    // $user->enableStructure($structure['structure']);
+                    $list[$structure['structure']] = $structure['name'];
+                }
             }
         }
+
         return $list;
     }
 }

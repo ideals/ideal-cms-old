@@ -9,6 +9,7 @@
 
 namespace Ideal\Structure\Roster\Admin;
 
+use Ideal\Core\Admin\Model;
 use Ideal\Core\Config;
 use Ideal\Core\Db;
 use Ideal\Core\Util;
@@ -17,48 +18,55 @@ use Ideal\Core\Util;
  * Класс для работы со списками
  *
  */
-class ModelAbstract extends \Ideal\Core\Admin\Model
+class ModelAbstract extends Model
 {
 
-    public function delete()
+    public function delete(): bool
     {
         parent::delete();
         $db = Db::getInstance();
         $db->delete($this->_table)
-            ->where('ID=:id', array('id' => $this->pageData['ID']))
+            ->where('ID=:id', ['id' => $this->pageData['ID']])
             ->exec();
 
         if (isset($this->pageData['pos'])) {
             // Если есть сортировка pos, то нужно уменьшить все следующие за удаляемым
             // элементы на единицу
-            $_sql = "UPDATE {$this->_table} SET pos = pos - 1
-                        WHERE prev_structure = '{$this->prevStructure}'
+            $_sql = "UPDATE $this->_table SET pos = pos - 1
+                        WHERE prev_structure = '$this->prevStructure'
                               AND pos > {$this->pageData['pos']}";
             $db->query($_sql);
         }
         // TODO сделать проверку успешности удаления
-        return 1;
+
+        return true;
     }
 
+    /**
+     * @param $path
+     * @param $par
+     * @return $this
+     * @noinspection MultipleReturnStatementsInspection
+     */
     public function detectPageByIds($path, $par)
     {
         $this->path = $path;
         $first = array_shift($par);
-        if ($first == null) {
+        if ($first === null) {
             return $this;
         }
 
-        $first = intval($first);
-        $_sql = "SELECT * FROM {$this->_table} WHERE ID={$first}";
+        $first = (int)$first;
+        $_sql = "SELECT * FROM $this->_table WHERE ID=$first";
         $db = Db::getInstance();
         $localPath = $db->select($_sql);
         if (!isset($localPath[0]['ID'])) {
             $this->is404 = true;
             return $this;
         }
-        array_push($this->path, $localPath[0]);
+        $this->path[] = $localPath[0];
 
-        if (0 != count($par)) {
+        if (count($par) !== 0) {
             // Ещё остались неопределённые элементы пути. Запускаем вложенную структуру.
             $config = Config::getInstance();
             $trueResult = $this->path;
@@ -69,8 +77,7 @@ class ModelAbstract extends \Ideal\Core\Admin\Model
             /* @var $structure Model */
             $structure = new $modelClassName($structure['ID'] . '-' . $end['ID']);
             // Запускаем определение пути и активного объекта по $par
-            $model = $structure->detectPageByIds($this->path, $par);
-            return $model;
+            return $structure->detectPageByIds($this->path, $par);
         }
         return $this;
     }

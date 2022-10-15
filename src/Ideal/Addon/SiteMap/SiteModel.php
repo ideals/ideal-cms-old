@@ -12,6 +12,7 @@ namespace Ideal\Addon\SiteMap;
 use Ideal\Addon\AbstractSiteModel;
 use Ideal\Core\Config;
 use Ideal\Core\Util;
+use Ideal\Structure\Part\Site\Model;
 
 /**
  * Класс построения html-карты сайта на основании структуры БД
@@ -21,7 +22,7 @@ class SiteModel extends AbstractSiteModel
 {
 
     /** @var array Массив правил для запрещения отображения ссылок в карте сайта */
-    protected $disallow = array();
+    protected array $disallow = [];
 
     /**
      * Извлечение настроек карты сайта из своей таблицы,
@@ -29,7 +30,7 @@ class SiteModel extends AbstractSiteModel
      *
      * @return array
      */
-    public function getPageData()
+    public function getPageData(): array
     {
         $this->setPageDataByPrevStructure($this->prevStructure);
 
@@ -39,7 +40,7 @@ class SiteModel extends AbstractSiteModel
         $this->pageData['content'] = '';
 
         $mode = explode('\\', get_class($this->parentModel));
-        if ($mode[3] == 'Site') {
+        if ($mode !== false && isset($mode[3]) && $mode[3] === 'Site') {
             // Для фронтенда к контенту добавляется карта сайта в виде ul-списка разделов
             $list = $this->getList(1); // считываем из БД все открытые разделы
             $this->pageData['content'] = $this->createSiteMap($list); // строим html-код карты сайта
@@ -51,24 +52,22 @@ class SiteModel extends AbstractSiteModel
     /**
      * Построение карты сайта в виде дерева
      *
-     * @param int $page Не используется
+     * @param int|null $page Не используется
      * @return array
      */
-    public function getList($page = null)
+    public function getList(int $page = null): array
     {
         $config = Config::getInstance();
 
         // Определение стартовой структуры и начать считывание с неё
         $structure = $config->structures[0];
         $className = Util::getClassName($structure['structure'], 'Structure') . '\\Site\\Model';
-        /** @var $startStructure \Ideal\Structure\Part\Site\Model */
+        /** @var $startStructure Model */
         $startStructure = new $className($structure['ID']);
         $elements = $startStructure->getStructureElements();
+        $path = [$structure];
 
-        $path = array($structure);
-        $elements = $this->recursive($path, $elements);
-
-        return $elements;
+        return $this->recursive($path, $elements);
     }
 
     /**
@@ -78,17 +77,17 @@ class SiteModel extends AbstractSiteModel
      * @param $elements
      * @return array
      */
-    protected function recursive($path, $elements)
+    protected function recursive($path, $elements): array
     {
         if (empty($elements)) {
-            return array();
+            return [];
         }
 
         $config = Config::getInstance();
         $end = end($path);
         $fullPath = $path;
         $lvl = 0;
-        $newElements = array();
+        $newElements = [];
         // Проходился по всем внутренним структурам и, если вложены другие структуры, получаем и их элементы
         foreach ($elements as $element) {
             $newElements[] = $element;
@@ -101,16 +100,13 @@ class SiteModel extends AbstractSiteModel
                     $fullPath = array_slice($fullPath, 0, -$c);
                 }
                 $lvl = $element['lvl'];
-                $fullPath[] = $element;
-            } else {
+            } elseif (count($fullPath) > count($path)) {
                 // Если структура без вложенных элементов, то каждый раз заменяем последний элемент
-                if (count($fullPath) > count($path)) {
-                    array_pop($fullPath);
-                }
-                $fullPath[] = $element;
+                array_pop($fullPath);
             }
+            $fullPath[] = $element;
 
-            if (!isset($element['structure']) || ($element['structure'] == $end['structure'])) {
+            if (!isset($element['structure']) || ($element['structure'] === $end['structure'])) {
                 continue;
             }
 
@@ -128,16 +124,15 @@ class SiteModel extends AbstractSiteModel
             $addElements = $this->recursive($fullPath, $addElements);
 
             // Увеличиваем уровень вложенности на считанных элементах
-            foreach ($addElements as $k => $v) {
+            foreach ($addElements as $v) {
                 if (isset($v['lvl'])) {
-                    $addElements[$k]['lvl'] += $element['lvl'];
+                    $v['lvl'] += $element['lvl'];
                 } else {
-                    $addElements[$k]['lvl'] = $element['lvl'] + 1;
+                    $v['lvl'] = $element['lvl'] + 1;
                 }
+                // Получившийся список добавляем в наш массив новых элементов
+                $newElements[] = $v;
             }
-
-            // Получившийся список добавляем в наш массив новых элементов
-            $newElements = array_merge($newElements, $addElements);
         }
 
         return $newElements;
@@ -147,16 +142,17 @@ class SiteModel extends AbstractSiteModel
      * Построение html-карты сайта на основе древовидного списка
      *
      * @param array $list Древовидный список
-     * @return string html-код списка ссылок карты сайта
+     * @return string Html-код списка ссылок карты сайта
      */
-    public function createSiteMap($list)
+    public function createSiteMap(array $list): string
     {
         $str = '';
         $lvl = 0;
-        foreach ($list as $k => $v) {
+        foreach ($list as $v) {
+            $v['lvl'] = (int)$v['lvl'];
             if ($v['lvl'] > $lvl) {
                 $str .= "\n<ul class=\"site-map\">\n";
-            } elseif ($v['lvl'] == $lvl) {
+            } elseif ($v['lvl'] === $lvl) {
                 $str .= "</li>\n";
             } elseif ($v['lvl'] < $lvl) {
                 // Если двойной или тройной выход добавляем соответствующий мультипликатор
@@ -164,8 +160,7 @@ class SiteModel extends AbstractSiteModel
                 $str .= str_repeat("</li>\n</ul>\n</li>\n", $c);
             }
 
-            if ((!isset($v['link']) || empty($v['link'] ))
-                || (isset($v['is_skip']) && ($v['is_skip'] == 1) && ($v['url'] == '---'))) {
+            if (empty($v['link']) || (isset($v['is_skip']) && ((int)$v['is_skip'] === 1) && ($v['url'] === '---'))) {
                 // Если у элемента нет ссылки, или у него прописан is_skip=1 и url='--', то не выводим ссылку
                 $str .= '<li>' . $v['name'];
             } else {
@@ -173,9 +168,9 @@ class SiteModel extends AbstractSiteModel
                 // то подходящего правила в disallow не нашлось и можно эту ссылку добавлять в карту сайта
                 $tmp = $this->disallow;
 
-                $link = array_reduce($tmp, function (&$res, $rule) {
+                $link = array_reduce($tmp, static function ($res, $rule) {
                     if (!empty($rule)) {
-                        if ($res == 1 || preg_match($rule, $res)) {
+                        if ($res === 1 || preg_match($rule, $res)) {
                             return 1;
                         }
                     }
@@ -186,7 +181,7 @@ class SiteModel extends AbstractSiteModel
                     continue;
                 }
                 $href = strpos($v['link'], 'href=') === false ? 'href="' . $v['link'] . '"' : $v['link'];
-                $href = $href == 'href=""' ? '' : $href;
+                $href = $href === 'href=""' ? '' : $href;
                 $str .= '<li><a ' . $href . '>' . $v['name'] . '</a>';
             }
             $lvl = $v['lvl'];

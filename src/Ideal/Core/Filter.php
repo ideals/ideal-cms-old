@@ -17,19 +17,18 @@ abstract class Filter
 {
 
     /** @var array Массив для хранения параметров фильтрации и сортировки */
-    protected $params = array();
+    protected array $params = [];
 
     /** @var string Строка содержащая информацию о фильтрации в запросе */
-    protected $where = '';
+    protected string $where = '';
 
     /** @var string Строка содержащая информацию о сортировке в запросе */
-    protected $orderBy = '';
+    protected string $orderBy = '';
 
     /**
      * Генерирует запрос для получения списка элементов
      */
     abstract public function getSql();
-
 
     /**
      * Генерирует запрос для получения количества элементов в списке
@@ -44,11 +43,11 @@ abstract class Filter
     /**
      * Устанавливает значения параметров фильтрации и сортировки
      *
-     * @param $params array список параметров для фильтрации
+     * @param $params array Список параметров для фильтрации
      */
-    public function setParams($params)
+    public function setParams(array $params): void
     {
-        $db = DB::getInstance();
+        $db = Db::getInstance();
         foreach ($params as $key => $value) {
             $params[$key] = $db->escape_string($value);
         }
@@ -58,9 +57,9 @@ abstract class Filter
     /**
      * Возвращает значения параметров фильтрации и сортировки
      *
-     * @return array параметры фильтрации и сортировки
+     * @return array Параметры фильтрации и сортировки
      */
-    public function getParams()
+    public function getParams(): array
     {
         return $this->params;
     }
@@ -68,7 +67,7 @@ abstract class Filter
     /**
      * Генерирует order by часть запроса
      */
-    protected function generateOrderBy()
+    protected function generateOrderBy(): void
     {
         $this->orderBy = '';
     }

@@ -9,32 +9,35 @@
 
 namespace Ideal\Field\Addon;
 
+use Exception;
 use Ideal\Core\Config;
 use Ideal\Core\Util;
+use Ideal\Medium\AbstractModel;
+use JsonException;
 
 class Model
 {
     /** @var  string Название поля, используемое для полей ввода в html-коде */
-    public $htmlName;
+    public string $htmlName;
 
     /** @var  array Параметры поля, взятые из конфигурационного файла структуры */
-    protected $field;
+    protected array $field;
 
     /** @var  string Название вкладки, в которой находится поле в окне редактирования */
-    protected $groupName;
+    protected string $groupName;
 
     /** @var  \Ideal\Core\Admin\Model Модель данных, в которой находится редактируемое поле */
     protected $model;
 
     /** @var  string Название поля */
-    protected $name;
+    protected string $name;
 
     /**
      * Получение списка подключённых аддонов для их редактирования
      *
      * @return string
      */
-    public function getAvailableAddonsList()
+    public function getAvailableAddonsList(): string
     {
         // Скрываем выбор добавляемого аддона за кнопкой +
         $html = '<button id="add-addon-button" class="btn btn-info">Добавить аддон</button>'
@@ -43,7 +46,7 @@ class Model
 
         // Получаем список доступных для добавления аддонов для этого элемента
         $className = $this->field['medium'];
-        /** @var \Ideal\Medium\AbstractModel $medium */
+        /** @var AbstractModel $medium */
         $medium = new $className($this->model, $this->name);
         $list = $medium->getList();
 
@@ -67,19 +70,19 @@ class Model
      *
      * @param $json
      * @return array
+     * @throws JsonException
+     * @throws Exception
      */
-    public function getTabs($json)
+    public function getTabs($json): array
     {
-        $arr = json_decode($json);
-        $result = array(
+        $arr = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        $result = [
             'names' => '',
             'contents' => ''
-        );
+        ];
 
         foreach ($arr as $v) {
-            $tabId = $v[0];
-            $addonVar = $v[1];
-            $addonName = $v[2];
+            [$tabId, $addonVar, $addonName] = $v;
 
             // Получаем название, заголовок и содержимое вкладки
             $tab = $this->getTab($tabId, $addonVar, $addonName);
@@ -88,13 +91,13 @@ class Model
             $result['names'] .= addslashes($tab['header']);
 
             $tab['content'] = str_replace(
-                array("\\", '<script>', '/', "'"),
-                array("\\\\", '\<script>', '\/', "\\'"),
+                ["\\", '<script>', '/', "'"],
+                ["\\\\", '\<script>', '\/', "\\'"],
                 $tab['content']
             );
 
             // Убираем переводы строки, иначе текст не обрабатывается в JS
-            $tab['content'] = str_replace(array("\n\r", "\r\n", "\n", "\r"), '\\n', $tab['content']);
+            $tab['content'] = str_replace(["\n\r", "\r\n", "\n", "\r"], '\\n', $tab['content']);
 
             // Записываем содержимое вкладки
             $result['contents'] .= $tab['content'];
@@ -106,12 +109,13 @@ class Model
     /**
      * Получение названия и содержимого одной вкладки
      *
-     * @param  integer $id Идентификатор вкладки
+     * @param int $id Идентификатор вкладки
      * @param string $addonVar Название аддона
      * @param string $addonName Наименование вкладки аддона
      * @return array
+     * @throws Exception
      */
-    public function getTab($id, $addonVar, $addonName = '')
+    public function getTab(int $id, string $addonVar, string $addonName = ''): array
     {
         $class = Util::getClassName($addonVar, 'Addon') . '\\AdminModel';
         /** @var \Ideal\Core\Admin\Model $model */
@@ -122,7 +126,7 @@ class Model
         $groupName = strtolower(end($groupName));
         $model->setFieldsGroup($groupName . '-' . $id);
 
-        // Если создаётся новая вкладка то данные из связанного объекта не нужны
+        // Если создаётся новая вкладка, то данные из связанного объекта не нужны
         $pageData = $this->model->getPageData();
         if (isset($pageData['ID'])) {
             // Загрузка данных связанного объекта
@@ -141,25 +145,23 @@ class Model
         $model->setParentModel($this->model);
 
         $addonVar .= '_' . $id;
-        $addonName = ($addonName == '') ? $model->params['name'] : $addonName; // если почему-то в БД сбросится
+        $addonName = ($addonName === '') ? $model->params['name'] : $addonName; // если почему-то в БД сбросится
 
-        $tab = "<!--suppress HtmlUnknownAnchorTarget -->" // это чтобы PhpStorm не ругался на href='#tab{$addonVar}'
-            . "<li><a data-toggle=\"tab\" id=\"tab{$addonVar}Head\" href=\"#tab{$addonVar}\">{$addonName}</a>"
-            . "</li>";
+        $tab = '<!--suppress HtmlUnknownAnchorTarget -->' // это чтобы PhpStorm не ругался на href='#tab{$addonVar}'
+            . "<li><a data-toggle=\"tab\" id=\"tab{$addonVar}Head\" href=\"#tab$addonVar\">$addonName</a>"
+            . '</li>';
 
         // Получение содержимого вкладки
         $tabContent = $model->getFieldsList($model->fields);
 
         // Оборачиваем в div вкладки
-        $tabContent = "<div id=\"tab{$addonVar}\" class=\"tab-pane\">{$tabContent}</div>";
+        $tabContent = "<div id=\"tab$addonVar\" class=\"tab-pane\">$tabContent</div>";
 
-        $result = array(
+        return [
             'name' => $addonName,
             'header' => $tab,
             'content' => $tabContent
-        );
-
-        return $result;
+        ];
     }
 
     /**
@@ -169,10 +171,10 @@ class Model
      * его значения и поведение может зависеть от значений других полей
      *
      * @param \Ideal\Core\Admin\Model $model     Модель редактируемого объекта
-     * @param string                  $fieldName Редактируемое поле
-     * @param string                  $groupName Вкладка, к которой принадлежит редактируемое поле
+     * @param string $fieldName Редактируемое поле
+     * @param string $groupName Вкладка, к которой принадлежит редактируемое поле
      */
-    public function setModel($model, $fieldName, $groupName = 'general')
+    public function setModel($model, string $fieldName, string $groupName = 'general'): void
     {
         $this->name = $fieldName;
         $this->model = $model;

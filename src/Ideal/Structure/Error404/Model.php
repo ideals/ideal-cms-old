@@ -13,9 +13,7 @@ use Exception;
 use Ideal\Core\Config;
 use Ideal\Core\Db;
 use Ideal\Mailer;
-use Ideal\Structure\Service\SiteData\ConfigPhp;
 use Ideal\Structure\User;
-use JsonException;
 
 /**
  * Класс для обработки 404-ых ошибок
@@ -78,14 +76,16 @@ class Model
                 // Получаем данные о рассматриваемом url в справочнике "Ошибки 404"
                 $par = ['url' => $this->url];
                 $fields = ['table' => $error404Table];
-                $rows = $db->select('SELECT * FROM &table WHERE BINARY url = :url LIMIT 1', $par, $fields);
+                $rows = $db->select(/** @lang text */
+                    'SELECT * FROM &table WHERE BINARY url = :url LIMIT 1', $par, $fields);
                 if (count($rows) === 0) {
                     // Добавляем запись в справочник
                     $dataList = $config->getStructureByName('Ideal_DataList');
                     $prevStructure = $dataList['ID'] . '-';
                     $par = ['structure' => 'Ideal_Error404'];
                     $fields = ['table' => $config->db['prefix'] . 'ideal_structure_datalist'];
-                    $row = $db->select('SELECT ID FROM &table WHERE structure = :structure', $par, $fields);
+                    $row = $db->select(/** @lang text */
+                        'SELECT ID FROM &table WHERE structure = :structure', $par, $fields);
                     $prevStructure .= $row[0]['ID'];
                     $params = [
                         'prev_structure' => $prevStructure,
@@ -99,18 +99,16 @@ class Model
 
                     // Увеличиваем счётчик посещения страницы
                     $values = ['count' => $rows[0]['count'] + 1];
-                    $par = ['url' => $this->url];
                     $db->update($error404Table)->set($values)->where('url = :url', $par)->exec();
                 } else {
                     $this->send404 = false;
 
                     // Переносим данные из справочника в файл с известными 404
-                    $known404List = array_filter(explode("\n", $known404Params['known']['arr']['known404']['value']));
+                    $known404List = array_filter((array)explode("\n", $known404Params['known']['arr']['known404']['value']));
                     $known404List[] = $this->url;
                     $known404Params['known']['arr']['known404']['value'] = implode("\n", $known404List);
                     $this->known404->setParams($known404Params);
                     $this->known404->saveFile(DOCUMENT_ROOT . '/' . $config->cmsFolder . '/known404.php');
-                    $par = ['url' => $this->url];
                     $db->delete($error404Table)->where('url = :url', $par)->exec();
                 }
             }
@@ -150,6 +148,7 @@ class Model
         $config = Config::getInstance();
 
         $knownFile = DOCUMENT_ROOT . $config->cmsFolder . '/known404.php';
+        /** @noinspection UsingInclusionReturnValueInspection */
         $known404 = file_exists($knownFile) ? include($knownFile) : ['known' => ['known404' => '']];
         $known404 = explode("\n", $known404['known']['known404']);
         $is404 = $this->matchesRules($known404, $url);
@@ -171,7 +170,7 @@ class Model
             } else {
                 $from = 'Переход со страницы ' . $_SERVER['HTTP_REFERER'];
             }
-            $message = "Здравствуйте!\n\nНа странице http://{$config->domain}{$_SERVER['REQUEST_URI']} "
+            $message = "Здравствуйте!\n\nНа странице $config->domain{$_SERVER['REQUEST_URI']} "
                 . "произошли следующие ошибки.\n\n"
                 . "\n\nСтраница не найдена (404).\n\n"
                 . "\n\n$from\n\n";

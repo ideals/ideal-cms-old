@@ -10,6 +10,7 @@
 namespace Ideal\Structure\Service\Acl;
 
 use Ideal\Structure\Acl\Admin\Model as StructureAclModel;
+use JsonException;
 
 /**
  * Реакция на действия со страницы "Права доступа"
@@ -19,7 +20,7 @@ class AjaxController extends \Ideal\Core\Admin\AjaxController
 {
 
     /** @var object Ideal\Structure\Acl\Admin\Model */
-    protected $structureAclModel = null;
+    protected $structureAclModel;
 
     public function __construct()
     {
@@ -28,26 +29,28 @@ class AjaxController extends \Ideal\Core\Admin\AjaxController
 
     /**
      * Получение списка первого уровня для управления правами
+     * @throws JsonException
      */
     public function mainUserGroupPermissionAction()
     {
         $permission = $this->structureAclModel->getMainUserGroupPermission();
-        return json_encode($permission, JSON_FORCE_OBJECT);
+        return json_encode($permission, JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT);
     }
 
     /**
      * Получение списка дочерних пунктов для управления правами
+     * @throws JsonException
      */
     public function showChildrenAction()
     {
         $permission = $this->structureAclModel->getChildrenPermission();
-        return json_encode($permission, JSON_FORCE_OBJECT);
+        return json_encode($permission, JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT);
     }
 
     /**
      * Занесение в базу изменённого правила для соответствующего пункта
      */
-    public function changePermissionAction()
+    public function changePermissionAction(): void
     {
         $this->structureAclModel->changePermission();
     }
@@ -55,10 +58,10 @@ class AjaxController extends \Ideal\Core\Admin\AjaxController
     /**
      * {@inheritdoc}
      */
-    public function getHttpHeaders()
+    public function getHttpHeaders(): array
     {
-        return array(
+        return [
             'Content-type' => 'Content-type: application/json'
-        );
+        ];
     }
 }

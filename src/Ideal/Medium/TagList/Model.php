@@ -22,12 +22,13 @@ class Model extends AbstractModel
     /**
      * {@inheritdoc}
      */
-    public function getList()
+    public function getList(): array
     {
         $db = Db::getInstance();
         $config = Config::getInstance();
         $table = $config->db['prefix'] . 'ideal_structure_tag';
-        $sql = 'SELECT ID, name FROM ' . $table . ' ORDER BY name ASC';
+        /** @noinspection SqlResolve */
+        $sql = 'SELECT ID, name FROM ' . $table . ' ORDER BY name';
         $arr = $db->select($sql);
 
         $list = [];
@@ -40,18 +41,19 @@ class Model extends AbstractModel
 
     /**
      * {@inheritdoc}
+     * @noinspection SqlResolve
      */
-    public function getSqlAdd($newValue = array())
+    public function getSqlAdd($newValue = []): string
     {
         $config = Config::getInstance();
         // Определяем структуру объекта, которому присваиваются теги
         $structure = $config->getStructureByClass(get_class($this->obj));
 
-        $_sql = "DELETE FROM {$this->table} WHERE part_id='{{ objectId }}' AND structure_id='{$structure['ID']}';";
+        $_sql = "DELETE FROM $this->table WHERE part_id='{{ objectId }}' AND structure_id='{$structure['ID']}';";
         if (is_array($newValue) && (count($newValue) > 0)) {
             foreach ($newValue as $v) {
-                $_sql .= "INSERT INTO {$this->table}
-                              SET part_id='{{ objectId }}', tag_id='{$v}', structure_id='{$structure['ID']}';";
+                $_sql .= "INSERT INTO $this->table
+                              SET part_id='{{ objectId }}', tag_id='$v', structure_id='{$structure['ID']}';";
             }
         }
         return $_sql;
@@ -60,11 +62,9 @@ class Model extends AbstractModel
     /**
      * {@inheritdoc}
      */
-    public function getValues()
+    public function getValues(): array
     {
-        $fieldNames = array_keys($this->fields);
-        $ownerField = $fieldNames[0];
-        $elementsField = $fieldNames[1];
+        [$ownerField, $elementsField] = array_keys($this->fields);
 
         $config = Config::getInstance();
         // Определяем структуру объекта, которому присваиваются теги
@@ -75,14 +75,15 @@ class Model extends AbstractModel
 
         if (!isset($owner['ID'])) {
             // Если владелец списка ещё не создан, то и выбранных элементов в нём нет
-            return array();
+            return [];
         }
 
-        $_sql = "SELECT {$elementsField} FROM {$this->table}
-                  WHERE {$ownerField}='{$owner['ID']}' AND structure_id='{$structure['ID']}'";
+        /** @noinspection SqlResolve */
+        $_sql = "SELECT $elementsField FROM $this->table
+                  WHERE $ownerField = '{$owner['ID']}' AND structure_id='{$structure['ID']}'";
         $arr = $db->select($_sql);
 
-        $list = array();
+        $list = [];
         foreach ($arr as $v) {
             $list[] = $v[$elementsField];
         }

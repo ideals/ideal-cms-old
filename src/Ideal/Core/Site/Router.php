@@ -42,6 +42,7 @@ class Router
      * @return Response
      * @throws Exception
      * @noinspection BadExceptionsProcessingInspection
+     * @noinspection MultipleReturnStatementsInspection
      */
     public function indexAction(Request $request): Response
     {
@@ -92,6 +93,7 @@ class Router
      *
      * @return Model Модель активной страницы
      * @throws Exception
+     * @noinspection MultipleReturnStatementsInspection
      */
     protected function routeByUrl(Request $request): Model
     {
@@ -106,7 +108,7 @@ class Router
         // Если запрошена главная страница
         if ($url === '') {
             $model = new Home\Site\Model('0-' . $prevStructureId);
-            return $model->detectPageByUrl($path, '/');
+            return $model->detectPageByUrl($path, ['/']);
         }
 
         // Определяем оставшиеся элементы пути
@@ -268,11 +270,11 @@ class Router
         $url = ltrim($url, '/');
 
         // Удаляем параметры из URL (текст после символа "#")
-        $url = preg_replace('/\#.*/', '', $url);
+        $url = preg_replace('/#.*/', '', $url);
 
         if ($stripQuery) {
             // Удаляем параметры из URL (текст после символа "?")
-            $url = preg_replace('/[\?\#].*/', '', $url);
+            $url = preg_replace('/[?#].*/', '', $url);
         }
 
         // Убираем начальные слэши и начальный сегмент, если cms не в корне сайта

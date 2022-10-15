@@ -12,12 +12,12 @@ namespace Ideal\Structure\Service\Admin;
 use Ideal\Core\Config;
 
 /**
- * Класс для построение бокового меню в разделе Сервис и запуска скриптов выбранного пункта
+ * Класс для построения бокового меню в разделе Сервис и запуска скриптов выбранного пункта
  */
 class ModelAbstract extends \Ideal\Core\Admin\Model
 {
     /** @var array Массив с пунктами бокового меню */
-    protected $menu = array();
+    protected array $menu = [];
 
     /**
      * {@inheritdoc}
@@ -32,14 +32,14 @@ class ModelAbstract extends \Ideal\Core\Admin\Model
         if ($first) {
             // Если $par указан, то находим активный пункт бокового меню
             foreach ($menu as $item) {
-                if ($item['ID'] == $first) {
+                if ($item['ID'] === $first) {
                     break;
                 }
             }
         }
 
         $this->setPageData($item);
-        array_push($path, $item);
+        $path[] = $item;
         $this->path = $path;
 
         return $this;
@@ -50,7 +50,7 @@ class ModelAbstract extends \Ideal\Core\Admin\Model
      *
      * @return array Массив с пунктами бокового меню
      */
-    public function getMenu()
+    public function getMenu(): array
     {
         if (count($this->menu) > 0) {
             return $this->menu;
@@ -70,6 +70,7 @@ class ModelAbstract extends \Ideal\Core\Admin\Model
         );
 
         $this->menu = $actions;
+
         return $actions;
     }
 
@@ -79,14 +80,14 @@ class ModelAbstract extends \Ideal\Core\Admin\Model
      * @param string $folder Путь к папке в которой ищем вложенные папки с экшенами пункта Сервис
      * @return array Массив с пунктами бокового меню
      */
-    protected function getActions($folder)
+    protected function getActions(string $folder): array
     {
         $config = Config::getInstance();
-        $actions = array();
+        $actions = [];
         $dir = stream_resolve_include_path($config->cmsFolder . '/' . $folder);
         if ($handle = opendir($dir)) {
-            while (false !== ($file = readdir($handle))) {
-                if ($file == '.' || $file == '..' || $file == 'Admin') {
+            while (($file = readdir($handle)) !== false) {
+                if ($file === '.' || $file === '..' || $file === 'Admin') {
                     continue;
                 }
                 if (!is_dir($dir . '/' . $file)) {
@@ -98,6 +99,7 @@ class ModelAbstract extends \Ideal\Core\Admin\Model
                     // Если конфигурационного файла нет, то никакого пункта в меню Сервис не добавляем
                     continue;
                 }
+                /** @noinspection UsingInclusionReturnValueInspection */
                 $action = include($file);
                 $actions[$action['ID']] = $action;
             }
@@ -111,26 +113,27 @@ class ModelAbstract extends \Ideal\Core\Admin\Model
      * @param string $folder Путь к папке в которой ищем вложенные папки с экшенами пункта Сервис
      * @return array Массив с пунктами бокового меню
      */
-    protected function getModulesActions($folder)
+    protected function getModulesActions(string $folder): array
     {
         $config = Config::getInstance();
-        $actions = array();
+        $actions = [];
         $dir = stream_resolve_include_path($config->cmsFolder . '/' . $folder);
         if ($handle = opendir($dir)) {
-            while (false !== ($file = readdir($handle))) {
-                if ($file == '.' || $file == '..' || $file == '.hg') {
+            while (($file = readdir($handle)) !== false) {
+                if ($file === '.' || $file === '..' || $file === '.hg') {
                     continue;
                 }
                 if (!is_dir($dir . '/' . $file)) {
                     continue;
                 } // пропускаем файлы, работаем только с папками
 
-                $actions = array_merge(
-                    $actions,
-                    $this->getActions($folder . '/' . $file . '/Structure/Service')
-                );
+                $actionList = $this->getActions($folder . '/' . $file . '/Structure/Service');
+                foreach ($actionList as $item) {
+                    $actions[] = $item;
+                }
             }
         }
+
         return $actions;
     }
 }

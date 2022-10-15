@@ -9,11 +9,16 @@
 
 namespace Ideal\Structure\Service\Redirect;
 
+use JsonException;
+
 /**
- * Экшэн отображения списка редиректов из файлов redirect.txt и .htaccess
+ * Экшен отображения списка редиректов из файлов `redirect.txt` и `.htaccess`
  */
 class Action
 {
+    /**
+     * @throws JsonException
+     */
     public function render(): string
     {
         $file = new RewriteRule();
@@ -52,12 +57,12 @@ class Action
         <th class="col-xs-6">Куда</th>
         <th>&nbsp;&nbsp;</th>
     </tr>
-    {$table}
+    $table
 </table>
 
 <br/>
 
-<button type="button" class="btn btn-primary pull-left" value="{$button}"
+<button type="button" class="btn btn-primary pull-left" value="$button"
         onclick="addLine(this)">
     Добавить редирект
 </button>

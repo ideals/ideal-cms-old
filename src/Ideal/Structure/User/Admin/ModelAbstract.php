@@ -14,13 +14,14 @@ use Ideal\Core\Db;
 class ModelAbstract extends \Ideal\Core\Admin\Model
 {
 
-    public function delete()
+    public function delete(): bool
     {
         parent::delete();
         $db = Db::getInstance();
-        $db->delete($this->_table)->where('ID=:id', array('id' => $this->pageData['ID']))->exec();
+        $db->delete($this->_table)->where('ID=:id', ['id' => $this->pageData['ID']])->exec();
         // TODO сделать проверку успешности удаления
-        return 1;
+
+        return true;
     }
 
     public function detectPageByIds($path, $par)

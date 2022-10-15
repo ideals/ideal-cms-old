@@ -66,7 +66,7 @@ class Crontab
             $success = false;
         }
 
-        // Загружаем данные из cron-файла в переменные класса
+        // Загружаем данные из cron-файла в переменные
         try {
             $this->loadCrontab($this->cronFile);
         } catch (Exception $e) {
@@ -99,7 +99,7 @@ class Crontab
 
             // Проверяем правильность написания выражения для крона и существование файла для выполнения
             if (CronExpression::isValidExpression($taskExpression) !== true) {
-                $this->message .= "Неверное выражение \"{$taskExpression}\"\n";
+                $this->message .= "Неверное выражение \"$taskExpression\"\n";
                 $success = false;
             }
 
@@ -116,7 +116,7 @@ class Crontab
             $cronModel = CronExpression::factory($taskExpression);
             $nextRunDate = $cronModel->getNextRunDate(new DateTime());
 
-            $tasks .= $cronTask . "\nСледующий запуск файла \"{$fileTask}\" назначен на "
+            $tasks .= $cronTask . "\nСледующий запуск файла \"$fileTask\" назначен на "
                 . $nextRunDate->format('d.m.Y H:i:s') . "\n";
             $taskIsset = true;
 
@@ -187,7 +187,7 @@ class Crontab
             // Получаем дату следующего запуска задачи
             $cron = CronExpression::factory($taskExpression);
             $nextRunDate = $cron->getNextRunDate($this->modifyTime);
-            $nextRunDate = $nowCron = new DateTime();
+            $nowCron = new DateTime();
 
             // Если дата следующего запуска меньше, либо равна текущей дате, то запускаем скрипт
             if ($nextRunDate <= $nowCron) {
@@ -197,16 +197,16 @@ class Crontab
                 // избежать ситуации, когда два задания должны выполниться в одну минуту, а выполняется только одно
 
                 // Запускаем скрипт
-                if (mb_strpos($fileTask, 'bin/console') === false) {
-                    // Это просто скрипт, запускаем его с помощью подключения
-                    require_once $fileTask;
-                } else {
+                if (mb_strpos($fileTask, 'bin/console') !== false) {
                     // Это консольная команда, парсим вводные данные
                     $argvParser = new ArgvParser();
                     $params = $argvParser->parseConfigs($fileTask);
                     $keys = array_keys($params);
                     $params = array_merge(['command' => $keys[1]], array_slice($params, 2));
                     require $this->siteRoot . '/bin/console';
+                } else {
+                    // Это просто скрипт, запускаем его с помощью подключения
+                    require_once $fileTask;
                 }
 
                 break; // Прекращаем цикл выполнения задач, чтобы не произошло наложения задач друг на друга

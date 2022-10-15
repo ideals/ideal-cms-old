@@ -35,23 +35,20 @@ class Controller extends Url\Controller
     /**
      * {@inheritdoc}
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $url = new Url\Model();
-        $value = array('url' => htmlspecialchars($this->getValue()));
-        $link = $url->getUrlWithPrefix($value, $this->model->getParentUrl());
+        $value = ['url' => htmlspecialchars($this->getValue())];
+        $link = Url\Model::getUrlWithPrefix($value, $this->model->getParentUrl());
         $link = $url->cutSuffix($link);
         // Проверяем, является ли url этого объекта частью пути
         $addOn = '';
-        if (($link !== '') && ($link[0] == '/') && ($value != $link)) {
+        if (($link !== '') && ($link[0] === '/') && ($value['url'] !== $link)) {
             // Выделяем из ссылки путь до этого объекта и выводим его перед полем input
             $path = substr($link, 0, strrpos($link, '/'));
             $addOn = '<span class="input-group-addon">' . $path . '/</span>';
         }
-        $nameField = 'name';
-        if (isset($this->field['nameField'])) {
-            $nameField = $this->field['nameField'];
-        }
+        $nameField = $this->field['nameField'] ?? 'name';
         return
             '<script type="text/javascript" src="?mode=ajax&action=script&controller=\Ideal\Field\UrlAuto" />'
             . '<div class="input-group">' . $addOn

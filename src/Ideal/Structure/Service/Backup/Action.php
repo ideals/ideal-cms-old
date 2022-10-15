@@ -20,7 +20,7 @@ class Action
         $config = Config::getInstance();
 
         try {
-            // Пытаемся определить полный путь к папке бэкапов, если это возможно
+            // Пытаемся определить полный путь к папке бэкапов, если это возможно.
             // Проверяем временную папку и папку для бэкапов на существование, возможность создания и записи
 
             // Временная папка
@@ -158,7 +158,7 @@ HTML;
         fd.append('file', file);
         $('#uploadfile').val('');
         // Url
-        var url = "?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=uploadFile&bf={$backupPart}";
+        var url = "?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=uploadFile&bf=$backupPart";
         // Сообщение о процессе загрузки
         $('#textDumpStatus').removeClass().addClass('alert alert-info').html('Идёт загрузка файла...');
         // Загрузка
@@ -256,7 +256,7 @@ HTML;
             type: 'POST',
             data: {
                 createMysqlDump: true,
-                backupPart: '{$backupPart}'
+                backupPart: '$backupPart'
             },
             success: function (data) {
                 //Выводим сообщение

@@ -50,7 +50,7 @@ class Controller extends AbstractController
     /**
      * {@inheritdoc}
      */
-    public function parseInputValue($isCreate): array
+    public function parseInputValue(bool $isCreate): array
     {
         $this->newValue = $this->pickupNewValue();
 

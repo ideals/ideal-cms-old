@@ -32,12 +32,12 @@ class Controller extends Date\Controller
     protected static $instance;
 
     /** @var bool Флаг необходимости получить текущую дату и время, либо считывать сохранённые из БД */
-    protected $getNow = false;
+    protected bool $getNow = false;
 
     /**
      * {@inheritdoc}
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         $this->getNow = true;
         $html = parent::getInputText();
@@ -48,7 +48,7 @@ class Controller extends Date\Controller
     /**
      * {@inheritdoc}
      */
-    public function getValue()
+    public function getValue(): string
     {
         return ($this->getNow) ? time() : parent::getValue();
     }

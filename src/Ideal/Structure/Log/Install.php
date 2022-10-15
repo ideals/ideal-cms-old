@@ -36,7 +36,7 @@ class Install implements InstallStructureInterface
                 'structure' => 'Ideal_Log',
                 'pos' => $newPos,
                 'name' => 'Лог администраторов',
-                'url' => 'log-administratorov',
+                'url' => 'log-admin',
                 'parent_url' => '---',
                 'annot' => ''
             ]

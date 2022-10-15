@@ -14,7 +14,7 @@ use Ideal\Core\Db;
 
 class ModelAbstract extends \Ideal\Structure\Roster\Admin\ModelAbstract
 {
-    public function getList($page = null)
+    public function getList(int $page = null): array
     {
         $logList = parent::getList($page);
 

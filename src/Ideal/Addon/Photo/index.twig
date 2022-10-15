@@ -5,7 +5,7 @@
             {% for column in row %}
                 <td class="col-md-4">
                     {% if column.0 is defined %}
-                        <a class="fancybox" href="{{ column.0 }}" rel="{{ imagesRel }}"><img src="{{ column.0 }}"/></a>
+                        <a class="fancybox" href="{{ column.0 }}" rel="{{ imagesRel }}"><img src="{{ column.0 }}" alt="" /></a>
                     {% endif %}
                 </td>
             {% endfor %}

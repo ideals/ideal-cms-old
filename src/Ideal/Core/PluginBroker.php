@@ -14,23 +14,19 @@ class PluginBroker
 
     private static $instance;
 
-    protected $_events = array();
+    protected array $_events = [];
 
     public static function getInstance()
     {
         if (empty(self::$instance)) {
-            self::$instance = new PluginBroker();
+            self::$instance = new self();
         }
         return self::$instance;
     }
 
     public function makeEvent($eventName, $params)
     {
-        if (count($this->_events) == 0) {
-            return $params;
-        }
-
-        if (!isset($this->_events[$eventName])) {
+        if (count($this->_events) === 0 || !isset($this->_events[$eventName])) {
             return $params;
         }
 
@@ -41,7 +37,7 @@ class PluginBroker
         return $params;
     }
 
-    public function registerPlugin($eventName, $pluginClassName)
+    public function registerPlugin(string $eventName, string $pluginClassName): void
     {
         $this->_events[$eventName][] = $pluginClassName;
     }

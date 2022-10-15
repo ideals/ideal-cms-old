@@ -9,6 +9,7 @@
 
 namespace Ideal\Field\Area;
 
+use Exception;
 use Ideal\Field\AbstractController;
 
 /**
@@ -29,8 +30,9 @@ class Controller extends AbstractController
 
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getInputText()
+    public function getInputText(): string
     {
         return
             '<textarea class="form-control" name="' . $this->htmlName

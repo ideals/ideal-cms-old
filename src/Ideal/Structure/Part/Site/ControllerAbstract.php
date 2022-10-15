@@ -14,18 +14,14 @@ use Ideal\Core\Request;
 
 class ControllerAbstract extends Core\Site\Controller
 {
-
-    /** @var bool Включение листалки (пагинации) */
-    protected $isPager = false;
-
-    public function indexAction()
+    public function indexAction(): void
     {
         parent::indexAction();
 
         $request = new Request();
-        $page = intval($request->page);
-        $this->view->parts = $this->model->getList($page);
+        $page = (int)$request->page;
+        $this->view->set('parts', $this->model->getList($page));
 
-        $this->view->pager = $this->model->getPager('page');
+        $this->view->set('pager', $this->model->getPager('page'));
     }
 }

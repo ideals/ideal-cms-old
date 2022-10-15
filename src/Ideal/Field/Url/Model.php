@@ -9,6 +9,7 @@
 
 namespace Ideal\Field\Url;
 
+use Exception;
 use Ideal\Core\Config;
 use Ideal\Core\PluginBroker;
 
@@ -26,19 +27,19 @@ class Model
     // TODO сделать возможность определять url Не только по полю url
 
     /** @var string Родительский URL, используемый для построения URL элементов на этом уровне */
-    protected $parentUrl;
+    protected string $parentUrl = '';
 
     /**
      * Удаление символов, неприменимых в URL
      *
-     * @param string $nm исходная ссылка
-     * @return string преобразованная ссылка
+     * @param string $nm Исходная ссылка
+     * @return string Преобразованная ссылка
      */
-    public static function translitUrl($nm)
+    public static function translitUrl(string $nm): string
     {
-        $nm = Model::translit($nm);
+        $nm = self::translit($nm);
         $nm = mb_strtolower($nm);
-        $arr = array(
+        $arr = [
             '@' => '',
             '$' => '',
             '^' => '',
@@ -71,20 +72,20 @@ class Model
             '&' => '',
             ',' => '',
             '%' => ''
-        );
-        $nm = strtr($nm, $arr);
-        return $nm;
+        ];
+        return strtr($nm, $arr);
     }
 
     /**
      * Транслитерация русских букв в латинские
      *
-     * @param string $nm - исходная строка
-     * @return string преобразованная строка
+     * @param string $nm Исходная строка
+     *
+     * @return string Преобразованная строка
      */
-    public static function translit($nm)
+    public static function translit(string $nm): string
     {
-        $arr = array(
+        $arr = [
             'а' => 'a',
             'б' => 'b',
             'в' => 'v',
@@ -151,9 +152,8 @@ class Model
             'Я' => 'ya',
             'Ь' => '',
             'Ъ' => ''
-        );
-        $nm = strtr($nm, $arr);
-        return $nm;
+        ];
+        return strtr($nm, $arr);
     }
 
     /**
@@ -162,11 +162,10 @@ class Model
      * @param $link
      * @return string
      */
-    public function cutSuffix($link)
+    public function cutSuffix($link): string
     {
         $config = Config::getInstance();
-        $link = substr($link, 0, -strlen($config->urlSuffix));
-        return $link;
+        return substr($link, 0, -strlen($config->urlSuffix));
     }
 
     /**
@@ -175,9 +174,9 @@ class Model
      * @param array $lastPart Массив с основными данными об элементе
      * @return string Сгенерированный URL этого элемента
      */
-    public function getUrl($lastPart)
+    public function getUrl(array $lastPart): string
     {
-        return $this->getUrlWithPrefix($lastPart, $this->parentUrl);
+        return self::getUrlWithPrefix($lastPart, $this->parentUrl);
     }
 
     /**
@@ -187,60 +186,52 @@ class Model
      * получения URL.
      *
      * @param array  $lastPart Массив с основными данными об элементе
-     * @param string $parentUrl
+     * @param null|string $parentUrl
      * @return string Сгенерированный URL этого элемента
+     * @noinspection MultipleReturnStatementsInspection
      */
-    public static function getUrlWithPrefix($lastPart, $parentUrl = '')
+    public static function getUrlWithPrefix(array $lastPart, ?string $parentUrl = null): string
     {
         $lastUrlPart = $lastPart['url'];
 
-        if ($parentUrl == '---') {
-            // В случае, когда родительский url неопределён
+        $config = Config::getInstance();
+        if ($parentUrl === null || $parentUrl === '' || $parentUrl === '/') {
+            $parentUrl = $config->cms['startUrl'];
+        }
+
+        if ($parentUrl === '---') {
+            // В случае, когда родительский url не определён
             return '---';
         }
 
-        $config = Config::getInstance();
-        if ($lastUrlPart == '/' || $lastUrlPart == '') {
+        if ($lastUrlPart === '/' || $lastUrlPart === '') {
             $lastUrlPart = '/';
             // Ссылка на главную обрабатывается особым образом
-            if ($config->cms['startUrl'] != '') {
+            if ($config->cms['startUrl'] !== '') {
                 $lastUrlPart = $config->cms['startUrl'] . '/';
             }
             return $lastUrlPart;
         }
 
         $pluginBroker = PluginBroker::getInstance();
-        $arr = array('last' => $lastPart, 'parent' => $parentUrl);
+        $arr = ['last' => $lastPart, 'parent' => $parentUrl];
         $arr = $pluginBroker->makeEvent('onGetUrl', $arr);
         $lastUrlPart = $arr['last']['url'];
 
-        if (strpos($lastUrlPart, 'http:') === 0
-            || strpos($lastUrlPart, 'https:') === 0
-            || strpos($lastUrlPart, '/') === 0
-            || empty($lastUrlPart)
+        if (empty($lastUrlPart)
+            || strncmp($lastUrlPart, 'http:', 5) === 0
+            || strncmp($lastUrlPart, 'https:', 6) === 0
+            || strncmp($lastUrlPart, '/', 1) === 0
         ) {
             // Если это уже сформированная или пустая ссылка, её и возвращаем
             return $lastUrlPart;
         }
 
-        if ($parentUrl == '' || $parentUrl == '/') {
-            $parentUrl = $config->cms['startUrl'];
-        } elseif (is_array($parentUrl)) {
-            $parentUrl = implode('/', $parentUrl);
-        }
-
-        $url = $parentUrl;
-
-        // Если URL предка нельзя составить
-        if ($url == '---') {
-            return '---';
-        }
-
-        $url .= '/';
+        $url = $parentUrl . '/';
 
         // Добавляем дочерний url
-        if ($url != $lastUrlPart) {
-            // Сработает только для всех ссылок, кроме главной '/'
+        if ($url !== $lastUrlPart) {
+            // Сработает для всех ссылок, кроме главной '/'
             $url .= $lastUrlPart . $config->urlSuffix;
         }
 
@@ -252,16 +243,17 @@ class Model
      *
      * @param array $path Путь до элемента, для которого нужно определить URL
      * @return string Родительский URL, который можно использовать для построения URL
+     * @noinspection MultipleReturnStatementsInspection
      */
-    public function setParentUrl($path)
+    public function setParentUrl(array $path): string
     {
         // Обратиться к модели для получения своей части url, затем обратиться
         // к более старшим структурам пока не доберёмся до конца
 
-        if (count($path) > 2 && $path[1]['url'] == '/') {
+        if (count($path) > 2 && $path[1]['url'] === '/') {
             // Мы находимся внутри главной - в ней url не работают
             return '---';
-        };
+        }
 
         // TODO если первая структура не стартовая, то нужно определить путь от стартовой структуры
 
@@ -273,16 +265,17 @@ class Model
             return '';
         }
 
-        $prefix = $url = '';
+        $url = '';
+        $prefix = '';
 
         // Объединяем все участки пути
         foreach ($path as $v) {
             if (isset($v['is_skip']) && $v['is_skip']) {
                 continue;
             }
-            if (strpos($v['url'], 'http:') === 0
-                || strpos($v['url'], 'https:') === 0
-                || strpos($v['url'], '/') === 0
+            if (strncmp($v['url'], 'http:', 5) === 0
+                || strncmp($v['url'], 'https:', 6) === 0
+                || strncmp($v['url'], '/', 1) === 0
             ) {
                 // Если в одном из элементов пути есть ссылки на другие страницы, то путь построить нельзя
                 return '---';
@@ -302,17 +295,17 @@ class Model
      * @param string $name Исходное название файла
      * @return string Преобразованное название файла
      */
-    public function translitFileName($name)
+    public function translitFileName(string $name): string
     {
         $ext = '';
         $posDot = mb_strrpos($name, '.');
-        if ($posDot != 0) {
+        if ($posDot !== 0) {
             $name = mb_substr($name, 0, $posDot);
             $ext = '.' . mb_substr($name, $posDot + 1);
         }
-        $name = Model::translit($name);
+        $name = self::translit($name);
         $name = strtolower($name);
-        $arr = array(
+        $arr = [
             '@' => '',
             '$' => '',
             '^' => '',
@@ -345,19 +338,20 @@ class Model
             '&' => '',
             ',' => '',
             '%' => ''
-        );
+        ];
         $name = strtr($name, $arr);
         return $name . $ext;
     }
 
     /**
-     * Построение url на основе cid элемета $part
+     * Построение url на основе cid элемента $part
      *
      * @param array $part Массив с данными элемента, для которого нужно построить url по cid
      * @param string $structureName Название структуры, в которой находится элемент
+     *
      * @return string
      */
-    public function getUrlByCid($part, $structureName)
+    public function getUrlByCid(array $part, string $structureName): string
     {
         $structureClass = explode('_', $structureName);
         $structureClass = '\\' . $structureClass[0] . '\\Structure\\' . $structureClass[1] . '\\Site\\Model';
@@ -369,31 +363,32 @@ class Model
         $path = $structureModel->getLocalPath();
         array_pop($path);
 
-        $url = array();
+        $url = [];
         foreach ($path as $item) {
             $url[] = $item['url'];
         }
 
-        return self::getUrlWithPrefix($part, $url);
+        return self::getUrlWithPrefix($part, '/' . implode('/', $url));
     }
 
     /**
      * Установка пути для построения URL по prev_structure
+     *
      * Используется для построения пути у повторяющихся элементов на одном уровне, если путь для них не построен
      * Например, список товаров в корзине и т.п.
      *
      * @param string $prevStructure prev_structure родительского элемента
      * @return array Путь, включая и родительский элемент
-     * @throws \Exception В случае, если родтельский элемент не найден (неправильная prev_structure)
+     * @throws Exception В случае, если родительский элемент не найден (неправильная prev_structure)
      */
-    public function setPathByPrevStructure($prevStructure)
+    public function setPathByPrevStructure(string $prevStructure): array
     {
         $config = Config::getInstance();
 
         // Находим элемент по prevStructure
-        list($structureId, $elementId) = explode('-', $prevStructure);
+        [$structureId, $elementId] = explode('-', $prevStructure);
         $structure = $config->getStructureById($structureId);
-        list($mod, $structure) = explode('_', $structure['structure']);
+        [$mod, $structure] = explode('_', $structure['structure']);
         $class = '\\' . $mod . '\\Structure\\' . $structure . '\\Site\\Model';
 
         /** @var \Ideal\Core\Site\Model $model */

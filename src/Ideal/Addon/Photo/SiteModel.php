@@ -15,7 +15,7 @@ use Ideal\Core\View;
 
 class SiteModel extends AbstractSiteModel
 {
-    public function getPageData()
+    public function getPageData(): array
     {
         $this->setPageDataByPrevStructure($this->prevStructure);
 
@@ -24,9 +24,9 @@ class SiteModel extends AbstractSiteModel
         $tplRoot = dirname(stream_resolve_include_path('Addon/Photo/index.twig'));
         $view = new View($tplRoot, $config->cache['templateSite']);
         $view->loadTemplate('index.twig');
-        $view->images = json_decode($this->pageData['images'], true);
-        $view->images = $view->images ?: [];
-        $view->imagesRel = $this->fieldsGroup;
+        $this->pageData['images'] = $this->pageData['images'] ?: [];
+        $view->set('images', json_decode($this->pageData['images'], false, 512, JSON_THROW_ON_ERROR));
+        $view->set('imagesRel', $this->fieldsGroup);
         $photoContent = $view->render();
         if (isset($this->pageData['content'])) {
             $this->pageData['content'] .= $photoContent;

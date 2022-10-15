@@ -9,6 +9,7 @@
 
 namespace Ideal\Field\Addon;
 
+use Exception;
 use Ideal\Core\Request;
 use JsonException;
 
@@ -21,28 +22,32 @@ class AjaxController extends \Ideal\Core\Admin\AjaxController
     /**
      * Добавление аддона к списку
      * @throws JsonException
+     * @throws Exception
      */
     public function addAction()
     {
         $request = new Request();
+        $id = (int)$request->get('id');
 
-        if ($request->id == 0) {
+        if ($id === 0) {
             // Если аддон подключается к ещё несозданному элементу, то данные модели из БД взять не получится
             $this->model->setPageData([]);
         } else {
-            $this->model->setPageDataById($request->id);
+            $this->model->setPageDataById($id);
         }
 
         $addonModel = new Model();
-        $field = substr($request->addonField, strlen($request->groupName) + 1);
-        $addonModel->setModel($this->model, $field, $request->groupName);
+        $field = substr($request->get('addonField'), strlen($request->get('groupName')) + 1);
+        $addonModel->setModel($this->model, $field, $request->get('groupName'));
 
         // Получаем html-код новой вкладки, её заголовок и название
-        $result = $addonModel->getTab($request->newId, $request->addonName);
+        $newId = $request->get('newId');
+        $addonName = $request->get('addonName');
+        $result = $addonModel->getTab($newId, $addonName);
 
         // Возвращаем информацию только о новом подключенном аддоне
         $json = [];
-        $json[] = [$request->newId, $request->addonName, $result['name']];
+        $json[] = [$newId, $addonName, $result['name']];
 
         $options = (defined('JSON_UNESCAPED_UNICODE')) ? JSON_UNESCAPED_UNICODE : 0;
         $result['list'] = json_encode($json, JSON_THROW_ON_ERROR | $options);

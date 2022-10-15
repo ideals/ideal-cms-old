@@ -2,6 +2,7 @@
 
 namespace Ideal\Structure\Error404\Site;
 
+use Ideal\Structure\Home\Site\Model as HomeSiteModel;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -9,7 +10,7 @@ class Controller extends \Ideal\Core\Site\Controller
 {
     public function errorAction(Request $request): Response
     {
-        $this->model = new \Ideal\Structure\Home\Site\Model('');
+        $this->model = new HomeSiteModel('');
 
         $this->templateInit('404.twig');
 

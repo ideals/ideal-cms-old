@@ -9,7 +9,7 @@
 
 namespace Ideal\Core\Site;
 
-use Ideal\Core;
+use Exception;
 use Ideal\Core\Config;
 use Ideal\Core\View;
 use Ideal\Setup\ModuleConfig;
@@ -22,29 +22,31 @@ class Controller
 {
 
     /** @var bool Включение листалки (пагинации) */
-    protected $isPager = true;
+    protected bool $isPager = true;
 
     /* @var $model Model Модель соответствующая этому контроллеру */
     protected $model;
 
     /** @var string Название параметра листалки */
-    protected $pageName = 'page';
+    protected string $pageName = 'page';
 
     /* @var $path array Путь к этой странице, включая и её саму */
-    protected $path;
+    protected array $path;
 
     /** @var string Имя файла с нестандартным шаблоном view */
-    protected $tplName = '';
+    protected string $tplName = '';
 
     /* @var $view View Объект вида — twig-шаблонизатор */
-    protected $view;
+    protected View $view;
+
+    private Request $request;
 
     /**
      * Инициализация twig-шаблона сайта
      *
      * @param string $tplName Название файла шаблона (с путём к нему), если не задан - будет index.twig
      */
-    public function templateInit(string $tplName = 'index.twig')
+    public function templateInit(string $tplName = 'index.twig'): void
     {
         // Если вьюха уже установлена, то ничего делать не надо
         // для переустановки вьюхи надо придумать отдельный метод, когда это потребуется
@@ -86,11 +88,11 @@ class Controller
      * По умолчанию система ставит только заголовок Content-Type, но и его можно
      * переопределить в этом методе.
      *
-     * @return array Массив где ключи - названия заголовков, а значения - содержание заголовков
+     * @return array Массив, где ключи - названия заголовков, а значения - содержание заголовков
      */
-    public function getHttpHeaders()
+    public function getHttpHeaders(): array
     {
-        return array(
+        return [
             // Дата последней модификации страницы
             // 'Last-Modified' => gmdate('D, d M Y H:i:s', $lastMod ) . ' GMT',
             // Затирание информации о языке, на котором написан сайт
@@ -101,15 +103,16 @@ class Controller
             // 'Cache-Control' => 'no-store, no-cache, must-revalidate',
             // 'Cache-Control' => 'post-check=0, pre-check=0',
             // 'Cache-Control' => 'Pragma: no-cache',
-        );
+        ];
     }
 
     /**
      * Действие по умолчанию для большинства контроллеров внешней части сайта.
-     * Выдёргивает контент из связанного шаблона и по этому контенту определяет заголовок (H1)
+     * Выдёргивает контент из связанного шаблона, и по этому контенту определяет заголовок (H1)
      *
+     * @throws Exception
      */
-    public function indexAction()
+    public function indexAction(): void
     {
 
         // Выдёргиваем заголовок из addonName[key]['content']
@@ -125,29 +128,35 @@ class Controller
 
         $this->templateInit($tplName);
 
-        $this->view->header = $header;
+        $this->view->set('header', $header);
 
         // Перенос данных страницы в шаблон
-        if (is_array($pageData)) {
-            foreach ($pageData as $k => $v) {
-                $this->view->$k = $v;
-            }
+        foreach ($pageData as $k => $v) {
+            $this->view->$k = $v;
         }
 
-        $request = new Request();
-        $page = (int)$request->{$this->pageName};
+        $page = (int)$this->request->get($this->pageName);
 
         if ($page > 1) {
             // На страницах листалки описание категории отображать не надо
             if (isset($pageData['addons'])) {
-                for ($i = 0; $i < count($pageData['addons']); $i++) {
+                $count = count($pageData['addons']);
+                for ($i = 0; $i < $count; $i++) {
+                    if (!isset($this->view->addons[$i]['content'])) {
+                        continue;
+                    }
+                    /** @noinspection UnsupportedStringOffsetOperationsInspection */
                     $this->view->addons[$i]['content'] = '';
                 }
             }
         } elseif ($page === 1) {
             // Устраняем из адреса параметр с номером страницы
-            $url = $this->model->getCanonical();
-            $url = $request->getQueryWithout($this->pageName, $url);
+            $url = preg_replace(
+                '/[&*]' . $this->pageName . '=.*(&|$)/U',
+                '',
+                $this->model->getCanonical()
+            );
+
             $this->redirect($url);
         }
     }
@@ -162,10 +171,10 @@ class Controller
     public function run(Router $router): Response
     {
         $this->model = $router->getModel();
-        $request = $router->getRequest();
+        $this->request = $router->getRequest();
 
         // Определяем и вызываем требуемый action у контроллера
-        $actionName = $request->get('action', 'index') . 'Action';
+        $actionName = $this->request->get('action', 'index') . 'Action';
 
         if (!method_exists($this, $actionName)) {
             // Вызываемый action отсутствует, запускаем 404 ошибку
@@ -197,34 +206,37 @@ class Controller
         return new Response($text, $this->model->is404 ? Response::HTTP_NOT_FOUND : Response::HTTP_OK);
     }
 
-    protected function fillView()
+    protected function fillView(): void
     {
         $config = Config::getInstance();
 
-        $this->view->domain = strtoupper($config->domain);
-        $this->view->startUrl = $config->cms['startUrl'];
-        $this->view->minifier = $config->cache['jsAndCss']; // флаг включения минификации js и css
+        $this->view->set('domain', strtoupper($config->domain));
+        $this->view->set('startUrl', $config->cms['startUrl']);
+        $this->view->set('minifier', $config->cache['jsAndCss']); // флаг включения минификации js и css
 
-        $this->view->breadCrumbs = $this->model->getBreadCrumbs();
+        $this->view->set('breadCrumbs', $this->model->getBreadCrumbs());
 
-        $this->view->year = date('Y');
+        $this->view->set('year', date('Y'));
 
         // Определение места выполнения скрипта (на сайте в production, или локально в development)
-        $this->view->isProduction = $config->domain == str_replace('www.', '', $_SERVER['HTTP_HOST']);
+        $this->view->set(
+            'isProduction',
+            $config->domain === str_replace('www.', '', $_SERVER['HTTP_HOST'])
+        );
 
         // Определение залогинен пользователь в админку или нет
         $user = new User\Model();
-        $this->view->isAdmin = $user->checkLogin();
+        $this->view->set('isAdmin', $user->checkLogin());
 
         $helper = new Helper();
         $helpers = $helper->getVariables($this->model);
         foreach ($helpers as $k => $v) {
-            $this->view->$k = $v;
+            $this->view->set($k, $v);
         }
 
-        $this->view->title = $this->model->getTitle();
-        $this->view->metaTags = $this->model->getMetaTags($helper->xhtml);
-        $this->view->canonical = $this->model->getCanonical();
+        $this->view->set('title', $this->model->getTitle());
+        $this->view->set('metaTags', $this->model->getMetaTags($helper->xhtml));
+        $this->view->set('canonical', $this->model->getCanonical());
     }
 
     /**
@@ -232,12 +244,12 @@ class Controller
      *
      * @param $model
      */
-    public function setModel($model)
+    public function setModel($model): void
     {
         $this->model = $model;
     }
 
-    public function getView()
+    public function getView(): View
     {
         return $this->view;
     }
@@ -247,7 +259,7 @@ class Controller
      *
      * @param string $actionName
      */
-    public function finishMod($actionName)
+    public function finishMod(string $actionName): void
     {
     }
 
@@ -256,7 +268,7 @@ class Controller
      *
      * @param string $tplName Путь к файлу шаблона от Ideal или от Mods (не включая эти папки)
      */
-    public function setTemplate($tplName)
+    public function setTemplate(string $tplName): void
     {
         $this->tplName = $tplName;
     }
@@ -267,7 +279,7 @@ class Controller
      * @param string $tplName Тип класса (например, Structure или Field)
      * @return string
      */
-    protected function getPathToTwigTemplate($tplName)
+    protected function getPathToTwigTemplate(string $tplName): string
     {
         // Если был введён полный путь, то он используется напрямую, иначе только имя
         // Считаем, что был введён полный путь если присутствует хотя бы один слэш
@@ -275,7 +287,7 @@ class Controller
             return $tplName;
         }
         $parts = explode('\\', get_class($this));
-        $moduleName = ($parts[0] == 'Ideal') ? '' : $parts[0] . '/';
+        $moduleName = ($parts[0] === 'Ideal') ? '' : $parts[0] . '/';
         return $moduleName . $parts[1] . '/' . $parts[2] . '/Site/' . $tplName;
     }
 
@@ -283,7 +295,7 @@ class Controller
      * Редирект по указанному адресу
      * @param string $url Адрес для редиректа
      */
-    protected function redirect($url)
+    protected function redirect(string $url): void
     {
         header('Location: ' . $url);
         exit;

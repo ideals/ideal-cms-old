@@ -9,6 +9,7 @@
 
 namespace Ideal\Medium\TemplateList;
 
+use Exception;
 use Ideal\Core\Config;
 use Ideal\Core\Util;
 use Ideal\Medium\AbstractModel;
@@ -20,13 +21,14 @@ class Model extends AbstractModel
 {
     /**
      * {@inheritdoc}
+     * @throws Exception
      */
-    public function getList()
+    public function getList(): array
     {
         $config = Config::getInstance();
 
         $objClassName = get_class($this->obj); // определяем название класса модели редактируемого элемента
-        $objClassNameSlice = explode('\\', $objClassName);
+        $objClassNameSlice = (array)explode('\\', $objClassName);
 
         // Получаем название текущего типа структуры
         $modelStructures = [$objClassNameSlice[0] . '_' . $objClassNameSlice[2]];
@@ -44,6 +46,7 @@ class Model extends AbstractModel
         }
 
         // Получаем список структур, которые можно создавать в этой структуре
+        $structures = [];
         foreach ($config->structures as $structure) {
             if (in_array($structure['structure'], $modelStructures, true)) {
                 $structures[] = $structure['structure'];
@@ -65,7 +68,7 @@ class Model extends AbstractModel
 
                 // Проверяем на существование директорию перед сканированием.
                 if (is_dir($twigTplRootScanFolder)) {
-                    $nameTpl = '/.*\.twig$/';
+                    $nameTpl = '/\.twig$/';
                     $templates = scandir($twigTplRootScanFolder);
 
                     // Получаем список доступных для выбора шаблонов

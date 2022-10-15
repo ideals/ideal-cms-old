@@ -31,12 +31,14 @@ use Symfony\Component\HttpFoundation\Request;
  */
 class FrontController
 {
+
     /**
      * Запуск FrontController'а
      *
      * Проводится роутинг, определяется контроллер страницы и отображаемый текст.
      * Выводятся HTTP-заголовки и отображается текст, сгенерированный с помощью view в controller
      *
+     * @return void
      */
     public function run(): void
     {
@@ -77,7 +79,7 @@ class FrontController
         try {
             // todo сравнение по http-методам
             $parameters = $matcher->match($request->getPathInfo());
-        } catch (ResourceNotFoundException $e) {
+        } /** @noinspection BadExceptionsProcessingInspection */ catch (ResourceNotFoundException $e) {
             // Стандартный роутинг не смог ничего найти, запускаем роутинг по БД
             $parameters = [
                 '_controller' => Site\Router::class,

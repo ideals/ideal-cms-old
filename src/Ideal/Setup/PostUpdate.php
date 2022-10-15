@@ -8,7 +8,6 @@
 
 namespace Ideal\Setup;
 
-use Composer\Script\Event;
 use Ideal\Core\Config;
 use RuntimeException;
 
@@ -18,7 +17,7 @@ class PostUpdate
 
     private string $vendorDir;
 
-    public function __construct(string $vendorDir, Event $event)
+    public function __construct(string $vendorDir)
     {
         $this->vendorDir = $vendorDir;
         $this->rootDir = stream_resolve_include_path($vendorDir . '/..');

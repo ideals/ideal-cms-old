@@ -12,6 +12,7 @@ namespace Ideal\Structure\Log;
 use Ideal\Core\Config;
 use Ideal\Core\Db;
 use Ideal\Structure\User\Model as UserModel;
+use JsonException;
 
 /**
  * Класс обеспечивающий логирование
@@ -21,7 +22,7 @@ class Model
     /**
      * @var string Название таблицы в базе
      */
-    protected $table;
+    protected string $table;
 
     public function __construct()
     {
@@ -35,7 +36,7 @@ class Model
      * @param string $message
      * @param array $context
      */
-    public function emergency($message, array $context = array())
+    public function emergency(string $message, array $context = []): void
     {
         $this->log('emergency', $message, $context);
     }
@@ -46,7 +47,7 @@ class Model
      * @param string $message
      * @param array $context
      */
-    public function alert($message, array $context = array())
+    public function alert(string $message, array $context = []): void
     {
         $this->log('alert', $message, $context);
     }
@@ -57,7 +58,7 @@ class Model
      * @param string $message
      * @param array $context
      */
-    public function critical($message, array $context = array())
+    public function critical(string $message, array $context = []): void
     {
         $this->log('critical', $message, $context);
     }
@@ -69,7 +70,7 @@ class Model
      * @param string $message
      * @param array $context
      */
-    public function error($message, array $context = array())
+    public function error(string $message, array $context = []): void
     {
         $this->log('error', $message, $context);
     }
@@ -80,7 +81,7 @@ class Model
      * @param string $message
      * @param array $context
      */
-    public function warning($message, array $context = array())
+    public function warning(string $message, array $context = []): void
     {
         $this->log('warning', $message, $context);
     }
@@ -91,7 +92,7 @@ class Model
      * @param string $message
      * @param array $context
      */
-    public function notice($message, array $context = array())
+    public function notice(string $message, array $context = []): void
     {
         $this->log('notice', $message, $context);
     }
@@ -102,7 +103,7 @@ class Model
      * @param string $message
      * @param array $context
      */
-    public function info($message, array $context = array())
+    public function info(string $message, array $context = []): void
     {
         $this->log('info', $message, $context);
     }
@@ -113,7 +114,7 @@ class Model
      * @param string $message
      * @param array $context
      */
-    public function debug($message, array $context = array())
+    public function debug(string $message, array $context = []): void
     {
         $this->log('debug', $message, $context);
     }
@@ -125,12 +126,12 @@ class Model
      * @param string $message
      * @param array $context
      */
-    public function log($level, $message, array $context = array())
+    public function log(string $level, string $message, array $context = []): void
     {
         $config = Config::getInstance();
         $db = Db::getInstance();
         $user = UserModel::getInstance();
-        $json = array();
+        $json = [];
 
         if (isset($context['model'])) {
             $model = $context['model'];
@@ -141,22 +142,29 @@ class Model
         }
 
         // Генерируем преструктуру для записи в базу
-        $par = array('structure' => 'Ideal_Log');
-        $fields = array('table' => $config->db['prefix'] . 'ideal_structure_datalist');
-        $result = $db->select('SELECT * FROM &table WHERE structure = :structure', $par, $fields);
+        $par = ['structure' => 'Ideal_Log'];
+        $fields = ['table' => $config->db['prefix'] . 'ideal_structure_datalist'];
+        $result = $db->select(/** @lang text */
+            'SELECT * FROM &table WHERE structure = :structure', $par, $fields);
         $id = $result[0]['ID'];
         $datalistStructure = $config->getStructureByName('Ideal_DataList');
         $prevStructure = $datalistStructure['ID'] . '-' . $id;
 
-        $par = array(
+        try {
+            $json = json_encode($json, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        } /** @noinspection BadExceptionsProcessingInspection */ catch (JsonException $e) {
+            // todo логирование
+        }
+
+        $par = [
             'prev_structure' => $prevStructure,
             'date_create' => time(),
             'level' => $level,
             'user_id' => $user->data['ID'],
             'type' => $context['type'],
             'message' => $message,
-            'json' => json_encode($json, JSON_UNESCAPED_UNICODE),
-        );
+            'json' => $json,
+        ];
 
         $db->insert($this->table, $par);
     }

@@ -9,7 +9,7 @@
 
 namespace Ideal\Core\Admin;
 
-use Ideal\Core;
+use Exception;
 use Ideal\Core\Config;
 use Ideal\Core\Request;
 use Ideal\Core\Util;
@@ -17,11 +17,9 @@ use Ideal\Core\View;
 use Ideal\Setup\ModuleConfig;
 use Ideal\Structure;
 use Ideal\Core\FileCache;
+use JsonException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
-use Twig\Error\LoaderError;
-use Twig\Error\RuntimeError;
-use Twig\Error\SyntaxError;
 
 class Controller
 {
@@ -34,7 +32,11 @@ class Controller
     /** @var View Объект вида — twig-шаблонизатор */
     protected View $view;
 
-    public function createAction()
+    /**
+     * @return void
+     * @throws Exception
+     */
+    public function createAction(): void
     {
         $this->model->setPageDataNew();
 
@@ -49,16 +51,20 @@ class Controller
             }
         }
 
-        echo json_encode($result);
+        echo json_encode($result, JSON_THROW_ON_ERROR);
         exit;
     }
 
-    public function deleteAction()
+    /**
+     * @return void
+     * @throws Exception
+     */
+    public function deleteAction(): void
     {
         $request = new Request();
 
-        $result = array();
-        $result['ID'] = intval($request->id);
+        $result = [];
+        $result['ID'] = (int)$request->get('id');
         $result['isCorrect'] = false;
 
         $this->model->setPageDataById($result['ID']);
@@ -69,36 +75,40 @@ class Controller
             $result['isCorrect'] = $this->model->delete();
         }
 
-        if ($result['isCorrect'] == 1) {
+        if ((int)$result['isCorrect'] === 1) {
             $this->runClearFileCache();
             $this->model->saveToLog('Удалён');
         }
 
-        echo json_encode($result);
+        echo json_encode($result, JSON_THROW_ON_ERROR);
         exit;
     }
 
-    public function editAction()
+    /**
+     * @return void
+     * @throws Exception
+     */
+    public function editAction(): void
     {
         $request = new Request();
-        $this->model->setPageDataById($request->id);
+        $this->model->setPageDataById($request->get('id'));
 
         // Проверка ввода - если ок - сохраняем, если нет - сообщаем об ошибках
         $result = $this->model->parseInputParams();
 
         $aclModel = new \Ideal\Structure\Acl\Admin\Model();
         // Проверяем, есть ли право редактирования элемента
-        if ($result['isCorrect'] == 1) {
+        if ((int)$result['isCorrect'] === 1) {
             $result['isCorrect'] = $aclModel->checkAccess($this->model, 'edit');
         }
 
-        if ($result['isCorrect'] == 1) {
+        if ((int)$result['isCorrect'] === 1) {
             $result = $this->model->saveElement($result);
             $this->runClearFileCache();
             $this->model->saveToLog('Изменён');
         }
 
-        echo json_encode($result);
+        echo json_encode($result, JSON_THROW_ON_ERROR);
         exit;
     }
 
@@ -106,10 +116,6 @@ class Controller
      * Инициализация админского twig-шаблона
      *
      * @param string $tplName Название файла шаблона (с путём к нему), если не задан - будет index.twig
-     *
-     * @throws LoaderError
-     * @throws RuntimeError
-     * @throws SyntaxError
      */
     public function templateInit(string $tplName = 'index.twig'): void
     {
@@ -147,18 +153,18 @@ class Controller
      * По умолчанию система ставит только заголовок Content-Type, но и его можно
      * переопределить в этом методе.
      *
-     * @return array Массив где ключи - названия заголовков, а значения - содержание заголовков
+     * @return array Массив, где ключи - названия заголовков, а значения - содержание заголовков
      */
-    public function getHttpHeaders()
+    public function getHttpHeaders(): array
     {
-        return array(
+        return [
             'X-Robots-Tag' => 'noindex, nofollow'
-        );
+        ];
     }
 
     // TODO перенести в контроллер юзера
 
-    public function logoutAction()
+    public function logoutAction(): void
     {
         $user = Structure\User\Model::getInstance();
         $user->logout();
@@ -166,35 +172,34 @@ class Controller
         exit;
     }
 
-    public function parseList($headers, $list)
+    public function parseList($headers, $list): void
     {
-        $config = Config::getInstance();
-
         // Инициализируем объект запроса
         $request = new Request();
 
         // Отображение списка заголовков
-        $this->view->headers = $headers;
+        $this->view->set('headers', $headers);
 
-        if ($request->par == '') {
-            $request->par = 1;
+        if ($request->get('par') === '') {
+            $request->set('par', 1);
         }
-        $this->view->par = $request->par;
+        $this->view->set('par', $request->get('par'));
 
         // Отображение списка элементов
         $rows = [];
-        foreach ($list as $k => $v) {
+        foreach ($list as $v) {
             $fields = '';
             foreach ($headers as $key => $v2) {
                 $type = $this->model->fields[$key]['type'];
                 $fieldClassName = Util::getClassName($type, 'Field') . '\\Controller';
+                /** @noinspection PhpUndefinedMethodInspection */
                 $fieldModel = $fieldClassName::getInstance();
                 $fieldModel->setModel($this->model, $key);
                 $value = $fieldModel->getValueForList($v, $key);
-                if (isset($this->model->params['field_name']) && $key == $this->model->params['field_name']
+                if (isset($this->model->params['field_name']) && $key === $this->model->params['field_name']
                     && (!isset($v['acl']) || $v['acl']['enter']) ) {
                     // На активный элемент ставим ссылку
-                    $par = $request->par . '-' . $v['ID'];
+                    $par = $request->get('par') . '-' . $v['ID'];
                     $value = '<a href="?par=' . $par . '">' . $value . '</a>';
                 }
                 $fields .= '<td>' . $value . '</td>';
@@ -209,16 +214,16 @@ class Controller
                 'acl_enter' => $v['acl']['enter'] ?? 1,
             ];
         }
-        $this->view->rows = $rows;
+        $this->view->set('rows', $rows);
     }
 
     /**
      * Генерация контента страницы для отображения в браузере
      *
      * @param Router $router
-     * @return string Содержимое отображаемой страницы
+     * @return Response Содержимое отображаемой страницы
      */
-    public function run(Router $router)
+    public function run(Router $router): Response
     {
         $this->model = $router->getModel();
 
@@ -292,11 +297,15 @@ class Controller
      *
      * @param string $actionName
      */
-    public function finishMod($actionName)
+    public function finishMod(string $actionName): void
     {
     }
 
-    public function showCreateAction()
+    /**
+     * @return void
+     * @throws JsonException
+     */
+    public function showCreateAction(): void
     {
         $this->model->setPageDataNew();
         // Отображаем список полей структуры part
@@ -304,12 +313,16 @@ class Controller
         exit;
     }
 
-    protected function showEditTabs($values = '')
+    /**
+     * @return void
+     * @throws JsonException
+     */
+    protected function showEditTabs(): void
     {
         $model = $this->model;
         // Выстраиваем список табов
         $defaultName = 'Основное';
-        $tabs = array($defaultName => array());
+        $tabs = [$defaultName => []];
         foreach ($model->fields as $fieldName => $field) {
             if (isset($field['tab'])) {
                 $tabs[$field['tab']][$fieldName] = $field;
@@ -338,10 +351,14 @@ class Controller
         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
     }
 
-    public function showEditAction()
+    /**
+     * @return void
+     * @throws JsonException
+     */
+    public function showEditAction(): void
     {
         $request = new Request();
-        $this->model->setPageDataById($request->id);
+        $this->model->setPageDataById($request->get('id'));
         // TODO доработать $this->model->getPath() так, чтобы в пути присутствовала и главная
         $this->showEditTabs();
         exit;
@@ -350,12 +367,12 @@ class Controller
     /**
      * Запуск очищения файлового кэша.
      */
-    public function runClearFileCache()
+    public function runClearFileCache(): void
     {
         $config = Config::getInstance();
         $configCache = $config->cache;
 
-        // Очищаем файловый кэш  при условии что кэширование включено.
+        // Очищаем файловый кэш при условии, что кэширование включено.
         // Если кэширование выключено кэш должен быть пуст
         if (isset($configCache['fileCache']) && $configCache['fileCache']) {
             FileCache::clearFileCache();

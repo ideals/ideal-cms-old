@@ -16,9 +16,10 @@ class SiteModel extends AbstractSiteModel
     /**
      * {@inheritdoc}
      */
-    public function getPageData()
+    public function getPageData(): array
     {
         $this->setPageDataByPrevStructure($this->prevStructure);
+
         return $this->pageData;
     }
 }

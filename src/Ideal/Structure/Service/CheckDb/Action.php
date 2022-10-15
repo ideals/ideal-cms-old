@@ -58,8 +58,8 @@ HTML;
             if (!$v['hasTable']) {
                 continue;
             }
-            $table = $config->getTableByName($v['structure'], 'Structure');
-            $fields = $this->getFields($v, 'Structure');
+            $table = $config->getTableByName($v['structure']);
+            $fields = $this->getFields($v);
             $cfgTablesFull[$table] = $fields;
             $cfgTables[$table] = $this->getFieldListWithTypes($fields);
         }
@@ -119,8 +119,8 @@ HTML;
                 }
 
                 // Составляем sql запрос для вставки поля в таблицу
-                $sql = "ALTER TABLE {$table} ADD {$field} {$data[$field]['sql']}"
-                    . " COMMENT '{$data[$field]['label']}' {$afterThisField};";
+                $sql = "ALTER TABLE $table ADD $field {$data[$field]['sql']}"
+                    . " COMMENT '{$data[$field]['label']}' $afterThisField;";
                 $db->query($sql);
                 $result .= ' Готово.</p>';
                 $fields = $this->getFieldListWithTypes($data);
@@ -132,7 +132,7 @@ HTML;
         if (isset($_POST['delete'])) {
             foreach ($_POST['delete'] as $table => $v) {
                 $result .= '<p>Удаляем таблицу ' . $table . '…';
-                $db->query("DROP TABLE `{$table}`");
+                $db->query("DROP TABLE `$table`");
                 $result .= ' Готово.</p>';
                 unset($dbTables[$table]);
             }
@@ -143,7 +143,7 @@ HTML;
             foreach ($_POST['delete_field'] as $tableField => $v) {
                 [$table, $field] = explode('-', $tableField);
                 $result .= '<p>Удаляем поле ' . $field . ' в таблице ' . $table . '…';
-                $db->query("ALTER TABLE {$table} DROP COLUMN {$field};");
+                $db->query("ALTER TABLE $table DROP COLUMN $field;");
                 $result .= ' Готово.</p>';
                 unset($dbTables[$table][$field]);
             }
@@ -156,9 +156,9 @@ HTML;
                 $result .= '<p>Изменяем поле ' . $field . ' в таблице ' . $table . ' на тип' . $type . '…';
                 // Поле с типом "SET", требует особенного подхода в обновлении значений
                 if (strncasecmp($type, 'set', 3) === 0) {
-                    $db->query("ALTER TABLE {$table} CHANGE {$field} {$field} {$type};");
+                    $db->query("ALTER TABLE $table CHANGE $field $field $type;");
                 } else {
-                    $db->query("ALTER TABLE {$table} MODIFY {$field} {$type};");
+                    $db->query("ALTER TABLE $table MODIFY $field $type;");
                 }
                 $result .= ' Готово.</p>';
                 $dbTables[$table][$field] = $type;
@@ -369,10 +369,11 @@ HTML;
     }
 
     // Получаем информацию о полях из конфигурационных файлов
-    protected function getFields($data, $type = 'Structure'): array
+    protected function getFields(array $data, string $type = 'Structure'): array
     {
         $config = Config::getInstance();
         $configClass = $config->getStructureClass($data['structure'], 'Config', $type);
+        /** @noinspection PhpUndefinedFieldInspection */
         $dataFields = $configClass::$fields;
 
         $fields = [];
@@ -394,7 +395,7 @@ HTML;
                 if (strncasecmp($value['sql'], 'set', 3) === 0) {
                     preg_match('/set\(.*?\)/is', $value['sql'], $matchesType);
                     if (isset($matchesType[0])) {
-                        $type = preg_replace('/\v|\s\s/is', '', $matchesType[0]);
+                        $type = preg_replace('/\v|\s\s/i', '', $matchesType[0]);
                     }
                 } else {
                     [$type] = explode(' ', $value['sql']);

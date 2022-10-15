@@ -9,6 +9,7 @@
 namespace Ideal\Setup;
 
 use Composer\Script\Event;
+use JsonException;
 
 /**
  * https://getcomposer.org/doc/articles/scripts.md
@@ -29,7 +30,7 @@ class Composer
         $vendorDir = $event->getComposer()->getConfig()->get('vendor-dir');
         require $vendorDir . '/autoload.php';
 
-        $installer = new PostUpdate($vendorDir, $event);
+        $installer = new PostUpdate($vendorDir);
         $installer->run();
     }
 
@@ -42,6 +43,7 @@ class Composer
      * @return void
      *
      * @noinspection PhpUnused
+     * @throws JsonException
      */
     public static function postCreateProject(Event $event): void
     {

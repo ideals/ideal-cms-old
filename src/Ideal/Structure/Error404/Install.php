@@ -37,7 +37,7 @@ class Install implements InstallStructureInterface
                 'structure' => 'Ideal_Error404',
                 'pos' => $newPos,
                 'name' => 'Ошибки 404',
-                'url' => 'oshibki-404',
+                'url' => 'errors-404',
                 'parent_url' => '---',
                 'annot' => ''
             ]
