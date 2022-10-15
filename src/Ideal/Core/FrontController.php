@@ -15,6 +15,7 @@ use Ideal\Structure\Error404\Site\Controller;
 use Ideal\Structure\User\Admin\Plugin;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Matcher\UrlMatcher;
 use Symfony\Component\Routing\RequestContext;
@@ -62,7 +63,12 @@ class FrontController
 
         $routes = $callable($routes);
 
+        $session = new Session();
+        $session->start();
+
         $request = Request::createFromGlobals();
+        $request->setSession($session);
+
         $context = new RequestContext();
         $context->fromRequest($request);
 

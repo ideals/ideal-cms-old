@@ -1,5 +1,6 @@
 <?php
 
+use Ideal\Controller\CaptchaController;
 use Ideal\Controller\MinifyController;
 use Ideal\Controller\ResizeController;
 use Symfony\Component\Routing\Route;
@@ -19,6 +20,10 @@ return static function (RouteCollection $routes) {
     // Объединение и минификация js
     $route = new Route('/js/all.min.js', ['_controller' => MinifyController::class, 'action' => 'js']);
     $routes->add('min.js', $route);
+
+    // Отображение картинки капчи
+    $route = new Route('/images/captcha.jpg', ['_controller' => CaptchaController::class, 'action' => 'image']);
+    $routes->add('resized', $route);
 
     return $routes;
 };

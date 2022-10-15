@@ -27,6 +27,7 @@
     "components/jquery": "2.2.1",
     "components/jqueryui": "1.11.4",
     "firephp/firephp-core": "^0.5.3",
+    "gregwar/captcha": "1.1.9",
     "idealcms/bootstrap-multiselect": "0.9.15",
     "idealcms/ckeditor": "4.4.6",
     "idealcms/ckfinder": "2.6.2.1",
