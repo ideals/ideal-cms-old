@@ -90,16 +90,6 @@ class Model
     }
 
     /**
-     * При уничтожении объекта данные пользователя записываются в сессию
-     */
-    public function __destruct()
-    {
-        if (isset($this->session['user_data'])) {
-            $_SESSION[$this->seance] = serialize($this->session);
-        }
-    }
-
-    /**
      * Проверка залогинен ли пользователь
      *
      * @return bool Если залогинен — true, иначе — false
@@ -161,6 +151,8 @@ class Model
 
         // Записываем данные о пользователе в сессию
         $this->session['user_data'] = $this->data;
+
+        $_SESSION[$this->seance] = serialize($this->session);
 
         return true;
     }
