@@ -230,7 +230,7 @@ class Controller
         // Определяем и вызываем требуемый action у контроллера
         $request = $router->getRequest();
         $actionName = $request->get('action', 'index') . 'Action';
-        if (!method_exists($this, $actionName)) {
+        if (!method_exists($this, $actionName) && !method_exists($this, '__call')) {
             throw new ResourceNotFoundException(sprintf(
                 'Не найден экшен %s в классе %s',
                 $actionName,

@@ -31,14 +31,10 @@ class ControllerAbstract extends \Ideal\Core\Admin\Controller
         $item = $this->model->getPageData();
 
         [$module, $structure] = explode('_', $item['ID']);
-        $module = ($module === 'Ideal') ? '' : $module . '/';
-        $file = $module . 'Structure/Service/' . $structure . '/' . $name . '.php';
+        $class = $module . '\\Structure\\Service\\' . $structure . '\\AjaxController';
+        $object = new $class();
 
-        if (!stream_resolve_include_path($file)) {
-            throw new RuntimeException("Файл $file не существует");
-        }
-
-        include($file);
+        $object->$name();
     }
 
     /**

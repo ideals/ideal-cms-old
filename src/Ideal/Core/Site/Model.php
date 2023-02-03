@@ -166,10 +166,14 @@ abstract class Model extends Core\Model
      * этот метод добавляет суффикс листалки с указанием номера страницы
      *
      * @return string Title для страницы
+     * @noinspection MultipleReturnStatementsInspection
      */
     public function getTitle(): string
     {
-        $end = $this->pageData;
+        $end = $this->pageData ?? null;
+        if ($end === null) {
+            return '';
+        }
         $concat = ($this->pageNum > 1) ? str_replace('[N]', $this->pageNum, $this->pageNumTitle) : '';
         if (isset($end['title']) && $end['title'] !== '') {
             return $end['title'] . $concat;

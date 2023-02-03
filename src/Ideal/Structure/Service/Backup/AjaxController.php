@@ -13,7 +13,6 @@ use Exception;
 use Ideal\Core\Admin\AjaxController as CoreAjaxController;
 use Ideal\Core\Config;
 use Ideal\Core\Db;
-use Ideal\Structure\Service\UpdateCms\Versions;
 use Ifsnop\Mysqldump\Mysqldump;
 use PclZip;
 
@@ -26,6 +25,7 @@ class AjaxController extends CoreAjaxController
     /**
      * Создаём дамп базы данных
      * @throws Exception
+     * @noinspection JSUnresolvedFunction
      */
     public function createDumpAction(): void
     {
@@ -55,7 +55,7 @@ class AjaxController extends CoreAjaxController
             $time = time();
 
             // Получаем версию админки
-            $versions = new Versions();
+            $versions = new Version();
             $nowVersions = $versions->getVersions();
             $version = 'v' . $nowVersions['Ideal-CMS'];
 
@@ -182,6 +182,7 @@ class AjaxController extends CoreAjaxController
     /**
      * Загружаем сторонний файл дампа БД
      * @throws Exception
+     * @noinspection JSUnresolvedFunction
      */
     public function uploadFileAction(): void
     {
@@ -202,7 +203,7 @@ class AjaxController extends CoreAjaxController
         $backupPart = stream_resolve_include_path($_GET['bf']);
 
         // Получаем версию админки
-        $versions = new Versions();
+        $versions = new Version();
         $nowVersions = $versions->getVersions();
 
         $version = 'v' . $nowVersions['Ideal-CMS'];
@@ -214,7 +215,7 @@ class AjaxController extends CoreAjaxController
         $ext = substr($srcName, strrpos($srcName, '.') + 1);
 
         // Проверяем соответствие имени загружаемого файла шаблону имени для дампа
-        preg_match('/dump_(\d{4}\.\d{2}\.\d{2}_\d{2}\.\d{2}\.\d{2}_v[0-9a-z\.]{3,})[\._]/Umi', $srcName, $m);
+        preg_match('/dump_(\d{4}\.\d{2}\.\d{2}_\d{2}\.\d{2}\.\d{2}_v[0-9a-z.]{3,})[._]/Umi', $srcName, $m);
 
         // Имя файла дампа
         $timeName = (!empty($m[1])) ? $m[1] : date('Y.m.d_H.i.s', $time) . '_' . $version;

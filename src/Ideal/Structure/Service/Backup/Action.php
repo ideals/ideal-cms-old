@@ -154,11 +154,11 @@ HTML;
     // Загрузка файла
     function upload(file) {
         // FormData
-        var fd = new FormData();
+        const fd = new FormData();
         fd.append('file', file);
         $('#uploadfile').val('');
         // Url
-        var url = "?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=uploadFile&bf=$backupPart";
+        const url = "?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=uploadFile&bf=$backupPart";
         // Сообщение о процессе загрузки
         $('#textDumpStatus').removeClass().addClass('alert alert-info').html('Идёт загрузка файла...');
         // Загрузка
@@ -177,8 +177,8 @@ HTML;
                 $('#dumpTable').prepend(data.html);
                 $('.tlp').tooltip('destroy').tooltip();
             } else {
-                textField = $('#textDumpStatus').removeClass().addClass('pull-left alert alert-danger').html('');
-                data.error.message.forEach(function(item, i, arr) {
+                let textField = $('#textDumpStatus').removeClass().addClass('pull-left alert alert-danger').html('');
+                data.error.message.forEach(function(item) {
                     textField.append(item[0] + '<br />');
                 });
             }
@@ -200,7 +200,7 @@ HTML;
                 },
                 success: function (data) {
                     // Выводим сообщение
-                    if (data.length == 0) {
+                    if (data.length === 0) {
                         $('#textDumpStatus').removeClass().addClass('alert alert-success')
                             .html('Дамп БД успешно импортирован');
                     } else {
@@ -229,8 +229,8 @@ HTML;
                 },
                 success: function (data) {
                     //Выводим сообщение
-                    if (data.length == 0) {
-                        var el = document.getElementById(nameFile);
+                    if (data.length === 0) {
+                        const el = document.getElementById(nameFile);
                         el.parentNode.removeChild(el);
                         $('#textDumpStatus').removeClass().addClass('alert alert-success')
                             .html('Файл успешно удалён');
@@ -277,14 +277,14 @@ HTML;
     }
 
     function downloadDump(data) {
-        var url = window.location.href;
-        data = window.location.search.substr(1).split('?') + '&file=' + data + "&action=ajaxDownload";
-        var method = 'get';
+        const url = window.location.href;
+        data = window.location.search.substr(1).split('?') + '&file=' + data + "&action=download";
+        const method = 'get';
 
         // Разрезаем параметры в input'ы
-        var inputs = '';
+        let inputs = '';
         jQuery.each(data.split('&'), function () {
-            var pair = this.split('=');
+            const pair = this.split('=');
             inputs += '<input type="hidden" name="' + pair[0] + '" value="' + pair[1] + '" />';
         });
 

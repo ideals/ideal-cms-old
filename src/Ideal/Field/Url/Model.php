@@ -218,10 +218,10 @@ class Model
         $arr = $pluginBroker->makeEvent('onGetUrl', $arr);
         $lastUrlPart = $arr['last']['url'];
 
-        if (empty($lastUrlPart)
-            || strncmp($lastUrlPart, 'http:', 5) === 0
+        if (!empty($lastUrlPart) &&
+            (strncmp($lastUrlPart, 'http:', 5) === 0
             || strncmp($lastUrlPart, 'https:', 6) === 0
-            || strncmp($lastUrlPart, '/', 1) === 0
+            || strncmp($lastUrlPart, '/', 1) === 0)
         ) {
             // Если это уже сформированная или пустая ссылка, её и возвращаем
             return $lastUrlPart;
