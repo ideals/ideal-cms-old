@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection ClassOverridesFieldOfSuperClassInspection */
+
 /**
  * Ideal CMS (http://idealcms.ru/)
  *

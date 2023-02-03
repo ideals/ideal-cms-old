@@ -10,6 +10,7 @@
 namespace Ideal\Field\Addon;
 
 use Exception;
+use Ideal\Addon\AbstractAdminModel;
 use Ideal\Core\Config;
 use Ideal\Core\Util;
 use Ideal\Medium\AbstractModel;
@@ -118,7 +119,7 @@ class Model
     public function getTab(int $id, string $addonVar, string $addonName = ''): array
     {
         $class = Util::getClassName($addonVar, 'Addon') . '\\AdminModel';
-        /** @var \Ideal\Core\Admin\Model $model */
+        /** @var AbstractAdminModel $model */
         $model = new $class('');
 
         // Получаем тип аддона для формирования правильного groupName

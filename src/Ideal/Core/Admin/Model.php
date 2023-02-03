@@ -10,6 +10,7 @@
 namespace Ideal\Core\Admin;
 
 use Exception;
+use Ideal\Addon\AbstractAdminModel;
 use Ideal\Core;
 use Ideal\Core\Config;
 use Ideal\Core\Db;
@@ -75,6 +76,10 @@ abstract class Model extends Core\Model
 
         if (isset($groups[$groupName]['ID'])) {
             unset($groups[$groupName]['ID']);
+        }
+
+        if (!isset($groups[$groupName])) {
+            throw new RuntimeException('Не определена группа ' . $groupName);
         }
 
         $db = Db::getInstance();
@@ -218,6 +223,10 @@ abstract class Model extends Core\Model
             }
 
             $groups[$group][$field] = $v['value'];
+        }
+
+        if (!isset($groups[$groupName])) {
+            throw new RuntimeException('Не определена группа ' . $groupName);
         }
 
         $db = Db::getInstance();
@@ -474,8 +483,8 @@ abstract class Model extends Core\Model
         $tempDeletedAddonInfo = explode('_', $addonInfo[1]);
         $deletedAddonGroupName = strtolower(end($tempDeletedAddonInfo)) . '-' . $addonInfo[0];
 
-        /* @var $addonModelName Model */
         $addonModelName = Util::getClassName($addonInfo[1], 'Addon') . '\\AdminModel';
+        /** @var AbstractAdminModel $deletedAddonModel */
         $deletedAddonModel = new $addonModelName($addonDataPrevStructure);
         $deletedAddonModel->setFieldsGroup($deletedAddonGroupName);
         $deletedAddonModel->setPageDataByPrevStructure($addonDataPrevStructure);

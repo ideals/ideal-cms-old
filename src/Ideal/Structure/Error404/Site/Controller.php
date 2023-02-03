@@ -8,6 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class Controller extends \Ideal\Core\Site\Controller
 {
+    /** @noinspection PhpUnusedParameterInspection */
     public function errorAction(Request $request): Response
     {
         $this->model = new HomeSiteModel('');

@@ -15,59 +15,30 @@ use RuntimeException;
 
 class Action
 {
+    /** @noinspection JSUnresolvedFunction */
     public function render(): string
     {
         $config = Config::getInstance();
 
+        // Пытаемся определить полный путь к папке бэкапов, если это возможно.
+        // Проверяем временную папку и папку для бэкапов на существование, возможность создания и записи
+
+        // Временная папка
+        $tmpFolder = $config->cms['tmpFolder'];
+
+        // Название папки бэкапа относительно временной папки
+        $backupFolder = '/backup/';
+
         try {
-            // Пытаемся определить полный путь к папке бэкапов, если это возможно.
-            // Проверяем временную папку и папку для бэкапов на существование, возможность создания и записи
-
-            // Временная папка
-            $tmpFolder = $config->cms['tmpFolder'];
-
-            // Название папки бэкапа относительно временной папки
-            $backupFolder = '/backup/';
-
             if ($tmpFolder === '') {
                 throw new RuntimeException('Не задана временная папка tmpDir в файле site.php');
             }
 
             // Определяем доступность временной папки
-            $tmpFolder = $config->rootDir . '/' . $tmpFolder;
-            $tmpFull = stream_resolve_include_path($tmpFolder);
-
-            // Проверяем существует ли временная папка и если нет, то пытаемся её создать
-            if ($tmpFull === false) {
-                if (mkdir($tmpFolder, 0755) || is_dir($tmpFolder)) {
-                    $tmpFull = stream_resolve_include_path($tmpFolder);
-                }
-            }
-
-            if ($tmpFull === false) {
-                throw new RuntimeException("Не удалось создать папку $tmpFolder для сохранения дампа базы");
-            }
-
-            if (!is_writable($tmpFull)) {
-                throw new RuntimeException("Папка $tmpFull недоступна для записи");
-            }
+            $tmpFull = $this->getFolder($config->rootDir . '/' . $tmpFolder);
 
             // Проверяем существует ли папка для создания бэкапов и если нет, то пытаемся её создать
-            $backupFolder = $tmpFull . $backupFolder;
-            $backupPart = stream_resolve_include_path($backupFolder);
-            if ($backupPart === false) {
-                if (mkdir($backupFolder, 0755) || is_dir($backupFolder)) {
-                    $backupPart = stream_resolve_include_path($backupFolder);
-                }
-            }
-
-            if ($backupPart === false) {
-                throw new RuntimeException("Не удалось создать папку $backupFolder для сохранения дампа базы");
-            }
-
-            if (!is_writable($backupPart)) {
-                throw new RuntimeException("Папка $backupPart недоступна для записи");
-            }
+            $backupPart = $this->getFolder($tmpFull . $backupFolder);
 
             // В результате $backupPart содержит полный путь к папке бэкапа
 
@@ -76,8 +47,8 @@ class Action
         }
         $result = <<<HTML
 <form class="form-inline">
-    <button type="button" class="btn btn-success fileinput-button pull-right" style="margin-left:5px;"
-            onclick="document.querySelector('input#uploadfile').click()">
+    <button type="button" class="btn btn-success pull-right" style="margin-left:5px;"
+            onclick="document.querySelector('input#uploadFile').click()">
         <i class="glyphicon glyphicon-plus"></i>
         <span>Загрузить файл</span>
     </button>
@@ -86,7 +57,7 @@ class Action
         Создать резервную копию БД
     </button>
     <div id='textDumpStatus'></div>
-    <input id="uploadfile" style="visibility: collapse; width: 0;" type="file" name="file"
+    <input id="uploadFile" style="visibility: collapse; width: 0;" type="file" name="file"
            onchange="upload(this.files[0])">
 </form>
 
@@ -156,7 +127,7 @@ HTML;
         // FormData
         const fd = new FormData();
         fd.append('file', file);
-        $('#uploadfile').val('');
+        $('#uploadFile').val('');
         // Url
         const url = "?mode=ajax&controller=\\\\Ideal\\\\Structure\\\\Service\\\\Backup&action=uploadFile&bf=$backupPart";
         // Сообщение о процессе загрузки
@@ -278,7 +249,7 @@ HTML;
 
     function downloadDump(data) {
         const url = window.location.href;
-        data = window.location.search.substr(1).split('?') + '&file=' + data + "&action=download";
+        data = window.location.search.substring(1).split('?') + '&file=' + data + "&action=download";
         const method = 'get';
 
         // Разрезаем параметры в input'ы
@@ -297,5 +268,31 @@ HTML;
 </script>
 HTML;
         return $result;
+    }
+
+    /**
+     * @param string $folder
+     * @return string
+     */
+    protected function getFolder(string $folder): string
+    {
+        $tmpFull = stream_resolve_include_path($folder);
+
+        // Проверяем существует ли временная папка и если нет, то пытаемся её создать
+        if ($tmpFull === false) {
+            if (mkdir($folder, 0755) || is_dir($folder)) {
+                $tmpFull = stream_resolve_include_path($folder);
+            }
+        }
+
+        if ($tmpFull === false) {
+            throw new RuntimeException("Не удалось создать папку $folder для сохранения дампа базы");
+        }
+
+        if (!is_writable($tmpFull)) {
+            throw new RuntimeException("Папка $tmpFull недоступна для записи");
+        }
+
+        return $tmpFull;
     }
 }

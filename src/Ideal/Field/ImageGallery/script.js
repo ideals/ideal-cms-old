@@ -1,11 +1,11 @@
 $(document).ready(function () {
     // Обходим каждый элемент с классом "images-values" так как аддонов "Фотогалерея" может быть несколько.
     $('.images-values').each(function () {
-        var currentData = $(this).val();
+        let currentData = $(this).val();
         if (currentData !== '') {
-            var currentDataArray = JSON.parse(currentData);
-            var id = $(this).attr("id");
-            var imageList = getImageList(currentDataArray, id);
+            let currentDataArray = JSON.parse(currentData);
+            let id = $(this).attr("id");
+            let imageList = getImageList(currentDataArray, id);
             $('#' + id + '-list').html(imageList);
             startSortable('#' + id + '-list', '#' + id);
         }
@@ -14,22 +14,22 @@ $(document).ready(function () {
     // Вешаем событие на кнопку удаления изображения из списка
     $('.tab-pane').on('click', '.remove-image', function () {
         // Ищем поле содержащее адрес до изображения
-        var imageUrl = $(this).closest('li').children('div').find('.gallery-item-url').val();
+        const imageUrl = $(this).closest('li').children('div').find('.gallery-item-url').val();
 
         // Ищем поле которое хранит всю информацию об изображениях в списке
-        var imagesValues = $(this).closest('.tab-pane').children('.images-values');
+        const imagesValues = $(this).closest('.tab-pane').children('.images-values');
 
         // Получаем всю информацию об изображениях в списке в виде текста
-        var currentData = $(imagesValues).val();
+        const currentData = $(imagesValues).val();
 
         // Визуально удаляем изображение из списка
         $(this).closest('li').remove();
 
         // Получаем информацию об изображениях в списке в виде массива
-        var currentDataArray = JSON.parse(currentData);
+        const currentDataArray = JSON.parse(currentData);
 
         // Ищем ключ верхнего уровня удаляемого элемента
-        var arrayKey = secondLevelFind(currentDataArray, imageUrl);
+        const arrayKey = secondLevelFind(currentDataArray, imageUrl);
 
         // Удаляем информацию об изображении из массива
         currentDataArray.splice(arrayKey, 1);
@@ -40,9 +40,9 @@ $(document).ready(function () {
 
     // При смене описания картинки пересохраняем информацию для фотогалереи
     $(".tab-pane").on('change', '.gallery-item-description', function () {
-        var id = $('.images-values').attr("id");
-        var listSelector = '#' + id + '-list';
-        var infoSelector = '#' + id;
+        const id = $('.images-values').attr("id");
+        const listSelector = '#' + id + '-list';
+        const infoSelector = '#' + id;
         rescanPhotoGalleryItems(listSelector, infoSelector);
     });
 });
@@ -58,11 +58,11 @@ function startSortable(listSelector, infoSelector) {
 
 // Пересобираем информацию о фотогалерее
 function rescanPhotoGalleryItems(listSelector, infoSelector) {
-    var urls = [];
+    const urls = [];
     $(listSelector + " .sortable").find('li').each(function () {
         if ($(this).find('.gallery-item-url').val() !== undefined) {
-            var url = $(this).find('.gallery-item-url').val();
-            var description = $(this).find('.gallery-item-description').val();
+            let url = $(this).find('.gallery-item-url').val();
+            let description = $(this).find('.gallery-item-description').val();
             urls.push([url, description]);
         }
     });
@@ -72,7 +72,7 @@ function rescanPhotoGalleryItems(listSelector, infoSelector) {
 
 // Открывает окно CKFinder для возможности выбора изображений
 function imageGalleryShowFinder(fieldSelector) {
-    var finder = new CKFinder();
+    const finder = new CKFinder();
     finder.selectActionData = {"fieldSelector": fieldSelector};
     finder.basePath = 'js/ckfinder/';
     finder.selectActionFunction = imageGallerySetFileField;
@@ -81,26 +81,26 @@ function imageGalleryShowFinder(fieldSelector) {
 
 // Производит работу над выбранными изображениями
 function imageGallerySetFileField(fileUrl, data, allFiles) {
-    var fieldSelector = '#' + data.selectActionData.fieldSelector;
-    var urls = [];
+    const fieldSelector = '#' + data.selectActionData.fieldSelector;
+    let urls = [];
     $.each(allFiles, function (index, value) {
         urls.push([value.url, '']);
     });
-    var currentData = $(fieldSelector).val();
+    let currentData = $(fieldSelector).val();
     // Если пока нет никаких данных по изображениям значит записываем только что выбранные
     if (currentData !== '') {
-        var currentDataArray = JSON.parse(currentData);
+        let currentDataArray = JSON.parse(currentData);
         urls = currentDataArray.concat(urls);
     }
     $(fieldSelector).val(JSON.stringify(urls));
-    var imageList = getImageList(urls, data.selectActionData.fieldSelector);
+    const imageList = getImageList(urls, data.selectActionData.fieldSelector);
     $(fieldSelector + '-list').html(imageList);
     startSortable(fieldSelector + '-list', fieldSelector);
 }
 
 // Генерирует html список изображений
 function getImageList(imageList, fieldId) {
-    var fieldList = '';
+    let fieldList = '';
     fieldList += '<ul id="' + fieldId + '-sortable" class="sortable">';
     $.each(imageList, function (index, value) {
         fieldList += '<li class="ui-state-default">';
@@ -134,7 +134,7 @@ function getImageList(imageList, fieldId) {
 
 // Ищет элемент на втором уровне двумерного массива и возвращает ключ первого уровня
 function secondLevelFind(arr, value) {
-    for (var i = 0; i < arr.length; i++) {
+    for (let i = 0; i < arr.length; i++) {
         if (arr[i][0] === value) {
             return i;
         }

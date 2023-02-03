@@ -5,9 +5,6 @@ use Cron\CronExpression;
 use DateTime;
 use Exception;
 use samejack\PHP\ArgvParser;
-use Symfony\Component\Console\Application;
-use Symfony\Component\Console\Input\ArrayInput;
-use Symfony\Component\Console\Output\BufferedOutput;
 
 class Crontab
 {

@@ -43,9 +43,13 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand{% if not isProduction %} alert-danger"
-               title="РЕЖИМ РАЗРАБОТЧИКА! СЧЁТЧИКИ НЕ РАБОТАЮТ"{% endif %}"
-               href="/">{{ domain }}</a>
+            {% if isProduction %}
+                <a class="navbar-brand" href="/">{{ domain }}</a>
+            {% else %}
+                <a class="navbar-brand alert-danger" href="/" title="РЕЖИМ РАЗРАБОТЧИКА! СЧЁТЧИКИ НЕ РАБОТАЮТ">
+                    {{ domain }}
+                </a>
+            {% endif %}
         </div>
         <div class="navbar-collapse collapse" id="bs-main-navbar-collapse-1">
             {% if user.ID %}
@@ -405,7 +409,7 @@
                     success: function (data)
                     {
                         // При успешной авторизации инициализируем сохранение данных с формы редактирования
-                        if (data['login'] == 'true') {
+                        if (data['login'] === 'true') {
                             $('#myModalModal').modal('hide');
                             $('#myModal').css('z-index', '1050');
                             onSubmit(window.idObject['closeWindow']);
@@ -478,7 +482,7 @@
                         // В случае, если запрос удалось выполнить
                         resetErrorFields();
                         window.message = $('#message');
-                        if (data['isCorrect'] == '1') {
+                        if (data['isCorrect']) {
                             window.message.addClass('alert-success');
                             if (!('responseMessage' in data)) {
                                 window.message.html('Элемент успешно сохранён.');
@@ -505,11 +509,12 @@
                             // Если всё прошло успешно переименовываем заголовок
                             if (window.idObject['action'] === 'showCreate') {
                                 window.idObject['action'] = 'showEdit';
-                                window.idObject['id'] = data.items.general_ID.value;
+                                window.idObject['id'] = data.items['general_ID']['value'];
                                 $('#myModalLabel').html('Редактирование');
                             }
                         } else {
-                            if (data['isCorrect'] == '2') {
+                            // todo добавить параметр deletePrompt в ответ метода delete
+                            if ('deletePrompt' in data) {
                                 // Собираем сообщения со всех полей в одно
                                 let text = 'Вы действительно хотите изменить:';
                                 $.each(data.items, function (i, item)
@@ -658,7 +663,7 @@
             // Исправление бага с выпадающими списками в CKEditor при открытии его в модальном окне Bootstrap
             // http://dev.ckeditor.com/ticket/12525#comment:4
             $.fn.modal.Constructor.prototype.enforceFocus = function() {
-                var $modalElement = this.$element;
+                let $modalElement = this.$element;
                 $(document).on('focusin.modal',function(e) {
                     if ($modalElement[0] !== e.target
                             && !$modalElement.has(e.target).length

@@ -72,7 +72,13 @@ class Request
      */
     public function get(string $name, string $default = '')
     {
-        return $_GET[$name] ?? $default;
+        if (isset($_REQUEST['formValues'])) {
+            parse_str($_REQUEST['formValues'], $values);
+            $_REQUEST = array_merge($_REQUEST, $values);
+            unset($_REQUEST['formValues']);
+        }
+
+        return $_REQUEST[$name] ?? $default;
     }
 
     public function set(string $name, string $value): void

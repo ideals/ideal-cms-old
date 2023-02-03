@@ -1,6 +1,6 @@
 $(document).ready(function () {
     $('#general_structure').change(function () {
-        var templateID = $(this).val().toLowerCase();
+        const templateID = $(this).val().toLowerCase();
         $('.general_template-controls input').each(function () {
             $(this).hide();
         });

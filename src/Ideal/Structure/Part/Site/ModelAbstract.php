@@ -16,6 +16,7 @@ use Ideal\Core\Util;
 use Ideal\Field;
 use Ideal\Field\Url;
 use Ideal\Structure\User;
+use RuntimeException;
 
 class ModelAbstract extends Site\Model
 {
@@ -43,6 +44,7 @@ class ModelAbstract extends Site\Model
         $user = new User\Model();
         $checkActive = ($user->checkLogin()) ? '' : ' AND is_active=1';
 
+        /** @noinspection SqlResolve */
         $_sql = "SELECT * FROM $this->_table WHERE ($_sql)
                     AND prev_structure='$this->prevStructure' $checkActive ORDER BY lvl, cid";
 
@@ -200,14 +202,16 @@ class ModelAbstract extends Site\Model
             // Определяем оставшиеся элементы пути
             $end = end($this->path);
             // Получаем модель вложенной структуры
-            $structure = $this->getNestedStructure($end);
-            if ($structure === null) {
+            try {
+                $structure = $this->getNestedStructure($end);
+            } /** @noinspection BadExceptionsProcessingInspection */ catch (RuntimeException $e) {
                 // Если вложенная структура такая же, то это значит что 404 ошибка
                 $this->is404 = true;
-            } else {
-                // Запускаем определение пути и активной модели по $par
-                $detectModel = $structure->detectPageByUrl($this->path, $url);
+                return $this;
             }
+
+            // Запускаем определение пути и активной модели по $par
+            $detectModel = $structure->detectPageByUrl($this->path, $url);
         }
 
         // Неразобранных сегментов не осталось, возвращаем в качестве модели сам объект
@@ -260,7 +264,7 @@ class ModelAbstract extends Site\Model
      * @param array $end Все параметры родительской структуры
      * @return Model Инициализированный объект модели вложенной структуры
      */
-    protected function getNestedStructure(array $end): ?Model
+    protected function getNestedStructure(array $end): Model
     {
         $config = Config::getInstance();
         $rootStructure = $config->getStructureByClass(get_class($this));
@@ -268,7 +272,7 @@ class ModelAbstract extends Site\Model
 
         if (get_class($this) === trim($modelClassName, '\\')) {
             // todo Если вложена такая же структура, то надо продолжать разбор url, но не здесь
-            return null;
+            throw new RuntimeException('Структура не может быть вложена сама в себя');
         }
 
         /* @var $structure Model */
@@ -329,6 +333,7 @@ class ModelAbstract extends Site\Model
 
             // Считываем все элементы с указанными cid'ами
             $db = Db::getInstance();
+            /** @noinspection SqlResolve */
             $_sql = "SELECT * FROM $this->_table WHERE cid IN ($strCids) ORDER BY cid";
             $path = $db->select($_sql);
         }
@@ -343,6 +348,7 @@ class ModelAbstract extends Site\Model
         $config = Config::getInstance();
         $urlModel = new Url\Model();
 
+        /** @noinspection SqlResolve */
         $_sql = "SELECT * FROM $this->_table WHERE prev_structure='$this->prevStructure' ORDER BY cid";
         $list = $db->select($_sql);
 

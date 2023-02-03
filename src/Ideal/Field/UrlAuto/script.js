@@ -1,8 +1,8 @@
-var AUTO_URL_OFF = 'auto url off';
-var AUTO_URL_ON = 'auto url on';
+const AUTO_URL_OFF = 'auto url off';
+const AUTO_URL_ON = 'auto url on';
 
 $('body').on('windowOpen', '#modalContent', function () {
-    var element = $("#UrlAuto");
+    const element = $("#UrlAuto");
     if (element != null) {
         loadUrlAuto(element);
     }
@@ -10,7 +10,7 @@ $('body').on('windowOpen', '#modalContent', function () {
 
 function translit(str) {
     str = str.toLocaleLowerCase();
-    var translitWord = {
+    const translitWord = {
         '@': '',
         '$': '',
         '%': '',
@@ -77,9 +77,9 @@ function translit(str) {
         'ь': '',
         'ъ': ''
     };
-    var transURL = '';
-    for (var i = 0; i < str.length; i++) {
-        var x = str.charAt(i);
+    let transURL = '';
+    for (let i = 0; i < str.length; i++) {
+        let x = str.charAt(i);
         transURL += (typeof translitWord[x] === 'undefined') ? x : translitWord[x];
     }
     return transURL;
@@ -90,8 +90,8 @@ function translit(str) {
  * @param e
  */
 function setTranslit(e) {
-    var input = $(e).parent().parent().find('input');
-    var butt = $(e);
+    const input = $(e).parent().parent().find('input');
+    const butt = $(e);
 
     if (input.attr("readonly")) {
         butt.removeClass('btn-success');
@@ -105,8 +105,8 @@ function setTranslit(e) {
         butt.text(AUTO_URL_ON);
         console.log(e.textContent);
         input.attr("readonly", "readonly");
-        var name = $('#general_name').val();
-        var tran = translit(name);
+        const name = $('#general_name').val();
+        const tran = translit(name);
         input.val(tran);
     }
 }
@@ -116,14 +116,14 @@ function setTranslit(e) {
  * @param e
  */
 function loadUrlAuto(e) {
-    var input = $(e).parent().parent().parent().find('input');
-    var butt = $(e).parent().parent().find('button');
-    var name = $("#general_" + input.attr('data-field')).val();
+    const input = $(e).parent().parent().parent().find('input');
+    const butt = $(e).parent().parent().find('button');
+    let name = $("#general_" + input.attr('data-field')).val();
     if (name === undefined) {
         return;
     }
     name = translit(name);
-    var url = $("#general_url").val();
+    const url = $("#general_url").val();
     if ((name !== url) || (butt.text() === AUTO_URL_ON)) return;
     input.attr("readonly", "readonly");
     butt.text(AUTO_URL_ON);
@@ -132,13 +132,13 @@ function loadUrlAuto(e) {
 }
 
 $(document).ready(function () {
-    var element = $('#general_url');
+    const element = $('#general_url');
     console.log(element.attr('data-field'));
-    var name = "#general_" + element.attr('data-field');
+    const name = "#general_" + element.attr('data-field');
     $('body').on("keyup", name, function () {
         if (element.attr("readonly")) {
-            var name = $(this).val();
-            var tran = translit(name);
+            const name = $(this).val();
+            const tran = translit(name);
             element.val(tran);
         }
     });

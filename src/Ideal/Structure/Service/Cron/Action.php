@@ -3,7 +3,6 @@
 namespace Ideal\Structure\Service\Cron;
 
 use Ideal\Core\Config;
-use Ideal\Structure\Service\SiteData\ConfigPhp;
 
 class Action
 {

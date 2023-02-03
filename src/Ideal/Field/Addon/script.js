@@ -1,3 +1,5 @@
+// noinspection JSJQueryEfficiency,JSUnresolvedFunction
+
 $(document).ready(function () {
     const addonField = getAddonFieldName();
     // Получаем список подключенных к странице аддонов
@@ -95,7 +97,7 @@ $(document).ready(function () {
         $('#addonsList').toggleClass('full-form');
     });
 
-// Навешиваем событие на кнопку добавления аддона после выбора из select
+    // Навешиваем событие на кнопку добавления аддона после выбора из select
     $('#add-addon-add').click(function () {
         const addonName = $('select#add-addon-select').val();
         const addonField = getAddonFieldName();

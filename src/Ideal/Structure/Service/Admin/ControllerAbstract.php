@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection ClassOverridesFieldOfSuperClassInspection */
+
 /**
  * Ideal CMS (http://idealcms.ru/)
  *
@@ -11,7 +12,6 @@ namespace Ideal\Structure\Service\Admin;
 
 use Exception;
 use Ideal\Core\Request;
-use RuntimeException;
 
 class ControllerAbstract extends \Ideal\Core\Admin\Controller
 {
