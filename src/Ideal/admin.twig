@@ -659,19 +659,6 @@
             {
                 $('.has-popover').popover();
             });
-
-            // Исправление бага с выпадающими списками в CKEditor при открытии его в модальном окне Bootstrap
-            // http://dev.ckeditor.com/ticket/12525#comment:4
-            $.fn.modal.Constructor.prototype.enforceFocus = function() {
-                let $modalElement = this.$element;
-                $(document).on('focusin.modal',function(e) {
-                    if ($modalElement[0] !== e.target
-                            && !$modalElement.has(e.target).length
-                            && $(e.target).parentsUntil('*[role="dialog"]').length === 0) {
-                        $modalElement.focus();
-                    }
-                });
-            };
         </script>
 
     <script>
