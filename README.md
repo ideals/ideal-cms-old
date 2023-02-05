@@ -5,7 +5,7 @@ Ideal CMS v. 5.0
 
 Используемые технологии и продукты:
 
-* PHP 7.4+,
+* PHP 8.0+,
 * MySQL 5+,
 * MVC, 
 * PSR-0, PSR-1, PSR-2
@@ -17,6 +17,11 @@ Ideal CMS v. 5.0
 * FirePHP.
 
 Все подробности на сайте [idealcms.ru](http://idealcms.ru/)
+
+Установка
+---
+
+    composer create-project idealcms/installer my-project
 
 Версия 5.0
 ---
